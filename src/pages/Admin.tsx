@@ -191,6 +191,8 @@ export default function Admin() {
       mentor_name: course.mentor_name || null,
       mentor_info: course.mentor_info || null,
       duration: course.duration || null,
+      image_url: course.image_url || null,
+      start_date: course.start_date || null,
       is_published: course.is_published,
     };
     
