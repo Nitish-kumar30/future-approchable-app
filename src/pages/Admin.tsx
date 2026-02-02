@@ -72,8 +72,11 @@ interface Question {
 interface Quiz {
   id: string;
   title: string;
-  session_id: string;
   questions: Question[];
+}
+
+interface SessionQuiz {
+  quiz_id: string;
 }
 
 export default function Admin() {
@@ -85,6 +88,7 @@ export default function Admin() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [sessionMaterials, setSessionMaterials] = useState<PreReadingMaterial[]>([]);
+  const [sessionQuizIds, setSessionQuizIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Form states
@@ -220,7 +224,7 @@ export default function Admin() {
   };
 
   // Session CRUD
-  const handleSaveSession = async (session: Omit<Session, 'id'> & { id?: string }, materials: PreReadingMaterial[]) => {
+  const handleSaveSession = async (session: Omit<Session, 'id'> & { id?: string }, materials: PreReadingMaterial[], quizIds: string[]) => {
     const sessionData = {
       title: session.title,
       description: session.description || null,
@@ -249,12 +253,10 @@ export default function Admin() {
       sessionId = data.id;
     }
 
-    // Handle pre-reading materials
     if (sessionId) {
-      // Delete existing materials for this session
+      // Handle pre-reading materials
       await supabase.from('pre_reading_materials').delete().eq('session_id', sessionId);
       
-      // Insert new materials
       if (materials.length > 0) {
         const materialsToInsert = materials.map((m, idx) => ({
           session_id: sessionId,
@@ -266,8 +268,22 @@ export default function Admin() {
         const { error: matError } = await supabase.from('pre_reading_materials').insert(materialsToInsert);
         if (matError) {
           toast({ title: 'Session saved, but error saving materials', description: matError.message, variant: 'destructive' });
-          fetchSessions();
-          return;
+        }
+      }
+
+      // Handle quiz assignments
+      await supabase.from('session_quizzes').delete().eq('session_id', sessionId);
+      
+      if (quizIds.length > 0) {
+        const quizAssignments = quizIds.map((quizId, idx) => ({
+          session_id: sessionId,
+          quiz_id: quizId,
+          display_order: idx,
+        }));
+        
+        const { error: quizError } = await supabase.from('session_quizzes').insert(quizAssignments);
+        if (quizError) {
+          toast({ title: 'Session saved, but error assigning quizzes', description: quizError.message, variant: 'destructive' });
         }
       }
     }
@@ -276,24 +292,33 @@ export default function Admin() {
     fetchSessions();
   };
 
-  const fetchSessionMaterials = async (sessionId: string) => {
-    const { data } = await supabase
-      .from('pre_reading_materials')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('display_order', { ascending: true });
-    setSessionMaterials(data || []);
+  const fetchSessionData = async (sessionId: string) => {
+    const [materialsRes, quizzesRes] = await Promise.all([
+      supabase
+        .from('pre_reading_materials')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('display_order', { ascending: true }),
+      supabase
+        .from('session_quizzes')
+        .select('quiz_id')
+        .eq('session_id', sessionId)
+        .order('display_order', { ascending: true }),
+    ]);
+    setSessionMaterials(materialsRes.data || []);
+    setSessionQuizIds((quizzesRes.data || []).map((sq: SessionQuiz) => sq.quiz_id));
   };
 
   const handleEditSession = async (session: Session) => {
     setEditingSession(session);
-    await fetchSessionMaterials(session.id);
+    await fetchSessionData(session.id);
     setSessionFormOpen(true);
   };
 
   const handleNewSession = () => {
     setEditingSession(null);
     setSessionMaterials([]);
+    setSessionQuizIds([]);
     setSessionFormOpen(true);
   };
 
@@ -311,7 +336,6 @@ export default function Admin() {
   const handleSaveQuiz = async (quiz: Omit<Quiz, 'id'> & { id?: string }) => {
     const quizData = { 
       title: quiz.title,
-      session_id: quiz.session_id,
       questions: JSON.parse(JSON.stringify(quiz.questions))
     };
     if (quiz.id) {
@@ -331,6 +355,11 @@ export default function Admin() {
         fetchQuizzes();
       }
     }
+  };
+
+  const getQuizSessionCount = (quizId: string) => {
+    // This would require fetching session_quizzes, for now we show a placeholder
+    return null;
   };
 
   const handleDeleteQuiz = async (id: string) => {
@@ -353,9 +382,6 @@ export default function Admin() {
     return '-';
   };
 
-  const getQuizSessionName = (quiz: Quiz) => {
-    return sessions.find(s => s.id === quiz.session_id)?.title || 'Unknown Session';
-  };
 
   if (authLoading) return null;
   
@@ -605,16 +631,14 @@ export default function Admin() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Manage Quizzes</CardTitle>
-                  <CardDescription>Create and assign quizzes to sessions</CardDescription>
+                  <CardDescription>Create reusable quizzes and assign them to sessions</CardDescription>
                 </div>
-                <Button onClick={() => { setEditingQuiz(null); setQuizFormOpen(true); }} disabled={sessions.length === 0}>
+                <Button onClick={() => { setEditingQuiz(null); setQuizFormOpen(true); }}>
                   <Plus className="mr-2 h-4 w-4" /> Add Quiz
                 </Button>
               </CardHeader>
               <CardContent>
-                {sessions.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">Create a session first to add quizzes.</p>
-                ) : isLoading ? (
+                {isLoading ? (
                   <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
                 ) : quizzes.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">No quizzes yet. Create your first one!</p>
@@ -623,7 +647,6 @@ export default function Admin() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Title</TableHead>
-                        <TableHead>Session</TableHead>
                         <TableHead>Questions</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -632,7 +655,6 @@ export default function Admin() {
                       {quizzes.map((quiz) => (
                         <TableRow key={quiz.id}>
                           <TableCell className="font-medium">{quiz.title}</TableCell>
-                          <TableCell>{getQuizSessionName(quiz)}</TableCell>
                           <TableCell>{quiz.questions.length}</TableCell>
                           <TableCell className="text-right space-x-2">
                             <Button variant="ghost" size="sm" onClick={() => { setEditingQuiz(quiz); setQuizFormOpen(true); }}>
@@ -646,7 +668,7 @@ export default function Admin() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Quiz?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This will permanently delete "{quiz.title}". This action cannot be undone.
+                                    This will permanently delete "{quiz.title}" and unassign it from all sessions. This action cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -685,14 +707,15 @@ export default function Admin() {
           session={editingSession}
           cohorts={cohorts}
           courses={courses}
+          quizzes={quizzes}
           preReadingMaterials={sessionMaterials}
+          selectedQuizIds={sessionQuizIds}
           onSave={handleSaveSession}
         />
         <QuizForm
           open={quizFormOpen}
           onOpenChange={setQuizFormOpen}
           quiz={editingQuiz}
-          sessions={sessions}
           onSave={handleSaveQuiz}
         />
       </div>

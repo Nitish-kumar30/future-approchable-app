@@ -332,6 +332,45 @@ export type Database = {
           },
         ]
       }
+      session_quizzes: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          quiz_id: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          quiz_id: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          quiz_id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_quizzes_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_quizzes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sessions: {
         Row: {
           cohort_id: string | null
