@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
+import { SessionQuizList, SessionQuiz, QuizSubmission } from '@/components/session/SessionQuizList';
 import { 
   Clock, 
   GraduationCap, 
@@ -19,8 +21,7 @@ import {
   Loader2,
   ClipboardList,
   BookOpen,
-  ExternalLink,
-  Image as ImageIcon
+  ExternalLink
 } from 'lucide-react';
 
 interface Course {
@@ -43,11 +44,9 @@ interface Session {
   session_order: number;
 }
 
-interface Quiz {
+interface CourseQuiz {
   id: string;
   title: string;
-  session_id: string | null;
-  course_id: string | null;
 }
 
 interface PreReadingMaterial {
@@ -71,7 +70,9 @@ export default function CourseDetail() {
   
   const [course, setCourse] = useState<Course | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [sessionQuizzes, setSessionQuizzes] = useState<Record<string, SessionQuiz[]>>({});
+  const [courseQuizzes, setCourseQuizzes] = useState<CourseQuiz[]>([]);
+  const [quizSubmissions, setQuizSubmissions] = useState<QuizSubmission[]>([]);
   const [preReadingMaterials, setPreReadingMaterials] = useState<PreReadingMaterial[]>([]);
   const [sessionProgress, setSessionProgress] = useState<SessionProgress[]>([]);
   const [isEnrolled, setIsEnrolled] = useState(false);
@@ -81,7 +82,7 @@ export default function CourseDetail() {
   useEffect(() => {
     if (id) {
       fetchCourse();
-      fetchSessions(); // Always fetch sessions for public view
+      fetchSessions();
       if (user) {
         checkEnrollment();
       }
@@ -142,19 +143,62 @@ export default function CourseDetail() {
       setSessions(sessionsData);
       
       const sessionIds = sessionsData.map(s => s.id);
+      const allQuizIds: string[] = [];
       
-      // Fetch quizzes for sessions and course-level quizzes
-      const { data: quizzesData } = await supabase
+      // Fetch course-level quizzes (direct assignment)
+      const { data: courseQuizzesData } = await supabase
         .from('quizzes')
-        .select('id, title, session_id, course_id')
-        .or(`session_id.in.(${sessionIds.join(',')}),course_id.eq.${id}`);
+        .select('id, title')
+        .eq('course_id', id)
+        .is('session_id', null);
       
-      if (quizzesData) {
-        setQuizzes(quizzesData);
+      if (courseQuizzesData) {
+        setCourseQuizzes(courseQuizzesData);
+        allQuizIds.push(...courseQuizzesData.map(q => q.id));
       }
 
-      // Fetch pre-reading materials
       if (sessionIds.length > 0) {
+        // Fetch quizzes via session_quizzes junction table
+        const { data: sessionQuizzesData } = await supabase
+          .from('session_quizzes')
+          .select(`
+            session_id,
+            display_order,
+            quiz:quizzes (
+              id,
+              title,
+              questions
+            )
+          `)
+          .in('session_id', sessionIds)
+          .order('display_order', { ascending: true });
+        
+        if (sessionQuizzesData) {
+          const quizzesMap: Record<string, SessionQuiz[]> = {};
+          
+          sessionQuizzesData.forEach((sq: any) => {
+            if (sq.quiz) {
+              const quiz = sq.quiz;
+              allQuizIds.push(quiz.id);
+              
+              if (!quizzesMap[sq.session_id]) {
+                quizzesMap[sq.session_id] = [];
+              }
+              
+              const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
+              quizzesMap[sq.session_id].push({
+                id: quiz.id,
+                title: quiz.title,
+                questionCount: questions.length,
+                displayOrder: sq.display_order
+              });
+            }
+          });
+          
+          setSessionQuizzes(quizzesMap);
+        }
+
+        // Fetch pre-reading materials
         const { data: materialsData } = await supabase
           .from('pre_reading_materials')
           .select('*')
@@ -174,6 +218,31 @@ export default function CourseDetail() {
         
         if (progressData) {
           setSessionProgress(progressData);
+        }
+      }
+
+      // Fetch quiz submissions for the user
+      if (allQuizIds.length > 0) {
+        const { data: submissionsData } = await supabase
+          .from('quiz_submissions')
+          .select('quiz_id, score, submitted_at')
+          .eq('user_id', user?.id)
+          .in('quiz_id', allQuizIds)
+          .order('submitted_at', { ascending: false });
+        
+        if (submissionsData) {
+          // Keep only latest submission per quiz
+          const latestSubmissions = new Map<string, QuizSubmission>();
+          submissionsData.forEach((s: any) => {
+            if (!latestSubmissions.has(s.quiz_id)) {
+              latestSubmissions.set(s.quiz_id, {
+                quizId: s.quiz_id,
+                score: s.score || 0,
+                submittedAt: s.submitted_at
+              });
+            }
+          });
+          setQuizSubmissions(Array.from(latestSubmissions.values()));
         }
       }
     }
@@ -211,17 +280,18 @@ export default function CourseDetail() {
     }
   };
 
-  const getQuizzesForSession = (sessionId: string) => 
-    quizzes.filter(q => q.session_id === sessionId);
-
-  const getCourseQuizzes = () => 
-    quizzes.filter(q => q.course_id === id && !q.session_id);
+  const getQuizzesForSession = (sessionId: string): SessionQuiz[] => 
+    sessionQuizzes[sessionId] || [];
 
   const getMaterialsForSession = (sessionId: string) => 
     preReadingMaterials.filter(m => m.session_id === sessionId);
 
   const isSessionCompleted = (sessionId: string) =>
     sessionProgress.find(p => p.session_id === sessionId)?.is_completed || false;
+
+  // Calculate overall progress
+  const completedSessions = sessions.filter(s => isSessionCompleted(s.id)).length;
+  const overallProgress = sessions.length > 0 ? (completedSessions / sessions.length) * 100 : 0;
 
   if (isLoading) {
     return (
@@ -245,8 +315,6 @@ export default function CourseDetail() {
       </MainLayout>
     );
   }
-
-  const courseQuizzes = getCourseQuizzes();
 
   return (
     <MainLayout>
@@ -312,6 +380,26 @@ export default function CourseDetail() {
 
         <Separator />
 
+        {/* Overall Progress - Only for enrolled users */}
+        {isEnrolled && sessions.length > 0 && (
+          <Card className="card-elevated border-primary/20 bg-primary/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Your Progress</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {completedSessions} of {sessions.length} lessons completed
+                  </span>
+                  <span className="font-medium">{Math.round(overallProgress)}%</span>
+                </div>
+                <Progress value={overallProgress} className="h-3" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Description */}
         <Card className="card-elevated">
           <CardHeader>
@@ -360,7 +448,7 @@ export default function CourseDetail() {
           ) : (
             <div className="space-y-4">
               {sessions.map((session, index) => {
-                const sessionQuizzes = getQuizzesForSession(session.id);
+                const sessionQuizzesList = getQuizzesForSession(session.id);
                 const sessionMaterials = getMaterialsForSession(session.id);
                 const completed = isSessionCompleted(session.id);
                 
@@ -430,18 +518,16 @@ export default function CourseDetail() {
                               </a>
                             </Button>
                           )}
-                          {sessionQuizzes.map(quiz => (
-                            <Button 
-                              key={quiz.id} 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => navigate(`/quiz/${quiz.id}`)}
-                            >
-                              <ClipboardList className="mr-2 h-4 w-4" />
-                              {quiz.title}
-                            </Button>
-                          ))}
                         </div>
+
+                        {/* Quizzes Section */}
+                        {sessionQuizzesList.length > 0 && (
+                          <SessionQuizList
+                            quizzes={sessionQuizzesList}
+                            submissions={quizSubmissions}
+                            sessionTitle={session.title}
+                          />
+                        )}
                       </CardContent>
                     ) : (
                       <CardContent>
