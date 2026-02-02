@@ -65,8 +65,8 @@ export default function Cohorts() {
     const startDate = new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     let dateStr = startDate;
     if (end) {
-      const endDate = new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      dateStr = `${startDate} - ${endDate}`;
+      const endDate = new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      dateStr = `${startDate}-${endDate}`;
     }
     if (sessionTime) {
       dateStr = `${dateStr}, ${sessionTime}`;
