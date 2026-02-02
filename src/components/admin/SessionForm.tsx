@@ -85,6 +85,7 @@ export function SessionForm({
   const [isSaving, setIsSaving] = useState(false);
   const [parentType, setParentType] = useState<'cohort' | 'course'>('cohort');
 
+  // Reset form when dialog opens
   useEffect(() => {
     if (open) {
       if (session) {
@@ -93,8 +94,6 @@ export function SessionForm({
           session_date: session.session_date ? new Date(session.session_date).toISOString().slice(0, 16) : '',
         });
         setParentType(session.cohort_id ? 'cohort' : 'course');
-        setMaterials(preReadingMaterials.length > 0 ? preReadingMaterials : []);
-        setSelectedQuizzes(selectedQuizIds);
       } else {
         setFormData(defaultSession);
         setParentType('cohort');
@@ -102,7 +101,21 @@ export function SessionForm({
         setSelectedQuizzes([]);
       }
     }
-  }, [session, open, preReadingMaterials, selectedQuizIds]);
+  }, [session, open]);
+
+  // Update materials when props change (separate effect to handle async data loading)
+  useEffect(() => {
+    if (open && session) {
+      setMaterials(preReadingMaterials.length > 0 ? [...preReadingMaterials] : []);
+    }
+  }, [open, session, preReadingMaterials]);
+
+  // Update selected quizzes when props change
+  useEffect(() => {
+    if (open && session) {
+      setSelectedQuizzes([...selectedQuizIds]);
+    }
+  }, [open, session, selectedQuizIds]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
