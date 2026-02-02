@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { GraduationCap, Loader2, Mail, Lock, User } from 'lucide-react';
+import { Loader2, Mail, Lock, User } from 'lucide-react';
+import siteIcon from '@/assets/icon.png';
 import { z } from 'zod';
 
 const emailSchema = z.string().email('Please enter a valid email address');
@@ -162,9 +163,7 @@ export default function Auth() {
       <div className="w-full max-w-md animate-fade-in">
         {/* Logo */}
         <Link to="/" className="block text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4">
-            <GraduationCap className="h-8 w-8" />
-          </div>
+          <img src={siteIcon} alt="Approachable" className="w-16 h-16 rounded-2xl mx-auto mb-4" />
           <h1 className="text-3xl font-display font-bold text-foreground">approachable.dev</h1>
           <p className="text-muted-foreground mt-2">Your journey to mastery starts here</p>
         </Link>
