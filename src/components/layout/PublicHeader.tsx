@@ -1,8 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { BookOpen, LogIn, UserPlus } from 'lucide-react';
+import { LogIn, UserPlus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import logo from '@/assets/logo.png';
+import logo from '@/assets/icon.png';
 
 export default function PublicHeader() {
   const location = useLocation();
