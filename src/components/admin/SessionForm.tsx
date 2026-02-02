@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Plus, Trash2, BookOpen, ClipboardList } from 'lucide-react';
 
 interface PreReadingMaterial {
@@ -286,23 +287,25 @@ export function SessionForm({
                   No quizzes available. Create quizzes first in the Quizzes tab.
                 </p>
               ) : (
-                <div className="space-y-2">
-                  {quizzes.map((quiz) => (
-                    <div key={quiz.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50">
-                      <Checkbox
-                        id={`quiz-${quiz.id}`}
-                        checked={selectedQuizzes.includes(quiz.id)}
-                        onCheckedChange={() => toggleQuiz(quiz.id)}
-                      />
-                      <label 
-                        htmlFor={`quiz-${quiz.id}`}
-                        className="text-sm font-medium leading-none cursor-pointer flex-1"
-                      >
-                        {quiz.title}
-                      </label>
-                    </div>
-                  ))}
-                </div>
+                <ScrollArea className="max-h-40 pr-3">
+                  <div className="space-y-2">
+                    {quizzes.map((quiz) => (
+                      <div key={quiz.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50">
+                        <Checkbox
+                          id={`quiz-${quiz.id}`}
+                          checked={selectedQuizzes.includes(quiz.id)}
+                          onCheckedChange={() => toggleQuiz(quiz.id)}
+                        />
+                        <label 
+                          htmlFor={`quiz-${quiz.id}`}
+                          className="text-sm font-medium leading-none cursor-pointer flex-1"
+                        >
+                          {quiz.title}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               )}
               {selectedQuizzes.length > 0 && (
                 <p className="text-xs text-muted-foreground">
