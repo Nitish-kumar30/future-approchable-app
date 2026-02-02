@@ -1,0 +1,260 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import MainLayout from '@/components/layout/MainLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Users, 
+  BookOpen, 
+  Calendar,
+  ArrowRight,
+  GraduationCap,
+  Sparkles,
+  Clock
+} from 'lucide-react';
+
+interface Cohort {
+  id: string;
+  name: string;
+  description: string | null;
+  mentor_name: string | null;
+  start_date: string | null;
+  end_date: string | null;
+}
+
+interface Course {
+  id: string;
+  name: string;
+  description: string | null;
+  mentor_name: string | null;
+  duration: string | null;
+}
+
+interface Enrollment {
+  id: string;
+  cohort_id: string | null;
+  course_id: string | null;
+  enrolled_at: string;
+  cohorts: Cohort | null;
+  courses: Course | null;
+}
+
+export default function Dashboard() {
+  const { user } = useAuth();
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      fetchEnrollments();
+    }
+  }, [user]);
+
+  const fetchEnrollments = async () => {
+    const { data, error } = await supabase
+      .from('enrollments')
+      .select(`
+        id,
+        cohort_id,
+        course_id,
+        enrolled_at,
+        cohorts (id, name, description, mentor_name, start_date, end_date),
+        courses (id, name, description, mentor_name, duration)
+      `)
+      .eq('user_id', user?.id);
+
+    if (!error && data) {
+      setEnrollments(data as unknown as Enrollment[]);
+    }
+    setIsLoading(false);
+  };
+
+  const cohortEnrollments = enrollments.filter(e => e.cohort_id && e.cohorts);
+  const courseEnrollments = enrollments.filter(e => e.course_id && e.courses);
+  const hasEnrollments = enrollments.length > 0;
+
+  return (
+    <MainLayout>
+      <div className="space-y-8 animate-fade-in">
+        {/* Welcome Section */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-display font-bold text-foreground">
+            Welcome back! 👋
+          </h1>
+          <p className="text-muted-foreground">
+            {hasEnrollments 
+              ? "Here's an overview of your learning journey."
+              : "Start your learning journey by exploring our cohorts and courses."
+            }
+          </p>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="card-elevated">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Enrolled Cohorts</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{cohortEnrollments.length}</div>
+              <p className="text-xs text-muted-foreground">Active cohort programs</p>
+            </CardContent>
+          </Card>
+          <Card className="card-elevated">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Enrolled Courses</CardTitle>
+              <BookOpen className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{courseEnrollments.length}</div>
+              <p className="text-xs text-muted-foreground">Self-paced courses</p>
+            </CardContent>
+          </Card>
+          <Card className="card-elevated">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Learning</CardTitle>
+              <GraduationCap className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{enrollments.length}</div>
+              <p className="text-xs text-muted-foreground">Programs joined</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Empty State or Enrollments */}
+        {!hasEnrollments && !isLoading ? (
+          <Card className="card-elevated border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
+                <Sparkles className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Start Your Learning Journey</h3>
+              <p className="text-muted-foreground mb-6 max-w-md">
+                You're not enrolled in any cohorts or courses yet. Explore our catalog to find the perfect program for you.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button asChild>
+                  <Link to="/cohorts">
+                    <Users className="mr-2 h-4 w-4" />
+                    Browse Cohorts
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link to="/courses">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Browse Courses
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {/* Enrolled Cohorts */}
+            {cohortEnrollments.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold">Your Cohorts</h2>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/cohorts">
+                      View all <ArrowRight className="ml-1 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {cohortEnrollments.slice(0, 4).map((enrollment) => (
+                    <Link key={enrollment.id} to={`/cohorts/${enrollment.cohort_id}`}>
+                      <Card className="card-elevated hover:shadow-lg transition-shadow cursor-pointer h-full">
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <CardTitle className="text-lg">{enrollment.cohorts?.name}</CardTitle>
+                              <CardDescription className="line-clamp-2 mt-1">
+                                {enrollment.cohorts?.description}
+                              </CardDescription>
+                            </div>
+                            <Badge variant="secondary">Enrolled</Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            {enrollment.cohorts?.mentor_name && (
+                              <span className="flex items-center gap-1">
+                                <GraduationCap className="h-4 w-4" />
+                                {enrollment.cohorts.mentor_name}
+                              </span>
+                            )}
+                            {enrollment.cohorts?.start_date && (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-4 w-4" />
+                                {new Date(enrollment.cohorts.start_date).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Enrolled Courses */}
+            {courseEnrollments.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold">Your Courses</h2>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/courses">
+                      View all <ArrowRight className="ml-1 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {courseEnrollments.slice(0, 4).map((enrollment) => (
+                    <Link key={enrollment.id} to={`/courses/${enrollment.course_id}`}>
+                      <Card className="card-elevated hover:shadow-lg transition-shadow cursor-pointer h-full">
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <CardTitle className="text-lg">{enrollment.courses?.name}</CardTitle>
+                              <CardDescription className="line-clamp-2 mt-1">
+                                {enrollment.courses?.description}
+                              </CardDescription>
+                            </div>
+                            <Badge variant="secondary">Enrolled</Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            {enrollment.courses?.mentor_name && (
+                              <span className="flex items-center gap-1">
+                                <GraduationCap className="h-4 w-4" />
+                                {enrollment.courses.mentor_name}
+                              </span>
+                            )}
+                            {enrollment.courses?.duration && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-4 w-4" />
+                                {enrollment.courses.duration}
+                              </span>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </MainLayout>
+  );
+}
