@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -18,22 +17,13 @@ interface Question {
 interface Quiz {
   id?: string;
   title: string;
-  session_id: string;
   questions: Question[];
-}
-
-interface Session {
-  id: string;
-  title: string;
-  cohort_id: string | null;
-  course_id: string | null;
 }
 
 interface QuizFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   quiz?: Quiz | null;
-  sessions: Session[];
   onSave: (quiz: Quiz) => Promise<void>;
 }
 
@@ -46,11 +36,10 @@ const createEmptyQuestion = (): Question => ({
 
 const defaultQuiz: Quiz = {
   title: '',
-  session_id: '',
   questions: [createEmptyQuestion()],
 };
 
-export function QuizForm({ open, onOpenChange, quiz, sessions, onSave }: QuizFormProps) {
+export function QuizForm({ open, onOpenChange, quiz, onSave }: QuizFormProps) {
   const [formData, setFormData] = useState<Quiz>(defaultQuiz);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -108,38 +97,19 @@ export function QuizForm({ open, onOpenChange, quiz, sessions, onSave }: QuizFor
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Quiz' : 'Create New Quiz'}</DialogTitle>
           <DialogDescription>
-            {isEditing ? 'Update quiz details and questions.' : 'Create a quiz with multiple-choice questions.'}
+            {isEditing ? 'Update quiz details and questions.' : 'Create a reusable quiz with multiple-choice questions. You can assign it to sessions later.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="title">Quiz Title *</Label>
-              <Input
-                id="title"
-                required
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="e.g., Week 1 Quiz"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Assign to Session *</Label>
-              <Select 
-                value={formData.session_id} 
-                onValueChange={(v) => setFormData({ ...formData, session_id: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a session" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sessions.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="title">Quiz Title *</Label>
+            <Input
+              id="title"
+              required
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              placeholder="e.g., Week 1 Quiz"
+            />
           </div>
 
           <div className="space-y-4">
@@ -206,7 +176,7 @@ export function QuizForm({ open, onOpenChange, quiz, sessions, onSave }: QuizFor
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSaving || !formData.session_id}>
+            <Button type="submit" disabled={isSaving}>
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

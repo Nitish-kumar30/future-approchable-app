@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Plus, Trash2, BookOpen } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2, Plus, Trash2, BookOpen, ClipboardList } from 'lucide-react';
 
 interface PreReadingMaterial {
   id?: string;
@@ -38,14 +39,21 @@ interface Course {
   name: string;
 }
 
+interface Quiz {
+  id: string;
+  title: string;
+}
+
 interface SessionFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   session?: Session | null;
   cohorts: Cohort[];
   courses: Course[];
+  quizzes: Quiz[];
   preReadingMaterials?: PreReadingMaterial[];
-  onSave: (session: Session, materials: PreReadingMaterial[]) => Promise<void>;
+  selectedQuizIds?: string[];
+  onSave: (session: Session, materials: PreReadingMaterial[], quizIds: string[]) => Promise<void>;
 }
 
 const defaultSession: Session = {
@@ -64,12 +72,15 @@ export function SessionForm({
   onOpenChange, 
   session, 
   cohorts, 
-  courses, 
+  courses,
+  quizzes,
   preReadingMaterials = [],
+  selectedQuizIds = [],
   onSave 
 }: SessionFormProps) {
   const [formData, setFormData] = useState<Session>(defaultSession);
   const [materials, setMaterials] = useState<PreReadingMaterial[]>([]);
+  const [selectedQuizzes, setSelectedQuizzes] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [parentType, setParentType] = useState<'cohort' | 'course'>('cohort');
 
@@ -82,13 +93,15 @@ export function SessionForm({
         });
         setParentType(session.cohort_id ? 'cohort' : 'course');
         setMaterials(preReadingMaterials.length > 0 ? preReadingMaterials : []);
+        setSelectedQuizzes(selectedQuizIds);
       } else {
         setFormData(defaultSession);
         setParentType('cohort');
         setMaterials([]);
+        setSelectedQuizzes([]);
       }
     }
-  }, [session, open, preReadingMaterials]);
+  }, [session, open, preReadingMaterials, selectedQuizIds]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,10 +114,9 @@ export function SessionForm({
       session_date: formData.session_date ? new Date(formData.session_date).toISOString() : null,
     };
 
-    // Filter out empty materials
     const validMaterials = materials.filter(m => m.title.trim() && m.link.trim());
     
-    await onSave(dataToSave as Session, validMaterials);
+    await onSave(dataToSave as Session, validMaterials, selectedQuizzes);
     setIsSaving(false);
     onOpenChange(false);
   };
@@ -123,6 +135,14 @@ export function SessionForm({
     setMaterials(updated);
   };
 
+  const toggleQuiz = (quizId: string) => {
+    setSelectedQuizzes(prev => 
+      prev.includes(quizId) 
+        ? prev.filter(id => id !== quizId)
+        : [...prev, quizId]
+    );
+  };
+
   const isEditing = !!session?.id;
 
   return (
@@ -135,7 +155,6 @@ export function SessionForm({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Session Details */}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="title">Session Title *</Label>
@@ -254,7 +273,47 @@ export function SessionForm({
 
           <Separator />
 
-          {/* Pre-Reading Materials Section */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ClipboardList className="h-4 w-4" />
+                Assign Quizzes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {quizzes.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No quizzes available. Create quizzes first in the Quizzes tab.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {quizzes.map((quiz) => (
+                    <div key={quiz.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50">
+                      <Checkbox
+                        id={`quiz-${quiz.id}`}
+                        checked={selectedQuizzes.includes(quiz.id)}
+                        onCheckedChange={() => toggleQuiz(quiz.id)}
+                      />
+                      <label 
+                        htmlFor={`quiz-${quiz.id}`}
+                        className="text-sm font-medium leading-none cursor-pointer flex-1"
+                      >
+                        {quiz.title}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selectedQuizzes.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {selectedQuizzes.length} quiz{selectedQuizzes.length !== 1 ? 'zes' : ''} selected
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Separator />
+
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
