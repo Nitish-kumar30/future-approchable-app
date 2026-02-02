@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { 
-  GraduationCap, 
   LayoutDashboard, 
   Users, 
   BookOpen, 
@@ -22,6 +21,7 @@ import {
   Loader2,
   Shield
 } from 'lucide-react';
+import siteIcon from '@/assets/icon.png';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -64,9 +64,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         <div className="container flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/dashboard" className="flex items-center space-x-2">
-            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary text-primary-foreground">
-              <GraduationCap className="h-5 w-5" />
-            </div>
+            <img src={siteIcon} alt="Approachable" className="w-9 h-9 rounded-lg" />
             <span className="font-display font-bold text-xl text-foreground">approachable.dev</span>
           </Link>
 
