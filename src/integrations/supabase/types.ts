@@ -470,6 +470,13 @@ export type Database = {
         Args: { _course_id: string; _user_id: string }
         Returns: boolean
       }
+      submit_quiz_answers: {
+        Args: { p_answers: Json; p_quiz_id: string }
+        Returns: {
+          score: number
+          submission_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "learner"

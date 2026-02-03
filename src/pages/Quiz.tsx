@@ -97,17 +97,6 @@ export default function QuizPage() {
     }));
   };
 
-  const calculateScore = (): number => {
-    if (!quiz) return 0;
-    let correct = 0;
-    quiz.questions.forEach(q => {
-      if (answers[q.id] === q.correctAnswer) {
-        correct++;
-      }
-    });
-    return Math.round((correct / quiz.questions.length) * 100);
-  };
-
   const handleSubmit = async () => {
     if (!quiz || !user) return;
 
@@ -122,15 +111,12 @@ export default function QuizPage() {
     }
 
     setIsSubmitting(true);
-    const score = calculateScore();
 
-    const { error } = await supabase
-      .from('quiz_submissions')
-      .insert({
-        quiz_id: id,
-        user_id: user.id,
-        answers: answers,
-        score: score,
+    // Use secure server-side function for quiz submission and score calculation
+    const { data, error } = await supabase
+      .rpc('submit_quiz_answers', {
+        p_quiz_id: id,
+        p_answers: answers
       });
 
     setIsSubmitting(false);
@@ -138,19 +124,20 @@ export default function QuizPage() {
     if (error) {
       toast({
         title: 'Submission failed',
-        description: error.message,
+        description: 'Unable to submit quiz. Please try again.',
         variant: 'destructive',
       });
-    } else {
+    } else if (data && data.length > 0) {
+      const result = data[0];
       setLatestSubmission({
-        id: '',
-        score,
+        id: result.submission_id,
+        score: result.score,
         submitted_at: new Date().toISOString(),
       });
       setShowResults(true);
       toast({
         title: 'Quiz submitted!',
-        description: `You scored ${score}%`,
+        description: `You scored ${result.score}%`,
       });
     }
   };
