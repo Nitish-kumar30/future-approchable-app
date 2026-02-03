@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { SessionQuizList, SessionQuiz, QuizSubmission } from '@/components/session/SessionQuizList';
+import { formatCohortDateRange, formatShortDate } from '@/lib/formatCohortDate';
 import { 
   Calendar, 
   GraduationCap, 
@@ -276,15 +277,7 @@ export default function CohortDetail() {
     }
   };
 
-  const formatDate = (date: string | null) => {
-    if (!date) return null;
-    return new Date(date).toLocaleDateString('en-US', { 
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long', 
-      day: 'numeric' 
-    });
-  };
+  // Removed old formatDate function - using shared utility instead
 
   const getQuizzesForSession = (sessionId: string): SessionQuiz[] => 
     sessionQuizzes[sessionId] || [];
@@ -368,11 +361,10 @@ export default function CohortDetail() {
 
           {/* Meta Info */}
           <div className="flex flex-wrap gap-4 text-sm">
-            {cohort.start_date && (
+            {(cohort.start_date) && (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Calendar className="h-4 w-4" />
-                {formatDate(cohort.start_date)}
-                {cohort.end_date && ` - ${formatDate(cohort.end_date)}`}
+                {formatCohortDateRange(cohort.start_date, cohort.end_date, null)}
               </div>
             )}
             {seatsLeft !== null && (
@@ -477,7 +469,7 @@ export default function CohortDetail() {
                             </Badge>
                             {session.session_date && (
                               <span className="text-xs text-muted-foreground">
-                                {new Date(session.session_date).toLocaleDateString()}
+                                {formatShortDate(session.session_date)}
                               </span>
                             )}
                             {completed && (

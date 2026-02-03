@@ -6,6 +6,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { formatCohortDateRange } from '@/lib/formatCohortDate';
 import { 
   Users, 
   BookOpen, 
@@ -23,6 +24,7 @@ interface Cohort {
   mentor_name: string | null;
   start_date: string | null;
   end_date: string | null;
+  session_time: string | null;
 }
 
 interface Course {
@@ -61,7 +63,7 @@ export default function Dashboard() {
         cohort_id,
         course_id,
         enrolled_at,
-        cohorts (id, name, description, mentor_name, start_date, end_date),
+        cohorts (id, name, description, mentor_name, start_date, end_date, session_time),
         courses (id, name, description, mentor_name, duration)
       `)
       .eq('user_id', user?.id);
@@ -189,10 +191,10 @@ export default function Dashboard() {
                                 {enrollment.cohorts.mentor_name}
                               </span>
                             )}
-                            {enrollment.cohorts?.start_date && (
+                            {(enrollment.cohorts?.start_date || enrollment.cohorts?.session_time) && (
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-4 w-4" />
-                                {new Date(enrollment.cohorts.start_date).toLocaleDateString()}
+                                {formatCohortDateRange(enrollment.cohorts.start_date, enrollment.cohorts.end_date, enrollment.cohorts.session_time)}
                               </span>
                             )}
                           </div>

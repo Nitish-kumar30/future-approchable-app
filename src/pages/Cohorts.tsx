@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, Calendar, GraduationCap, ArrowRight } from 'lucide-react';
+import { formatCohortDateRange } from '@/lib/formatCohortDate';
 
 interface Cohort {
   id: string;
@@ -60,19 +61,7 @@ export default function Cohorts() {
 
   const isEnrolled = (cohortId: string) => enrolledCohortIds.includes(cohortId);
 
-  const formatDateRange = (start: string | null, end: string | null, sessionTime: string | null) => {
-    if (!start) return sessionTime || null;
-    const startDate = new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    let dateStr = startDate;
-    if (end) {
-      const endDate = new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      dateStr = `${startDate}-${endDate}`;
-    }
-    if (sessionTime) {
-      dateStr = `${dateStr}, ${sessionTime}`;
-    }
-    return dateStr;
-  };
+  // Use the shared utility function for consistent formatting
 
   return (
     <MainLayout>
@@ -140,7 +129,7 @@ export default function Cohorts() {
                       {(cohort.start_date || cohort.session_time) && (
                         <span className="flex items-center gap-1.5">
                           <Calendar className="h-4 w-4" />
-                          {formatDateRange(cohort.start_date, cohort.end_date, cohort.session_time)}
+                          {formatCohortDateRange(cohort.start_date, cohort.end_date, cohort.session_time)}
                         </span>
                       )}
                     </div>
