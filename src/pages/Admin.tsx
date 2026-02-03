@@ -62,6 +62,13 @@ interface PreReadingMaterial {
   display_order: number;
 }
 
+interface MiniProject {
+  id?: string;
+  title: string;
+  description: string;
+  display_order: number;
+}
+
 interface Question {
   id: string;
   question: string;
@@ -89,6 +96,7 @@ export default function Admin() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [sessionMaterials, setSessionMaterials] = useState<PreReadingMaterial[]>([]);
   const [sessionQuizIds, setSessionQuizIds] = useState<string[]>([]);
+  const [sessionMiniProjects, setSessionMiniProjects] = useState<MiniProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Form states
@@ -325,7 +333,7 @@ export default function Admin() {
   };
 
   // Session CRUD
-  const handleSaveSession = async (session: Omit<Session, 'id'> & { id?: string }, materials: PreReadingMaterial[], quizIds: string[]) => {
+  const handleSaveSession = async (session: Omit<Session, 'id'> & { id?: string }, materials: PreReadingMaterial[], quizIds: string[], projects: MiniProject[]) => {
     const sessionData = {
       title: session.title,
       description: session.description || null,
@@ -387,6 +395,23 @@ export default function Admin() {
           toast({ title: 'Session saved, but error assigning quizzes', description: quizError.message, variant: 'destructive' });
         }
       }
+
+      // Handle mini projects
+      await supabase.from('mini_projects').delete().eq('session_id', sessionId);
+      
+      if (projects.length > 0) {
+        const projectsToInsert = projects.map((p, idx) => ({
+          session_id: sessionId,
+          title: p.title,
+          description: p.description || null,
+          display_order: p.display_order ?? idx,
+        }));
+        
+        const { error: projError } = await supabase.from('mini_projects').insert(projectsToInsert);
+        if (projError) {
+          toast({ title: 'Session saved, but error saving mini projects', description: projError.message, variant: 'destructive' });
+        }
+      }
     }
 
     toast({ title: session.id ? 'Session updated successfully' : 'Session created successfully' });
@@ -394,7 +419,7 @@ export default function Admin() {
   };
 
   const fetchSessionData = async (sessionId: string) => {
-    const [materialsRes, quizzesRes] = await Promise.all([
+    const [materialsRes, quizzesRes, projectsRes] = await Promise.all([
       supabase
         .from('pre_reading_materials')
         .select('*')
@@ -405,9 +430,15 @@ export default function Admin() {
         .select('quiz_id')
         .eq('session_id', sessionId)
         .order('display_order', { ascending: true }),
+      supabase
+        .from('mini_projects')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('display_order', { ascending: true }),
     ]);
     setSessionMaterials(materialsRes.data || []);
     setSessionQuizIds((quizzesRes.data || []).map((sq: SessionQuiz) => sq.quiz_id));
+    setSessionMiniProjects(projectsRes.data || []);
   };
 
   const handleEditSession = async (session: Session) => {
@@ -420,6 +451,7 @@ export default function Admin() {
     setEditingSession(null);
     setSessionMaterials([]);
     setSessionQuizIds([]);
+    setSessionMiniProjects([]);
     setSessionFormOpen(true);
   };
 
@@ -814,6 +846,7 @@ export default function Admin() {
           quizzes={quizzes}
           preReadingMaterials={sessionMaterials}
           selectedQuizIds={sessionQuizIds}
+          miniProjects={sessionMiniProjects}
           onSave={handleSaveSession}
         />
         <QuizForm

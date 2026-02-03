@@ -22,7 +22,8 @@ import {
   ExternalLink,
   CheckCircle2,
   Loader2,
-  BookOpen
+  BookOpen,
+  FolderKanban
 } from 'lucide-react';
 
 interface Cohort {
@@ -62,6 +63,14 @@ interface PreReadingMaterial {
   display_order: number;
 }
 
+interface MiniProject {
+  id: string;
+  session_id: string;
+  title: string;
+  description: string | null;
+  display_order: number;
+}
+
 export default function CohortDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -74,6 +83,7 @@ export default function CohortDetail() {
   const [quizSubmissions, setQuizSubmissions] = useState<QuizSubmission[]>([]);
   const [sessionProgress, setSessionProgress] = useState<SessionProgress[]>([]);
   const [preReadingMaterials, setPreReadingMaterials] = useState<PreReadingMaterial[]>([]);
+  const [miniProjects, setMiniProjects] = useState<MiniProject[]>([]);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isEnrolling, setIsEnrolling] = useState(false);
@@ -228,6 +238,17 @@ export default function CohortDetail() {
           setPreReadingMaterials(materialsData);
         }
 
+        // Fetch mini projects
+        const { data: projectsData } = await supabase
+          .from('mini_projects')
+          .select('*')
+          .in('session_id', sessionIds)
+          .order('display_order', { ascending: true });
+        
+        if (projectsData) {
+          setMiniProjects(projectsData);
+        }
+
         // Fetch session progress
         const { data: progressData } = await supabase
           .from('session_progress')
@@ -282,6 +303,9 @@ export default function CohortDetail() {
 
   const getMaterialsForSession = (sessionId: string) => 
     preReadingMaterials.filter(m => m.session_id === sessionId);
+
+  const getProjectsForSession = (sessionId: string) => 
+    miniProjects.filter(p => p.session_id === sessionId);
 
   const isSessionCompleted = (sessionId: string) =>
     sessionProgress.find(p => p.session_id === sessionId)?.is_completed || false;
@@ -470,6 +494,7 @@ export default function CohortDetail() {
               {sessions.map((session, index) => {
                 const sessionQuizzesList = getQuizzesForSession(session.id);
                 const sessionMaterials = getMaterialsForSession(session.id);
+                const sessionProjects = getProjectsForSession(session.id);
                 const completed = isSessionCompleted(session.id);
                 
                 return (
@@ -552,6 +577,26 @@ export default function CohortDetail() {
                             submissions={quizSubmissions}
                             sessionTitle={session.title}
                           />
+                        )}
+
+                        {/* Mini Projects Section */}
+                        {sessionProjects.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                              <FolderKanban className="h-4 w-4" />
+                              Mini Projects
+                            </div>
+                            <div className="pl-6 space-y-3">
+                              {sessionProjects.map((project) => (
+                                <div key={project.id} className="p-3 rounded-lg bg-muted/50 border">
+                                  <h4 className="font-medium text-sm">{project.title}</h4>
+                                  {project.description && (
+                                    <p className="text-xs text-muted-foreground mt-1">{project.description}</p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         )}
                       </CardContent>
                     ) : (
