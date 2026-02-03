@@ -149,6 +149,7 @@ export default function Admin() {
       start_date: cohort.start_date || null,
       end_date: cohort.end_date || null,
       max_seats: cohort.max_seats || null,
+      session_time: cohort.session_time || null,
       meeting_link: cohort.meeting_link || null,
       group_link: cohort.group_link || null,
       is_published: cohort.is_published,
