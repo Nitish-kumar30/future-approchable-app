@@ -25,6 +25,7 @@ export default function Cohorts() {
   const { user } = useAuth();
   const [cohorts, setCohorts] = useState<Cohort[]>([]);
   const [enrolledCohortIds, setEnrolledCohortIds] = useState<string[]>([]);
+  const [enrollmentCounts, setEnrollmentCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -43,8 +44,30 @@ export default function Cohorts() {
 
     if (!error && data) {
       setCohorts(data);
+      // Fetch enrollment counts for all cohorts
+      fetchEnrollmentCounts(data.map(c => c.id));
     }
     setIsLoading(false);
+  };
+
+  const fetchEnrollmentCounts = async (cohortIds: string[]) => {
+    if (cohortIds.length === 0) return;
+    
+    const { data } = await supabase
+      .from('enrollments')
+      .select('cohort_id')
+      .in('cohort_id', cohortIds);
+    
+    if (data) {
+      const counts: Record<string, number> = {};
+      cohortIds.forEach(id => counts[id] = 0);
+      data.forEach(e => {
+        if (e.cohort_id) {
+          counts[e.cohort_id] = (counts[e.cohort_id] || 0) + 1;
+        }
+      });
+      setEnrollmentCounts(counts);
+    }
   };
 
   const fetchEnrollments = async () => {
@@ -136,7 +159,9 @@ export default function Cohorts() {
                     <div className="flex items-center justify-between pt-2">
                       {cohort.max_seats && (
                         <span className="text-xs text-muted-foreground">
-                          {cohort.max_seats} seats
+                          {cohort.max_seats - (enrollmentCounts[cohort.id] || 0) > 0 
+                            ? `${cohort.max_seats - (enrollmentCounts[cohort.id] || 0)} seats left`
+                            : 'Fully booked'}
                         </span>
                       )}
                       <Button variant="ghost" size="sm" className="gap-1 ml-auto">
