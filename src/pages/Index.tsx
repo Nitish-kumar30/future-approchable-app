@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Users, BookOpen, ArrowRight, Sparkles, PlayCircle, ClipboardCheck } from 'lucide-react';
 import PublicHeader from '@/components/layout/PublicHeader';
+import Footer from '@/components/layout/Footer';
 
 export default function Index() {
   return (
@@ -117,12 +118,7 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-8">
-        <div className="container text-center text-sm text-muted-foreground">
-          © 2024 Approachable. All rights reserved.
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
