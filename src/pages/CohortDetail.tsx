@@ -292,6 +292,11 @@ export default function CohortDetail() {
   const completedSessions = sessions.filter(s => isSessionCompleted(s.id)).length;
   const overallProgress = sessions.length > 0 ? (completedSessions / sessions.length) * 100 : 0;
 
+  // Calculate average quiz score
+  const averageScore = quizSubmissions.length > 0
+    ? Math.round(quizSubmissions.reduce((sum, s) => sum + s.score, 0) / quizSubmissions.length)
+    : null;
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -341,9 +346,16 @@ export default function CohortDetail() {
             </div>
             <div className="flex items-center gap-3">
               {isEnrolled ? (
-                <Badge variant="secondary" className="text-base px-4 py-2">
-                  <CheckCircle2 className="h-4 w-4 mr-2" /> Enrolled
-                </Badge>
+                <div className="flex items-center gap-3">
+                  <Badge variant="secondary" className="text-base px-4 py-2">
+                    <CheckCircle2 className="h-4 w-4 mr-2" /> Enrolled
+                  </Badge>
+                  {averageScore !== null && (
+                    <Badge variant="outline" className="text-base px-4 py-2">
+                      Avg Score: {averageScore}%
+                    </Badge>
+                  )}
+                </div>
               ) : (
                 <Button size="lg" onClick={handleEnroll} disabled={isEnrolling || (seatsLeft !== null && seatsLeft <= 0)}>
                   {isEnrolling ? (
