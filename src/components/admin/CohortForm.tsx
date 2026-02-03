@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 
@@ -29,6 +30,8 @@ interface CohortFormProps {
   onSave: (cohort: Cohort) => Promise<void>;
 }
 
+const TIMEZONES = ['IST', 'EST', 'PST', 'GMT', 'UTC', 'CST', 'MST', 'CET', 'AEST'];
+
 const defaultCohort: Cohort = {
   name: '',
   description: '',
@@ -43,9 +46,43 @@ const defaultCohort: Cohort = {
   is_published: false,
 };
 
+// Parse session_time string like "7:30PM IST" into components
+function parseSessionTime(sessionTime: string): { time: string; timezone: string } {
+  if (!sessionTime) return { time: '', timezone: 'IST' };
+  const match = sessionTime.match(/^(\d{1,2}:\d{2}(?:AM|PM)?)\s*(.*)$/i);
+  if (match) {
+    return { time: match[1].toUpperCase(), timezone: match[2] || 'IST' };
+  }
+  return { time: '', timezone: 'IST' };
+}
+
+// Format time from 24h input to 12h display
+function formatTo12Hour(time24: string): string {
+  if (!time24) return '';
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12;
+  return `${hours12}:${minutes.toString().padStart(2, '0')}${period}`;
+}
+
+// Parse 12h time to 24h for input value
+function parseTo24Hour(time12: string): string {
+  if (!time12) return '';
+  const match = time12.match(/^(\d{1,2}):(\d{2})(AM|PM)$/i);
+  if (!match) return '';
+  let hours = parseInt(match[1]);
+  const minutes = match[2];
+  const period = match[3].toUpperCase();
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return `${hours.toString().padStart(2, '0')}:${minutes}`;
+}
+
 export function CohortForm({ open, onOpenChange, cohort, onSave }: CohortFormProps) {
   const [formData, setFormData] = useState<Cohort>(defaultCohort);
   const [isSaving, setIsSaving] = useState(false);
+  const [timeValue, setTimeValue] = useState('');
+  const [timezone, setTimezone] = useState('IST');
 
   useEffect(() => {
     if (cohort) {
@@ -54,10 +91,27 @@ export function CohortForm({ open, onOpenChange, cohort, onSave }: CohortFormPro
         start_date: cohort.start_date || '',
         end_date: cohort.end_date || '',
       });
+      const parsed = parseSessionTime(cohort.session_time || '');
+      setTimeValue(parseTo24Hour(parsed.time));
+      setTimezone(parsed.timezone || 'IST');
     } else {
       setFormData(defaultCohort);
+      setTimeValue('');
+      setTimezone('IST');
     }
   }, [cohort, open]);
+
+  const handleTimeChange = (newTime: string) => {
+    setTimeValue(newTime);
+    const formatted = formatTo12Hour(newTime);
+    setFormData({ ...formData, session_time: formatted ? `${formatted} ${timezone}` : '' });
+  };
+
+  const handleTimezoneChange = (newTz: string) => {
+    setTimezone(newTz);
+    const formatted = formatTo12Hour(timeValue);
+    setFormData({ ...formData, session_time: formatted ? `${formatted} ${newTz}` : '' });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,12 +189,25 @@ export function CohortForm({ open, onOpenChange, cohort, onSave }: CohortFormPro
 
             <div className="space-y-2">
               <Label htmlFor="session_time">Session Time</Label>
-              <Input
-                id="session_time"
-                value={formData.session_time}
-                onChange={(e) => setFormData({ ...formData, session_time: e.target.value })}
-                placeholder="e.g., 7:30PM IST"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="session_time"
+                  type="time"
+                  value={timeValue}
+                  onChange={(e) => handleTimeChange(e.target.value)}
+                  className="flex-1"
+                />
+                <Select value={timezone} onValueChange={handleTimezoneChange}>
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIMEZONES.map((tz) => (
+                      <SelectItem key={tz} value={tz}>{tz}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
