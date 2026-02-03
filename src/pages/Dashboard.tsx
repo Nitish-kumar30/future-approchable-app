@@ -44,9 +44,15 @@ interface Enrollment {
   courses: Course | null;
 }
 
+interface CohortProgress {
+  cohortId: string;
+  isCompleted: boolean;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [cohortProgress, setCohortProgress] = useState<CohortProgress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -70,8 +76,54 @@ export default function Dashboard() {
 
     if (!error && data) {
       setEnrollments(data as unknown as Enrollment[]);
+      // Fetch progress for cohort enrollments
+      const cohortIds = data
+        .filter(e => e.cohort_id)
+        .map(e => e.cohort_id as string);
+      if (cohortIds.length > 0) {
+        fetchCohortProgress(cohortIds);
+      }
     }
     setIsLoading(false);
+  };
+
+  const fetchCohortProgress = async (cohortIds: string[]) => {
+    const progressData: CohortProgress[] = [];
+
+    await Promise.all(
+      cohortIds.map(async (cohortId) => {
+        // Get all sessions for this cohort
+        const { data: sessions } = await supabase
+          .from('sessions')
+          .select('id')
+          .eq('cohort_id', cohortId);
+
+        if (!sessions || sessions.length === 0) {
+          progressData.push({ cohortId, isCompleted: false });
+          return;
+        }
+
+        const sessionIds = sessions.map(s => s.id);
+
+        // Get completed sessions count
+        const { count: completedCount } = await supabase
+          .from('session_progress')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user?.id)
+          .eq('is_completed', true)
+          .in('session_id', sessionIds);
+
+        const isCompleted = (completedCount || 0) === sessions.length && sessions.length > 0;
+        progressData.push({ cohortId, isCompleted });
+      })
+    );
+
+    setCohortProgress(progressData);
+  };
+
+  const isCompleted = (cohortId: string) => {
+    const progress = cohortProgress.find(p => p.cohortId === cohortId);
+    return progress?.isCompleted || false;
   };
 
   const cohortEnrollments = enrollments.filter(e => e.cohort_id && e.cohorts);
@@ -180,7 +232,9 @@ export default function Dashboard() {
                                 {enrollment.cohorts?.description}
                               </CardDescription>
                             </div>
-                            <Badge variant="secondary">Enrolled</Badge>
+                            <Badge variant={isCompleted(enrollment.cohort_id!) ? "default" : "secondary"}>
+                              {isCompleted(enrollment.cohort_id!) ? 'Completed' : 'Enrolled'}
+                            </Badge>
                           </div>
                         </CardHeader>
                         <CardContent>

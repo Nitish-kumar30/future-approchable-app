@@ -21,10 +21,16 @@ interface Cohort {
   session_time: string | null;
 }
 
+interface CohortProgress {
+  cohortId: string;
+  isCompleted: boolean;
+}
+
 export default function Cohorts() {
   const { user } = useAuth();
   const [cohorts, setCohorts] = useState<Cohort[]>([]);
   const [enrolledCohortIds, setEnrolledCohortIds] = useState<string[]>([]);
+  const [cohortProgress, setCohortProgress] = useState<CohortProgress[]>([]);
   const [enrollmentCounts, setEnrollmentCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
 
@@ -74,11 +80,55 @@ export default function Cohorts() {
       .not('cohort_id', 'is', null);
 
     if (!error && data) {
-      setEnrolledCohortIds(data.map(e => e.cohort_id as string));
+      const cohortIds = data.map(e => e.cohort_id as string);
+      setEnrolledCohortIds(cohortIds);
+      // Fetch progress for enrolled cohorts
+      if (cohortIds.length > 0) {
+        fetchCohortProgress(cohortIds);
+      }
     }
   };
 
+  const fetchCohortProgress = async (cohortIds: string[]) => {
+    const progressData: CohortProgress[] = [];
+
+    await Promise.all(
+      cohortIds.map(async (cohortId) => {
+        // Get all sessions for this cohort
+        const { data: sessions } = await supabase
+          .from('sessions')
+          .select('id')
+          .eq('cohort_id', cohortId);
+
+        if (!sessions || sessions.length === 0) {
+          progressData.push({ cohortId, isCompleted: false });
+          return;
+        }
+
+        const sessionIds = sessions.map(s => s.id);
+
+        // Get completed sessions count
+        const { count: completedCount } = await supabase
+          .from('session_progress')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user?.id)
+          .eq('is_completed', true)
+          .in('session_id', sessionIds);
+
+        const isCompleted = (completedCount || 0) === sessions.length && sessions.length > 0;
+        progressData.push({ cohortId, isCompleted });
+      })
+    );
+
+    setCohortProgress(progressData);
+  };
+
   const isEnrolled = (cohortId: string) => enrolledCohortIds.includes(cohortId);
+  
+  const isCompleted = (cohortId: string) => {
+    const progress = cohortProgress.find(p => p.cohortId === cohortId);
+    return progress?.isCompleted || false;
+  };
 
   // Use the shared utility function for consistent formatting
 
@@ -130,7 +180,12 @@ export default function Cohorts() {
                         {cohort.name}
                       </CardTitle>
                       {isEnrolled(cohort.id) && (
-                        <Badge variant="secondary" className="shrink-0">Enrolled</Badge>
+                        <Badge 
+                          variant={isCompleted(cohort.id) ? "default" : "secondary"} 
+                          className="shrink-0"
+                        >
+                          {isCompleted(cohort.id) ? 'Completed' : 'Enrolled'}
+                        </Badge>
                       )}
                     </div>
                     <CardDescription className="line-clamp-3">
