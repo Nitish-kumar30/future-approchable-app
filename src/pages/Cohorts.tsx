@@ -53,21 +53,17 @@ export default function Cohorts() {
   const fetchEnrollmentCounts = async (cohortIds: string[]) => {
     if (cohortIds.length === 0) return;
     
-    const { data } = await supabase
-      .from('enrollments')
-      .select('cohort_id')
-      .in('cohort_id', cohortIds);
+    const counts: Record<string, number> = {};
     
-    if (data) {
-      const counts: Record<string, number> = {};
-      cohortIds.forEach(id => counts[id] = 0);
-      data.forEach(e => {
-        if (e.cohort_id) {
-          counts[e.cohort_id] = (counts[e.cohort_id] || 0) + 1;
-        }
-      });
-      setEnrollmentCounts(counts);
-    }
+    // Use database function to get accurate counts (bypasses RLS)
+    await Promise.all(
+      cohortIds.map(async (cohortId) => {
+        const { data } = await supabase.rpc('get_cohort_enrollment_count', { _cohort_id: cohortId });
+        counts[cohortId] = data || 0;
+      })
+    );
+    
+    setEnrollmentCounts(counts);
   };
 
   const fetchEnrollments = async () => {

@@ -454,6 +454,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_cohort_enrollment_count: {
+        Args: { _cohort_id: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

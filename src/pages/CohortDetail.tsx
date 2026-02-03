@@ -109,12 +109,9 @@ export default function CohortDetail() {
   };
 
   const fetchEnrollmentCount = async () => {
-    const { count } = await supabase
-      .from('enrollments')
-      .select('*', { count: 'exact', head: true })
-      .eq('cohort_id', id);
-    
-    setEnrollmentCount(count || 0);
+    // Use database function to get accurate count (bypasses RLS)
+    const { data } = await supabase.rpc('get_cohort_enrollment_count', { _cohort_id: id });
+    setEnrollmentCount(data || 0);
   };
 
   const checkEnrollment = async () => {
