@@ -9,12 +9,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Plus, Trash2, BookOpen, ClipboardList } from 'lucide-react';
+import { Loader2, Plus, Trash2, BookOpen, ClipboardList, FolderKanban } from 'lucide-react';
 
 interface PreReadingMaterial {
   id?: string;
   title: string;
   link: string;
+  display_order: number;
+}
+
+interface MiniProject {
+  id?: string;
+  title: string;
+  description: string;
   display_order: number;
 }
 
@@ -54,7 +61,8 @@ interface SessionFormProps {
   quizzes: Quiz[];
   preReadingMaterials?: PreReadingMaterial[];
   selectedQuizIds?: string[];
-  onSave: (session: Session, materials: PreReadingMaterial[], quizIds: string[]) => Promise<void>;
+  miniProjects?: MiniProject[];
+  onSave: (session: Session, materials: PreReadingMaterial[], quizIds: string[], projects: MiniProject[]) => Promise<void>;
 }
 
 const defaultSession: Session = {
@@ -77,11 +85,13 @@ export function SessionForm({
   quizzes,
   preReadingMaterials = [],
   selectedQuizIds = [],
+  miniProjects: initialMiniProjects = [],
   onSave 
 }: SessionFormProps) {
   const [formData, setFormData] = useState<Session>(defaultSession);
   const [materials, setMaterials] = useState<PreReadingMaterial[]>([]);
   const [selectedQuizzes, setSelectedQuizzes] = useState<string[]>([]);
+  const [miniProjects, setMiniProjects] = useState<MiniProject[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [parentType, setParentType] = useState<'cohort' | 'course'>('cohort');
 
@@ -99,6 +109,7 @@ export function SessionForm({
         setParentType('cohort');
         setMaterials([]);
         setSelectedQuizzes([]);
+        setMiniProjects([]);
       }
     }
   }, [session, open]);
@@ -117,6 +128,13 @@ export function SessionForm({
     }
   }, [open, session, selectedQuizIds]);
 
+  // Update mini projects when props change
+  useEffect(() => {
+    if (open && session) {
+      setMiniProjects(initialMiniProjects.length > 0 ? [...initialMiniProjects] : []);
+    }
+  }, [open, session, initialMiniProjects]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -129,8 +147,9 @@ export function SessionForm({
     };
 
     const validMaterials = materials.filter(m => m.title.trim() && m.link.trim());
+    const validProjects = miniProjects.filter(p => p.title.trim());
     
-    await onSave(dataToSave as Session, validMaterials, selectedQuizzes);
+    await onSave(dataToSave as Session, validMaterials, selectedQuizzes, validProjects);
     setIsSaving(false);
     onOpenChange(false);
   };
@@ -155,6 +174,20 @@ export function SessionForm({
         ? prev.filter(id => id !== quizId)
         : [...prev, quizId]
     );
+  };
+
+  const addProject = () => {
+    setMiniProjects([...miniProjects, { title: '', description: '', display_order: miniProjects.length }]);
+  };
+
+  const removeProject = (index: number) => {
+    setMiniProjects(miniProjects.filter((_, i) => i !== index));
+  };
+
+  const updateProject = (index: number, field: keyof MiniProject, value: string | number) => {
+    const updated = [...miniProjects];
+    updated[index] = { ...updated[index], [field]: value };
+    setMiniProjects(updated);
   };
 
   const isEditing = !!session?.id;
@@ -399,6 +432,76 @@ export function SessionForm({
               
               <Button type="button" variant="outline" onClick={addMaterial} className="w-full gap-2">
                 <Plus className="h-4 w-4" /> Add Pre-Reading Material
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Separator />
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FolderKanban className="h-4 w-4" />
+                Mini Projects
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {miniProjects.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No mini projects added yet.
+                </p>
+              ) : (
+                miniProjects.map((project, index) => (
+                  <div key={index} className="p-4 border rounded-lg space-y-3 bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">Project {index + 1}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeProject(index)}
+                        className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor={`project-title-${index}`}>Title</Label>
+                        <Input
+                          id={`project-title-${index}`}
+                          value={project.title}
+                          onChange={(e) => updateProject(index, 'title', e.target.value)}
+                          placeholder="e.g., Build a Todo App"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`project-order-${index}`}>Order</Label>
+                        <Input
+                          id={`project-order-${index}`}
+                          type="number"
+                          min={0}
+                          value={project.display_order}
+                          onChange={(e) => updateProject(index, 'display_order', parseInt(e.target.value) || 0)}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`project-description-${index}`}>Description</Label>
+                      <Textarea
+                        id={`project-description-${index}`}
+                        value={project.description}
+                        onChange={(e) => updateProject(index, 'description', e.target.value)}
+                        placeholder="Brief description of the mini project..."
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+              
+              <Button type="button" variant="outline" onClick={addProject} className="w-full gap-2">
+                <Plus className="h-4 w-4" /> Add Mini Project
               </Button>
             </CardContent>
           </Card>
