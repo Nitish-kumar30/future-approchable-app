@@ -22,6 +22,7 @@ import {
   Shield
 } from 'lucide-react';
 import siteIcon from '@/assets/icon.png';
+import Footer from './Footer';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -58,7 +59,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="container flex h-16 items-center justify-between">
@@ -182,9 +183,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </nav>
 
       {/* Main Content */}
-      <main className="container py-6 pb-24 md:pb-6">
+      <main className="container py-6 pb-24 md:pb-6 flex-1">
         {children}
       </main>
+
+      {/* Footer - hidden on mobile due to bottom nav */}
+      <div className="hidden md:block">
+        <Footer />
+      </div>
     </div>
   );
 }
