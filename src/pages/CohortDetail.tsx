@@ -414,11 +414,11 @@ export default function CohortDetail() {
             <CardTitle>About this Cohort</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none text-foreground">
-            <p>{cohort.description || 'No description available.'}</p>
+            <p className="whitespace-pre-line">{cohort.description || 'No description available.'}</p>
             {cohort.mentor_info && (
               <>
                 <h4 className="text-foreground font-semibold mt-4">About the Mentor</h4>
-                <p>{cohort.mentor_info}</p>
+                <p className="whitespace-pre-line">{cohort.mentor_info}</p>
               </>
             )}
           </CardContent>
