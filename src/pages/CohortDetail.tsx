@@ -345,8 +345,12 @@ export default function CohortDetail() {
             <div className="flex items-center gap-3">
               {isEnrolled ? (
                 <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className="text-base px-4 py-2">
-                    <CheckCircle2 className="h-4 w-4 mr-2" /> Enrolled
+                  <Badge 
+                    variant={overallProgress === 100 ? "default" : "secondary"} 
+                    className="text-base px-4 py-2"
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-2" /> 
+                    {overallProgress === 100 ? 'Completed' : 'Enrolled'}
                   </Badge>
                   {averageScore !== null && (
                     <Badge variant="outline" className="text-base px-4 py-2">
