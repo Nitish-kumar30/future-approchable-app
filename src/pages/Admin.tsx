@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy } from 'lucide-react';
 import { CohortForm } from '@/components/admin/CohortForm';
 import { CourseForm } from '@/components/admin/CourseForm';
 import { SessionForm } from '@/components/admin/SessionForm';
@@ -181,6 +181,104 @@ export default function Admin() {
     } else {
       toast({ title: 'Cohort deleted successfully' });
       fetchCohorts();
+    }
+  };
+
+  const handleDuplicateCohort = async (cohort: Cohort) => {
+    try {
+      // 1. Create new cohort (without URLs)
+      const newCohortData = {
+        name: `${cohort.name} (Copy)`,
+        description: cohort.description || null,
+        mentor_name: cohort.mentor_name || null,
+        mentor_info: cohort.mentor_info || null,
+        start_date: cohort.start_date || null,
+        end_date: cohort.end_date || null,
+        max_seats: cohort.max_seats || null,
+        session_time: cohort.session_time || null,
+        meeting_link: null, // Exclude URL
+        group_link: null,   // Exclude URL
+        is_published: false, // Always start as draft
+      };
+
+      const { data: newCohort, error: cohortError } = await supabase
+        .from('cohorts')
+        .insert(newCohortData)
+        .select('id')
+        .single();
+
+      if (cohortError || !newCohort) {
+        throw new Error(cohortError?.message || 'Failed to create cohort');
+      }
+
+      // 2. Fetch sessions for original cohort
+      const { data: originalSessions } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('cohort_id', cohort.id)
+        .order('session_order', { ascending: true });
+
+      if (originalSessions && originalSessions.length > 0) {
+        for (const session of originalSessions) {
+          // Create new session (without URLs)
+          const newSessionData = {
+            cohort_id: newCohort.id,
+            title: session.title,
+            description: session.description || null,
+            session_date: session.session_date || null,
+            session_order: session.session_order || 0,
+            recording_url: null,      // Exclude URL
+            presentation_url: null,   // Exclude URL
+          };
+
+          const { data: newSession, error: sessionError } = await supabase
+            .from('sessions')
+            .insert(newSessionData)
+            .select('id')
+            .single();
+
+          if (sessionError || !newSession) continue;
+
+          // 3. Copy pre-reading materials (without links)
+          const { data: materials } = await supabase
+            .from('pre_reading_materials')
+            .select('*')
+            .eq('session_id', session.id)
+            .order('display_order', { ascending: true });
+
+          if (materials && materials.length > 0) {
+            const newMaterials = materials.map(m => ({
+              session_id: newSession.id,
+              title: m.title,
+              link: '', // Clear link
+              display_order: m.display_order,
+            }));
+            await supabase.from('pre_reading_materials').insert(newMaterials);
+          }
+
+          // 4. Copy session quiz assignments (quizzes are reused, not duplicated)
+          const { data: sessionQuizzes } = await supabase
+            .from('session_quizzes')
+            .select('quiz_id, display_order')
+            .eq('session_id', session.id)
+            .order('display_order', { ascending: true });
+
+          if (sessionQuizzes && sessionQuizzes.length > 0) {
+            const newQuizAssignments = sessionQuizzes.map(sq => ({
+              session_id: newSession.id,
+              quiz_id: sq.quiz_id,
+              display_order: sq.display_order,
+            }));
+            await supabase.from('session_quizzes').insert(newQuizAssignments);
+          }
+        }
+      }
+
+      toast({ title: 'Cohort duplicated successfully', description: 'All sessions and quizzes have been copied (URLs excluded)' });
+      fetchCohorts();
+      fetchSessions();
+    } catch (error) {
+      toast({ title: 'Error duplicating cohort', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
     }
   };
 
@@ -458,12 +556,15 @@ export default function Admin() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right space-x-2">
-                            <Button variant="ghost" size="sm" onClick={() => { setEditingCohort(cohort); setCohortFormOpen(true); }}>
+                            <Button variant="ghost" size="sm" onClick={() => { setEditingCohort(cohort); setCohortFormOpen(true); }} title="Edit">
                               <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDuplicateCohort(cohort)} title="Duplicate">
+                              <Copy className="h-4 w-4" />
                             </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                <Button variant="ghost" size="sm" title="Delete"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
