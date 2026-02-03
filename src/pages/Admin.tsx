@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy, Filter } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CohortForm } from '@/components/admin/CohortForm';
 import { CourseForm } from '@/components/admin/CourseForm';
 import { SessionForm } from '@/components/admin/SessionForm';
@@ -109,6 +110,9 @@ export default function Admin() {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
+
+  // Session filter state
+  const [sessionFilter, setSessionFilter] = useState<string>('all');
 
   useEffect(() => {
     if (isAdmin) {
@@ -699,9 +703,44 @@ export default function Admin() {
                   <CardTitle>Manage Sessions</CardTitle>
                   <CardDescription>Create and manage sessions within cohorts and courses</CardDescription>
                 </div>
-                <Button onClick={handleNewSession} disabled={cohorts.length === 0 && courses.length === 0}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Session
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Select value={sessionFilter} onValueChange={setSessionFilter}>
+                    <SelectTrigger className="w-[220px]">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Filter by parent" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Sessions</SelectItem>
+                      {cohorts.length > 0 && (
+                        <>
+                          <SelectItem value="__cohorts__" disabled className="font-semibold text-muted-foreground">
+                            — Cohorts —
+                          </SelectItem>
+                          {cohorts.map((cohort) => (
+                            <SelectItem key={`cohort-${cohort.id}`} value={`cohort:${cohort.id}`}>
+                              {cohort.name}
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
+                      {courses.length > 0 && (
+                        <>
+                          <SelectItem value="__courses__" disabled className="font-semibold text-muted-foreground">
+                            — Courses —
+                          </SelectItem>
+                          {courses.map((course) => (
+                            <SelectItem key={`course-${course.id}`} value={`course:${course.id}`}>
+                              {course.name}
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={handleNewSession} disabled={cohorts.length === 0 && courses.length === 0}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Session
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {cohorts.length === 0 && courses.length === 0 ? (
@@ -711,18 +750,39 @@ export default function Admin() {
                 ) : sessions.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">No sessions yet. Create your first one!</p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Parent</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Order</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sessions.map((session) => (
+                  (() => {
+                    const filteredSessions = sessions.filter((session) => {
+                      if (sessionFilter === 'all') return true;
+                      if (sessionFilter.startsWith('cohort:')) {
+                        return session.cohort_id === sessionFilter.replace('cohort:', '');
+                      }
+                      if (sessionFilter.startsWith('course:')) {
+                        return session.course_id === sessionFilter.replace('course:', '');
+                      }
+                      return true;
+                    });
+
+                    if (filteredSessions.length === 0) {
+                      return (
+                        <p className="text-center py-8 text-muted-foreground">
+                          No sessions found for this filter.
+                        </p>
+                      );
+                    }
+
+                    return (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Title</TableHead>
+                            <TableHead>Parent</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Order</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredSessions.map((session) => (
                         <TableRow key={session.id}>
                           <TableCell className="font-medium">{session.title}</TableCell>
                           <TableCell>{getSessionParentName(session)}</TableCell>
@@ -753,9 +813,11 @@ export default function Admin() {
                             </AlertDialog>
                           </TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    );
+                  })()
                 )}
               </CardContent>
             </Card>
