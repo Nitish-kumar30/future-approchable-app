@@ -34,6 +34,7 @@ interface Cohort {
   start_date: string | null;
   end_date: string | null;
   max_seats: number | null;
+  session_time: string | null;
   meeting_link: string | null;
   group_link: string | null;
 }
@@ -370,10 +371,10 @@ export default function CohortDetail() {
 
           {/* Meta Info */}
           <div className="flex flex-wrap gap-4 text-sm">
-            {(cohort.start_date) && (
+            {(cohort.start_date || cohort.session_time) && (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Calendar className="h-4 w-4" />
-                {formatCohortDateRange(cohort.start_date, cohort.end_date, null)}
+                {formatCohortDateRange(cohort.start_date, cohort.end_date, cohort.session_time)}
               </div>
             )}
             {seatsLeft !== null && (
