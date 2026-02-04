@@ -255,6 +255,12 @@ export default function Auth() {
                     {errors.loginPassword && (
                       <p className="text-sm text-destructive">{errors.loginPassword}</p>
                     )}
+                    <Link 
+                      to="/forgot-password" 
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </Link>
                   </div>
                 </CardContent>
                 <CardFooter>
