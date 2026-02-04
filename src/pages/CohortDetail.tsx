@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
+import { Markdown } from '@/components/ui/markdown';
 import { SessionQuizList, SessionQuiz, QuizSubmission } from '@/components/session/SessionQuizList';
 import { formatCohortDateRange, formatShortDate } from '@/lib/formatCohortDate';
 import { 
@@ -441,13 +442,13 @@ export default function CohortDetail() {
           <CardHeader>
             <CardTitle>About this Cohort</CardTitle>
           </CardHeader>
-          <CardContent className="prose prose-sm max-w-none text-foreground">
-            <p className="whitespace-pre-line">{cohort.description || 'No description available.'}</p>
+          <CardContent>
+            <Markdown content={cohort.description || 'No description available.'} />
             {cohort.mentor_info && (
-              <>
-                <h4 className="text-foreground font-semibold mt-4">About the Mentor</h4>
-                <p className="whitespace-pre-line">{cohort.mentor_info}</p>
-              </>
+              <div className="mt-6">
+                <h4 className="text-foreground font-semibold mb-2">About the Mentor</h4>
+                <Markdown content={cohort.mentor_info} />
+              </div>
             )}
           </CardContent>
         </Card>
