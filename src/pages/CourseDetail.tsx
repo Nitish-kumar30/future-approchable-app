@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
+import { Markdown } from '@/components/ui/markdown';
 import { SessionQuizList, SessionQuiz, QuizSubmission } from '@/components/session/SessionQuizList';
 import { 
   Clock, 
@@ -405,13 +406,13 @@ export default function CourseDetail() {
           <CardHeader>
             <CardTitle>About this Course</CardTitle>
           </CardHeader>
-          <CardContent className="prose prose-sm max-w-none text-foreground">
-            <p>{course.description || 'No description available.'}</p>
+          <CardContent>
+            <Markdown content={course.description || 'No description available.'} />
             {course.mentor_info && (
-              <>
-                <h4 className="text-foreground font-semibold mt-4">About the Instructor</h4>
-                <p>{course.mentor_info}</p>
-              </>
+              <div className="mt-6">
+                <h4 className="text-foreground font-semibold mb-2">About the Instructor</h4>
+                <Markdown content={course.mentor_info} />
+              </div>
             )}
           </CardContent>
         </Card>
