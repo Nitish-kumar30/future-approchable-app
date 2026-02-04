@@ -1,4 +1,5 @@
 import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
 import { cn } from '@/lib/utils';
 
 interface MarkdownProps {
@@ -23,7 +24,7 @@ export function Markdown({ content, className }: MarkdownProps) {
         className
       )}
     >
-      <ReactMarkdown>{content}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkBreaks]}>{content}</ReactMarkdown>
     </div>
   );
 }
