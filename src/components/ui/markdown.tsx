@@ -1,5 +1,5 @@
 import ReactMarkdown from 'react-markdown';
-import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
 
 interface MarkdownProps {
@@ -8,6 +8,13 @@ interface MarkdownProps {
 }
 
 export function Markdown({ content, className }: MarkdownProps) {
+  // Convert single newlines to double newlines for paragraph breaks
+  // and preserve intentional double newlines as extra spacing
+  const processedContent = content
+    .split('\n\n')
+    .map(block => block.split('\n').join('  \n')) // Add trailing spaces for line breaks within blocks
+    .join('\n\n');
+
   return (
     <div
       className={cn(
@@ -21,11 +28,10 @@ export function Markdown({ content, className }: MarkdownProps) {
         'prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-sm',
         'prose-pre:bg-muted prose-pre:border prose-pre:border-border',
         'prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground',
-        '[&_br]:block [&_br]:my-1',
         className
       )}
     >
-      <ReactMarkdown remarkPlugins={[remarkBreaks]}>{content}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{processedContent}</ReactMarkdown>
     </div>
   );
 }
