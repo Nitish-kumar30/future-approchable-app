@@ -8,12 +8,6 @@ interface MarkdownProps {
 }
 
 export function Markdown({ content, className }: MarkdownProps) {
-  // Convert single newlines to double newlines for paragraph breaks
-  // and preserve intentional double newlines as extra spacing
-  const processedContent = content
-    .split('\n\n')
-    .map(block => block.split('\n').join('  \n')) // Add trailing spaces for line breaks within blocks
-    .join('\n\n');
 
   return (
     <div
@@ -32,7 +26,7 @@ export function Markdown({ content, className }: MarkdownProps) {
         className
       )}
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{processedContent}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </div>
   );
 }
