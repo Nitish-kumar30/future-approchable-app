@@ -1,52 +1,158 @@
 
 
-# Plan: Fix Line Break Rendering in Markdown Component
+# Add Enrollments Tab to Admin Panel with Mandatory Filter
 
-## Problem
-Line breaks and extra spacing in cohort/course descriptions are not rendering correctly. The current preprocessing approach with trailing spaces isn't reliably preserving the formatting as written in the database.
+## Overview
+Add a new "Enrollments" tab to the Admin Panel that displays enrolled students with their names and emails. The filter is mandatory - no enrollments are fetched or displayed until the admin selects a specific cohort or course.
 
-## Solution
-Add CSS `whitespace-pre-line` styling to the Markdown component to preserve line breaks while still wrapping text normally. This is a simple, reliable approach that respects the original formatting without complex string manipulation.
+## Implementation Steps
 
-## Changes
+### 1. Create Edge Function: `get-enrollments`
 
-### 1. Update Markdown Component (`src/components/ui/markdown.tsx`)
+Create a new edge function at `supabase/functions/get-enrollments/index.ts` that:
+- Authenticates the request and verifies the caller is an admin
+- Requires either `cohort_id` or `course_id` as a query parameter (mandatory filter)
+- Returns 400 Bad Request if neither is provided
+- Uses the service role key to access `auth.users` to get emails
+- Joins with profiles to get full names
+- Returns filtered enrollment data with user details
 
-**What changes:**
-- Add `whitespace-pre-line` class to the wrapper div
-- This CSS property:
-  - Preserves line breaks (newlines are respected)
-  - Collapses multiple spaces into one (normal behavior)
-  - Text wraps normally at container edges
-
-**Updated code:**
-```tsx
-<div
-  className={cn(
-    'prose prose-sm max-w-none dark:prose-invert',
-    'prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2',
-    'prose-p:text-foreground prose-p:leading-relaxed prose-p:my-3',
-    'prose-a:text-primary prose-a:no-underline hover:prose-a:underline',
-    'prose-strong:text-foreground prose-strong:font-semibold',
-    'prose-ul:text-foreground prose-ul:my-3 prose-ol:text-foreground prose-ol:my-3',
-    'prose-li:text-foreground prose-li:my-1',
-    'prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-sm',
-    'prose-pre:bg-muted prose-pre:border prose-pre:border-border',
-    'prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground',
-    '[&_p]:whitespace-pre-line',  // Preserve line breaks in paragraphs
-    className
-  )}
->
+**Request format:**
+```text
+GET /get-enrollments?cohort_id={id}
+OR
+GET /get-enrollments?course_id={id}
 ```
 
-The `[&_p]:whitespace-pre-line` selector targets all paragraph elements within the Markdown output, ensuring line breaks are preserved while still allowing markdown features (bold, links, lists) to work correctly.
+**Response format:**
+```text
+{
+  enrollments: [
+    {
+      id: string,
+      user_id: string,
+      cohort_id: string | null,
+      course_id: string | null,
+      enrolled_at: string,
+      user_email: string,
+      user_name: string | null
+    }
+  ]
+}
+```
 
----
+### 2. Update supabase/config.toml
 
-## Technical Notes
-- `whitespace-pre-line` is the ideal CSS property because it:
-  - Preserves newline characters as line breaks
-  - Still wraps long lines normally
-  - Doesn't break markdown formatting like lists or code blocks
-- The content preprocessing logic can remain as a fallback, but the CSS approach is more reliable
+Add configuration for the new edge function with `verify_jwt = false` (authentication handled in code).
+
+### 3. Update Admin.tsx
+
+**Add new state variables:**
+- `enrollments` - array to store fetched enrollment data (initially empty)
+- `enrollmentFilter` - filter state, defaults to empty string `""` (no selection)
+- `enrollmentsLoading` - loading state for enrollments fetch
+
+**Add new interface:**
+```text
+interface EnrollmentWithUser {
+  id: string
+  user_id: string
+  cohort_id: string | null
+  course_id: string | null
+  enrolled_at: string
+  user_email: string
+  user_name: string | null
+}
+```
+
+**Add fetch function:**
+- Only call the edge function when a filter is selected (not empty)
+- Parse the filter value to extract cohort_id or course_id
+- Pass the appropriate query parameter to the edge function
+- Handle loading and error states
+
+**Update TabsList:**
+- Add 5th tab "Enrollments" with Users icon
+- Update grid from `grid-cols-4` to `grid-cols-5`
+
+**Add TabsContent for enrollments:**
+- Filter dropdown WITHOUT "All" option - only cohorts and courses
+- Placeholder prompt when no filter selected: "Select a cohort or course to view enrollments"
+- Table with columns: Student Name, Email, Enrolled At
+- Show enrollment count in header when data is loaded
+
+### 4. UI Layout
+
+**Initial state (no filter selected):**
+```text
++------------------------------------------------------------------+
+| Enrollments Tab                                                   |
++------------------------------------------------------------------+
+| [View Enrollments]               [Filter: Select cohort/course ▼] |
+| View student enrollments                                          |
++------------------------------------------------------------------+
+|                                                                   |
+|     Select a cohort or course to view enrollments                 |
+|                                                                   |
++------------------------------------------------------------------+
+```
+
+**After filter selection:**
+```text
++------------------------------------------------------------------+
+| Enrollments Tab                                                   |
++------------------------------------------------------------------+
+| [View Enrollments (5)]                   [Filter: Cohort 1     ▼] |
+| View student enrollments                                          |
++------------------------------------------------------------------+
+| Name          | Email              | Enrolled At                  |
+|---------------|--------------------|-----------------------------|
+| John Doe      | john@email.com     | Feb 5, 2026                 |
+| Jane Smith    | jane@email.com     | Feb 4, 2026                 |
++------------------------------------------------------------------+
+```
+
+## Technical Details
+
+### Edge Function Logic
+
+```text
+1. Handle CORS preflight (OPTIONS request)
+2. Extract JWT from Authorization header
+3. Create authenticated Supabase client
+4. Verify user is authenticated via getUser()
+5. Check if user has admin role (query user_roles table)
+6. If not admin, return 403 Forbidden
+7. Parse query params - require either cohort_id or course_id
+8. If neither provided, return 400 Bad Request with message
+9. Fetch enrollments filtered by cohort_id or course_id
+10. Get all unique user_ids from enrollments
+11. For each user_id:
+    - Fetch profile for full_name
+    - Use auth.admin.getUserById() for email
+12. Return combined data array
+```
+
+### Filter Logic (different from sessions tab)
+- No `"all"` option - filter is mandatory
+- `""` (empty) - initial state, shows prompt to select filter
+- `"cohort:{id}"` - filters by specific cohort
+- `"course:{id}"` - filters by specific course
+
+### Fetch trigger
+- `useEffect` watches `enrollmentFilter` state
+- Only calls fetch function when filter is non-empty
+- Clears enrollments array when filter changes before fetching new data
+
+### Files to Create/Modify
+1. `supabase/functions/get-enrollments/index.ts` - New edge function
+2. `supabase/config.toml` - Add function configuration
+3. `src/pages/Admin.tsx` - Add Enrollments tab UI and logic
+
+## Security Considerations
+- Edge function requires valid JWT token
+- Admin role is verified server-side before returning any data
+- Service role key is only used server-side, never exposed to client
+- Filter is mandatory - cannot fetch all enrollments at once
+- RLS policies remain intact for direct table access
 
