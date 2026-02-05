@@ -1,42 +1,42 @@
-import { useState, useEffect } from 'react';
-import { Navigate, useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Lock, User } from 'lucide-react';
-import siteIcon from '@/assets/icon.png';
-import { z } from 'zod';
+import { useState, useEffect } from "react";
+import { Navigate, useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Mail, Lock, User } from "lucide-react";
+import siteIcon from "@/assets/icon.png";
+import { z } from "zod";
 
-const emailSchema = z.string().email('Please enter a valid email address');
-const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
-const nameSchema = z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name is too long');
+const emailSchema = z.string().email("Please enter a valid email address");
+const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
+const nameSchema = z.string().min(2, "Name must be at least 2 characters").max(100, "Name is too long");
 
 export default function Auth() {
   const { user, isLoading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'signup' ? 'signup' : 'login');
+
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") === "signup" ? "signup" : "login");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupPassword, setSignupPassword] = useState('');
-  const [signupName, setSignupName] = useState('');
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupName, setSignupName] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    const tab = searchParams.get('tab');
-    if (tab === 'signup') {
-      setActiveTab('signup');
+    const tab = searchParams.get("tab");
+    if (tab === "signup") {
+      setActiveTab("signup");
     }
   }, [searchParams]);
 
@@ -54,39 +54,39 @@ export default function Auth() {
 
   const validateLogin = () => {
     const newErrors: Record<string, string> = {};
-    
+
     const emailResult = emailSchema.safeParse(loginEmail);
     if (!emailResult.success) {
       newErrors.loginEmail = emailResult.error.errors[0].message;
     }
-    
+
     const passwordResult = passwordSchema.safeParse(loginPassword);
     if (!passwordResult.success) {
       newErrors.loginPassword = passwordResult.error.errors[0].message;
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const validateSignup = () => {
     const newErrors: Record<string, string> = {};
-    
+
     const nameResult = nameSchema.safeParse(signupName);
     if (!nameResult.success) {
       newErrors.signupName = nameResult.error.errors[0].message;
     }
-    
+
     const emailResult = emailSchema.safeParse(signupEmail);
     if (!emailResult.success) {
       newErrors.signupEmail = emailResult.error.errors[0].message;
     }
-    
+
     const passwordResult = passwordSchema.safeParse(signupPassword);
     if (!passwordResult.success) {
       newErrors.signupPassword = passwordResult.error.errors[0].message;
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -94,66 +94,67 @@ export default function Auth() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateLogin()) return;
-    
+
     setIsSubmitting(true);
     const { error } = await signIn(loginEmail, loginPassword);
     setIsSubmitting(false);
-    
+
     if (error) {
       toast({
-        title: 'Login failed',
-        description: error.message === 'Invalid login credentials' 
-          ? 'Invalid email or password. Please try again.'
-          : error.message,
-        variant: 'destructive',
+        title: "Login failed",
+        description:
+          error.message === "Invalid login credentials"
+            ? "Invalid email or password. Please try again."
+            : error.message,
+        variant: "destructive",
       });
     } else {
-      navigate('/dashboard');
+      navigate("/dashboard");
     }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateSignup()) return;
-    
+
     setIsSubmitting(true);
     const { error } = await signUp(signupEmail, signupPassword, signupName);
     setIsSubmitting(false);
-    
+
     if (error) {
       let message = error.message;
-      if (error.message.includes('already registered')) {
-        message = 'This email is already registered. Please sign in instead.';
+      if (error.message.includes("already registered")) {
+        message = "This email is already registered. Please sign in instead.";
       }
       toast({
-        title: 'Sign up failed',
+        title: "Sign up failed",
         description: message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } else {
       toast({
-        title: 'Account created!',
-        description: 'Welcome to approachable.dev. Redirecting to your dashboard...',
+        title: "Account created!",
+        description: "Welcome to approachable.dev. Redirecting to your dashboard...",
       });
-      navigate('/dashboard');
+      navigate("/dashboard");
     }
   };
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider: "google",
       options: {
         redirectTo: `${window.location.origin}/dashboard`,
       },
     });
-    
+
     if (error) {
       setIsGoogleLoading(false);
       toast({
-        title: 'Google Sign-In failed',
+        title: "Google Sign-In failed",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
@@ -165,7 +166,7 @@ export default function Auth() {
         <Link to="/" className="block text-center mb-8">
           <img src={siteIcon} alt="Approachable" className="w-16 h-16 rounded-2xl mx-auto mb-4" />
           <h1 className="text-3xl font-display font-bold text-foreground">approachable.dev</h1>
-          <p className="text-muted-foreground mt-2">Your journey to mastery starts here</p>
+          <p className="text-muted-foreground mt-2">Your journey to AI mastery starts here</p>
         </Link>
 
         <Card className="card-elevated">
@@ -210,7 +211,7 @@ export default function Auth() {
                 )}
                 Continue with Google
               </Button>
-              
+
               <div className="relative my-6">
                 <Separator />
                 <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
@@ -235,9 +236,7 @@ export default function Auth() {
                         onChange={(e) => setLoginEmail(e.target.value)}
                       />
                     </div>
-                    {errors.loginEmail && (
-                      <p className="text-sm text-destructive">{errors.loginEmail}</p>
-                    )}
+                    {errors.loginEmail && <p className="text-sm text-destructive">{errors.loginEmail}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Password</Label>
@@ -252,13 +251,8 @@ export default function Auth() {
                         onChange={(e) => setLoginPassword(e.target.value)}
                       />
                     </div>
-                    {errors.loginPassword && (
-                      <p className="text-sm text-destructive">{errors.loginPassword}</p>
-                    )}
-                    <Link 
-                      to="/forgot-password" 
-                      className="text-sm text-primary hover:underline"
-                    >
+                    {errors.loginPassword && <p className="text-sm text-destructive">{errors.loginPassword}</p>}
+                    <Link to="/forgot-password" className="text-sm text-primary hover:underline">
                       Forgot password?
                     </Link>
                   </div>
@@ -271,7 +265,7 @@ export default function Auth() {
                         Signing in...
                       </>
                     ) : (
-                      'Sign In'
+                      "Sign In"
                     )}
                   </Button>
                 </CardFooter>
@@ -294,9 +288,7 @@ export default function Auth() {
                         onChange={(e) => setSignupName(e.target.value)}
                       />
                     </div>
-                    {errors.signupName && (
-                      <p className="text-sm text-destructive">{errors.signupName}</p>
-                    )}
+                    {errors.signupName && <p className="text-sm text-destructive">{errors.signupName}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
@@ -311,9 +303,7 @@ export default function Auth() {
                         onChange={(e) => setSignupEmail(e.target.value)}
                       />
                     </div>
-                    {errors.signupEmail && (
-                      <p className="text-sm text-destructive">{errors.signupEmail}</p>
-                    )}
+                    {errors.signupEmail && <p className="text-sm text-destructive">{errors.signupEmail}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>
@@ -328,9 +318,7 @@ export default function Auth() {
                         onChange={(e) => setSignupPassword(e.target.value)}
                       />
                     </div>
-                    {errors.signupPassword && (
-                      <p className="text-sm text-destructive">{errors.signupPassword}</p>
-                    )}
+                    {errors.signupPassword && <p className="text-sm text-destructive">{errors.signupPassword}</p>}
                   </div>
                 </CardContent>
                 <CardFooter className="flex-col space-y-3">
@@ -341,7 +329,7 @@ export default function Auth() {
                         Creating account...
                       </>
                     ) : (
-                      'Create Account'
+                      "Create Account"
                     )}
                   </Button>
                   <p className="text-xs text-center text-muted-foreground">
