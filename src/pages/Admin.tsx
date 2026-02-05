@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy, Filter } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CohortForm } from '@/components/admin/CohortForm';
 import { CourseForm } from '@/components/admin/CourseForm';
 import { SessionForm } from '@/components/admin/SessionForm';
@@ -87,6 +87,16 @@ interface SessionQuiz {
   quiz_id: string;
 }
 
+ interface EnrollmentWithUser {
+   id: string;
+   user_id: string;
+   cohort_id: string | null;
+   course_id: string | null;
+   enrolled_at: string;
+   user_email: string;
+   user_name: string | null;
+ }
+ 
 export default function Admin() {
   const { isAdmin, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -113,6 +123,11 @@ export default function Admin() {
 
   // Session filter state
   const [sessionFilter, setSessionFilter] = useState<string>('all');
+ 
+   // Enrollment state
+   const [enrollments, setEnrollments] = useState<EnrollmentWithUser[]>([]);
+   const [enrollmentFilter, setEnrollmentFilter] = useState<string>('');
+   const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
 
   useEffect(() => {
     if (isAdmin) {
@@ -519,6 +534,74 @@ export default function Admin() {
     return '-';
   };
 
+ 
+   // Fetch enrollments when filter changes
+   const fetchEnrollments = async (filter: string) => {
+     if (!filter) {
+       setEnrollments([]);
+       return;
+     }
+ 
+     setEnrollmentsLoading(true);
+     try {
+       let queryParam = '';
+       if (filter.startsWith('cohort:')) {
+         queryParam = `cohort_id=${filter.replace('cohort:', '')}`;
+       } else if (filter.startsWith('course:')) {
+         queryParam = `course_id=${filter.replace('course:', '')}`;
+       }
+ 
+       const { data: sessionData } = await supabase.auth.getSession();
+       const token = sessionData?.session?.access_token;
+ 
+       if (!token) {
+         toast({ title: 'Authentication required', variant: 'destructive' });
+         setEnrollmentsLoading(false);
+         return;
+       }
+ 
+       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+       const res = await fetch(`${supabaseUrl}/functions/v1/get-enrollments?${queryParam}`, {
+         method: 'GET',
+         headers: {
+           'Authorization': `Bearer ${token}`,
+           'Content-Type': 'application/json',
+         },
+       });
+ 
+       if (!res.ok) {
+         const errorData = await res.json();
+         throw new Error(errorData.error || 'Failed to fetch enrollments');
+       }
+ 
+       const data = await res.json();
+       setEnrollments(data.enrollments || []);
+     } catch (error) {
+       console.error('Error fetching enrollments:', error);
+       toast({ title: 'Error fetching enrollments', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
+       setEnrollments([]);
+     } finally {
+       setEnrollmentsLoading(false);
+     }
+   };
+ 
+   useEffect(() => {
+     if (enrollmentFilter) {
+       fetchEnrollments(enrollmentFilter);
+     } else {
+       setEnrollments([]);
+     }
+   }, [enrollmentFilter]);
+ 
+   const getEnrollmentParentName = (enrollment: EnrollmentWithUser) => {
+     if (enrollment.cohort_id) {
+       return cohorts.find(c => c.id === enrollment.cohort_id)?.name || 'Unknown Cohort';
+     }
+     if (enrollment.course_id) {
+       return courses.find(c => c.id === enrollment.course_id)?.name || 'Unknown Course';
+     }
+     return '-';
+   };
 
   if (authLoading) return null;
   
@@ -535,20 +618,23 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="cohorts" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="cohorts" className="gap-2">
-              <Users className="h-4 w-4" /> Cohorts
-            </TabsTrigger>
-            <TabsTrigger value="courses" className="gap-2">
-              <BookOpen className="h-4 w-4" /> Courses
-            </TabsTrigger>
-            <TabsTrigger value="sessions" className="gap-2">
-              <GraduationCap className="h-4 w-4" /> Sessions
-            </TabsTrigger>
-            <TabsTrigger value="quizzes" className="gap-2">
-              <ClipboardList className="h-4 w-4" /> Quizzes
-            </TabsTrigger>
-          </TabsList>
+           <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+             <TabsTrigger value="cohorts" className="gap-2">
+               <Users className="h-4 w-4" /> Cohorts
+             </TabsTrigger>
+             <TabsTrigger value="courses" className="gap-2">
+               <BookOpen className="h-4 w-4" /> Courses
+             </TabsTrigger>
+             <TabsTrigger value="sessions" className="gap-2">
+               <GraduationCap className="h-4 w-4" /> Sessions
+             </TabsTrigger>
+             <TabsTrigger value="quizzes" className="gap-2">
+               <ClipboardList className="h-4 w-4" /> Quizzes
+             </TabsTrigger>
+             <TabsTrigger value="enrollments" className="gap-2">
+               <Users className="h-4 w-4" /> Enrollments
+             </TabsTrigger>
+           </TabsList>
 
           {/* Cohorts Tab */}
           <TabsContent value="cohorts">
@@ -884,6 +970,83 @@ export default function Admin() {
               </CardContent>
             </Card>
           </TabsContent>
+
+         {/* Enrollments Tab */}
+         <TabsContent value="enrollments">
+           <Card className="card-elevated">
+             <CardHeader className="flex flex-row items-center justify-between">
+               <div>
+                 <CardTitle>
+                   View Enrollments{enrollments.length > 0 && enrollmentFilter ? ` (${enrollments.length})` : ''}
+                 </CardTitle>
+                 <CardDescription>View student enrollments by cohort or course</CardDescription>
+               </div>
+               <Select value={enrollmentFilter} onValueChange={setEnrollmentFilter}>
+                 <SelectTrigger className="w-[250px]">
+                   <Filter className="h-4 w-4 mr-2" />
+                   <SelectValue placeholder="Select cohort or course" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   {cohorts.length > 0 && (
+                     <SelectGroup>
+                       <SelectLabel>Cohorts</SelectLabel>
+                       {cohorts.map((cohort) => (
+                         <SelectItem key={`cohort-${cohort.id}`} value={`cohort:${cohort.id}`}>
+                           {cohort.name}
+                         </SelectItem>
+                       ))}
+                     </SelectGroup>
+                   )}
+                   {courses.length > 0 && (
+                     <SelectGroup>
+                       <SelectLabel>Courses</SelectLabel>
+                       {courses.map((course) => (
+                         <SelectItem key={`course-${course.id}`} value={`course:${course.id}`}>
+                           {course.name}
+                         </SelectItem>
+                       ))}
+                     </SelectGroup>
+                   )}
+                 </SelectContent>
+               </Select>
+             </CardHeader>
+             <CardContent>
+               {!enrollmentFilter ? (
+                 <div className="flex flex-col items-center justify-center py-12 text-center">
+                   <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                   <p className="text-muted-foreground">Select a cohort or course to view enrollments</p>
+                 </div>
+               ) : enrollmentsLoading ? (
+                 <div className="flex justify-center py-8">
+                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                 </div>
+               ) : enrollments.length === 0 ? (
+                 <p className="text-center py-8 text-muted-foreground">No enrollments found for this selection.</p>
+               ) : (
+                 <Table>
+                   <TableHeader>
+                     <TableRow>
+                       <TableHead>Student Name</TableHead>
+                       <TableHead>Email</TableHead>
+                       <TableHead>Enrolled At</TableHead>
+                     </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                     {enrollments.map((enrollment) => (
+                       <TableRow key={enrollment.id}>
+                         <TableCell className="font-medium">{enrollment.user_name || 'Unknown'}</TableCell>
+                         <TableCell>{enrollment.user_email}</TableCell>
+                         <TableCell>
+                           {new Date(enrollment.enrolled_at).toLocaleDateString()}
+                         </TableCell>
+                       </TableRow>
+                     ))}
+                   </TableBody>
+                 </Table>
+               )}
+             </CardContent>
+           </Card>
+         </TabsContent>
         </Tabs>
 
         {/* Forms */}
