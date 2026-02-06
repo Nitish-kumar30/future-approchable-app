@@ -21,6 +21,7 @@ interface Cohort {
   meeting_link: string;
   group_link: string;
   is_published: boolean;
+  enrollment_disabled: boolean;
 }
 
 interface CohortFormProps {
@@ -44,6 +45,7 @@ const defaultCohort: Cohort = {
   meeting_link: '',
   group_link: '',
   is_published: false,
+  enrollment_disabled: false,
 };
 
 // Parse session_time string like "7:30PM IST" into components
@@ -260,6 +262,15 @@ export function CohortForm({ open, onOpenChange, cohort, onSave }: CohortFormPro
                 onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
               />
               <Label htmlFor="is_published">Publish cohort (visible to learners)</Label>
+            </div>
+
+            <div className="flex items-center space-x-2 md:col-span-2">
+              <Switch
+                id="enrollment_disabled"
+                checked={formData.enrollment_disabled}
+                onCheckedChange={(checked) => setFormData({ ...formData, enrollment_disabled: checked })}
+              />
+              <Label htmlFor="enrollment_disabled">Disable enrollment (new learners will see "Closed")</Label>
             </div>
           </div>
 

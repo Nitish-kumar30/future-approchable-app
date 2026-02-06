@@ -19,6 +19,7 @@ interface Cohort {
   end_date: string | null;
   max_seats: number | null;
   session_time: string | null;
+  enrollment_disabled: boolean;
 }
 
 interface CohortProgress {
@@ -44,7 +45,7 @@ export default function Cohorts() {
   const fetchCohorts = async () => {
     const { data, error } = await supabase
       .from('cohorts')
-      .select('id, name, description, mentor_name, start_date, end_date, max_seats, session_time')
+      .select('id, name, description, mentor_name, start_date, end_date, max_seats, session_time, enrollment_disabled')
       .eq('is_published', true)
       .order('start_date', { ascending: true });
 
@@ -208,13 +209,15 @@ export default function Cohorts() {
                       )}
                     </div>
                     <div className="flex items-center justify-between pt-2">
-                      {cohort.max_seats && (
+                      {!isEnrolled(cohort.id) && cohort.enrollment_disabled ? (
+                        <Badge variant="secondary" className="text-xs">Closed</Badge>
+                      ) : cohort.max_seats ? (
                         <span className="text-xs text-muted-foreground">
                           {cohort.max_seats - (enrollmentCounts[cohort.id] || 0) > 0 
                             ? `${cohort.max_seats - (enrollmentCounts[cohort.id] || 0)} seats left`
                             : 'Fully booked'}
                         </span>
-                      )}
+                      ) : null}
                       <Button variant="ghost" size="sm" className="gap-1 ml-auto">
                         View details <ArrowRight className="h-4 w-4" />
                       </Button>

@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           description: string | null
           end_date: string | null
+          enrollment_disabled: boolean
           group_link: string | null
           id: string
           is_published: boolean | null
@@ -35,6 +36,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           end_date?: string | null
+          enrollment_disabled?: boolean
           group_link?: string | null
           id?: string
           is_published?: boolean | null
@@ -51,6 +53,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           end_date?: string | null
+          enrollment_disabled?: boolean
           group_link?: string | null
           id?: string
           is_published?: boolean | null
@@ -70,6 +73,7 @@ export type Database = {
           created_at: string
           description: string | null
           duration: string | null
+          enrollment_disabled: boolean
           id: string
           image_url: string | null
           is_published: boolean | null
@@ -83,6 +87,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration?: string | null
+          enrollment_disabled?: boolean
           id?: string
           image_url?: string | null
           is_published?: boolean | null
@@ -96,6 +101,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration?: string | null
+          enrollment_disabled?: boolean
           id?: string
           image_url?: string | null
           is_published?: boolean | null

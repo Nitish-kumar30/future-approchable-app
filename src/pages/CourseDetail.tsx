@@ -33,6 +33,7 @@ interface Course {
   mentor_info: string | null;
   duration: string | null;
   image_url: string | null;
+  enrollment_disabled: boolean;
 }
 
 interface Session {
@@ -354,6 +355,10 @@ export default function CourseDetail() {
               {isEnrolled ? (
                 <Badge variant="secondary" className="text-base px-4 py-2">
                   <CheckCircle2 className="h-4 w-4 mr-2" /> Enrolled
+                </Badge>
+              ) : course.enrollment_disabled ? (
+                <Badge variant="secondary" className="text-base px-4 py-2">
+                  Enrollment Closed
                 </Badge>
               ) : (
                 <Button size="lg" onClick={handleEnroll} disabled={isEnrolling}>
