@@ -1,41 +1,42 @@
 
 
-# Add Enrollments Tab to Admin Panel with Mandatory Filter
+# Add Leaderboard Tab to Admin Panel
 
 ## Overview
-Add a new "Enrollments" tab to the Admin Panel that displays enrolled students with their names and emails. The filter is mandatory - no enrollments are fetched or displayed until the admin selects a specific cohort or course.
+Add a new "Leaderboard" tab next to the "Enrollments" tab in the Admin Panel that displays student rankings based on their quiz performance and session completion within a selected cohort or course.
+
+## What You'll Get
+- A new tab showing student rankings for any cohort or course
+- Students ranked by average quiz score and completion percentage
+- Clear visibility into top performers and those who may need support
+- Same mandatory filter pattern as Enrollments (select cohort/course first)
 
 ## Implementation Steps
 
-### 1. Create Edge Function: `get-enrollments`
+### 1. Create Edge Function: `get-leaderboard`
 
-Create a new edge function at `supabase/functions/get-enrollments/index.ts` that:
-- Authenticates the request and verifies the caller is an admin
-- Requires either `cohort_id` or `course_id` as a query parameter (mandatory filter)
-- Returns 400 Bad Request if neither is provided
-- Uses the service role key to access `auth.users` to get emails
-- Joins with profiles to get full names
-- Returns filtered enrollment data with user details
-
-**Request format:**
-```text
-GET /get-enrollments?cohort_id={id}
-OR
-GET /get-enrollments?course_id={id}
-```
+Create a new edge function at `supabase/functions/get-leaderboard/index.ts` that:
+- Authenticates the request and verifies admin role (same pattern as get-enrollments)
+- Requires either `cohort_id` or `course_id` as a query parameter
+- Calculates leaderboard data for each enrolled user:
+  - Average quiz score (from `quiz_submissions`)
+  - Sessions completed count and percentage (from `session_progress`)
+  - Total quizzes attempted
+- Returns ranked student data with scores
 
 **Response format:**
 ```text
 {
-  enrollments: [
+  leaderboard: [
     {
-      id: string,
       user_id: string,
-      cohort_id: string | null,
-      course_id: string | null,
-      enrolled_at: string,
+      user_name: string | null,
       user_email: string,
-      user_name: string | null
+      avg_quiz_score: number,
+      quizzes_attempted: number,
+      sessions_completed: number,
+      total_sessions: number,
+      completion_percentage: number
     }
   ]
 }
@@ -43,56 +44,56 @@ GET /get-enrollments?course_id={id}
 
 ### 2. Update supabase/config.toml
 
-Add configuration for the new edge function with `verify_jwt = false` (authentication handled in code).
+Add configuration for the new edge function.
 
 ### 3. Update Admin.tsx
 
 **Add new state variables:**
-- `enrollments` - array to store fetched enrollment data (initially empty)
-- `enrollmentFilter` - filter state, defaults to empty string `""` (no selection)
-- `enrollmentsLoading` - loading state for enrollments fetch
+- `leaderboard` - array of leaderboard entries
+- `leaderboardFilter` - filter state (defaults to empty string)
+- `leaderboardLoading` - loading state
 
 **Add new interface:**
 ```text
-interface EnrollmentWithUser {
-  id: string
+interface LeaderboardEntry {
   user_id: string
-  cohort_id: string | null
-  course_id: string | null
-  enrolled_at: string
-  user_email: string
   user_name: string | null
+  user_email: string
+  avg_quiz_score: number
+  quizzes_attempted: number
+  sessions_completed: number
+  total_sessions: number
+  completion_percentage: number
 }
 ```
 
-**Add fetch function:**
-- Only call the edge function when a filter is selected (not empty)
-- Parse the filter value to extract cohort_id or course_id
-- Pass the appropriate query parameter to the edge function
-- Handle loading and error states
-
 **Update TabsList:**
-- Add 5th tab "Enrollments" with Users icon
-- Update grid from `grid-cols-4` to `grid-cols-5`
+- Add 6th tab "Leaderboard" with Trophy icon
+- Update grid from `grid-cols-5` to `grid-cols-6`
 
-**Add TabsContent for enrollments:**
-- Filter dropdown WITHOUT "All" option - only cohorts and courses
-- Placeholder prompt when no filter selected: "Select a cohort or course to view enrollments"
-- Table with columns: Student Name, Email, Enrolled At
-- Show enrollment count in header when data is loaded
+**Add TabsContent for leaderboard:**
+- Same filter dropdown pattern as Enrollments (mandatory selection)
+- Placeholder when no filter selected
+- Table with columns:
+  - Rank (#)
+  - Student Name
+  - Email
+  - Avg Quiz Score (with progress bar or badge)
+  - Sessions Completed (X/Y format)
+  - Completion %
 
 ### 4. UI Layout
 
 **Initial state (no filter selected):**
 ```text
 +------------------------------------------------------------------+
-| Enrollments Tab                                                   |
+| Leaderboard Tab                                                   |
 +------------------------------------------------------------------+
-| [View Enrollments]               [Filter: Select cohort/course ▼] |
-| View student enrollments                                          |
+| [Leaderboard]                    [Filter: Select cohort/course ▼] |
+| View student rankings                                             |
 +------------------------------------------------------------------+
 |                                                                   |
-|     Select a cohort or course to view enrollments                 |
+|     Select a cohort or course to view the leaderboard             |
 |                                                                   |
 +------------------------------------------------------------------+
 ```
@@ -100,15 +101,16 @@ interface EnrollmentWithUser {
 **After filter selection:**
 ```text
 +------------------------------------------------------------------+
-| Enrollments Tab                                                   |
+| Leaderboard Tab                                                   |
 +------------------------------------------------------------------+
-| [View Enrollments (5)]                   [Filter: Cohort 1     ▼] |
-| View student enrollments                                          |
+| [Leaderboard (5 students)]             [Filter: Cohort ABC     ▼] |
+| View student rankings                                             |
 +------------------------------------------------------------------+
-| Name          | Email              | Enrolled At                  |
-|---------------|--------------------|-----------------------------|
-| John Doe      | john@email.com     | Feb 5, 2026                 |
-| Jane Smith    | jane@email.com     | Feb 4, 2026                 |
+| #  | Name       | Email           | Avg Score | Sessions | Done  |
+|----|------------|-----------------|-----------|----------|-------|
+| 1  | Jane Smith | jane@email.com  | 92%       | 4/5      | 80%   |
+| 2  | John Doe   | john@email.com  | 85%       | 3/5      | 60%   |
+| 3  | Bob Wilson | bob@email.com   | 78%       | 2/5      | 40%   |
 +------------------------------------------------------------------+
 ```
 
@@ -118,41 +120,31 @@ interface EnrollmentWithUser {
 
 ```text
 1. Handle CORS preflight (OPTIONS request)
-2. Extract JWT from Authorization header
+2. Extract and verify JWT token
 3. Create authenticated Supabase client
-4. Verify user is authenticated via getUser()
-5. Check if user has admin role (query user_roles table)
-6. If not admin, return 403 Forbidden
-7. Parse query params - require either cohort_id or course_id
-8. If neither provided, return 400 Bad Request with message
-9. Fetch enrollments filtered by cohort_id or course_id
-10. Get all unique user_ids from enrollments
-11. For each user_id:
-    - Fetch profile for full_name
-    - Use auth.admin.getUserById() for email
-12. Return combined data array
+4. Verify admin role
+5. Parse query params - require cohort_id or course_id
+6. Fetch all enrollments for the cohort/course
+7. Fetch all sessions for the cohort/course (to get total count)
+8. For each enrolled user:
+   - Get session_progress records to count completed sessions
+   - Get quiz_submissions for quizzes linked to those sessions
+   - Calculate average score
+   - Fetch profile name and auth email
+9. Sort by avg_quiz_score descending (tie-breaker: sessions_completed)
+10. Return ranked leaderboard array
 ```
 
-### Filter Logic (different from sessions tab)
-- No `"all"` option - filter is mandatory
-- `""` (empty) - initial state, shows prompt to select filter
-- `"cohort:{id}"` - filters by specific cohort
-- `"course:{id}"` - filters by specific course
-
-### Fetch trigger
-- `useEffect` watches `enrollmentFilter` state
-- Only calls fetch function when filter is non-empty
-- Clears enrollments array when filter changes before fetching new data
+### Sorting Logic
+Students are ranked primarily by average quiz score (highest first). If scores are tied, students with more completed sessions rank higher.
 
 ### Files to Create/Modify
-1. `supabase/functions/get-enrollments/index.ts` - New edge function
-2. `supabase/config.toml` - Add function configuration
-3. `src/pages/Admin.tsx` - Add Enrollments tab UI and logic
+1. `supabase/functions/get-leaderboard/index.ts` - New edge function
+2. `supabase/config.toml` - Add function configuration  
+3. `src/pages/Admin.tsx` - Add Leaderboard tab UI and logic
 
-## Security Considerations
-- Edge function requires valid JWT token
-- Admin role is verified server-side before returning any data
-- Service role key is only used server-side, never exposed to client
-- Filter is mandatory - cannot fetch all enrollments at once
-- RLS policies remain intact for direct table access
+## Visual Enhancements
+- Top 3 students could have gold/silver/bronze indicators
+- Score column uses color coding (green for 80%+, yellow for 50-79%, red for below 50%)
+- Progress bar for completion percentage
 
