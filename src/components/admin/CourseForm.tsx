@@ -18,6 +18,7 @@ interface Course {
   image_url: string;
   start_date: string;
   is_published: boolean;
+  enrollment_disabled: boolean;
 }
 
 interface CourseFormProps {
@@ -36,6 +37,7 @@ const defaultCourse: Course = {
   image_url: '',
   start_date: '',
   is_published: false,
+  enrollment_disabled: false,
 };
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -309,6 +311,15 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
                 onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
               />
               <Label htmlFor="is_published">Publish course (visible to learners)</Label>
+            </div>
+
+            <div className="flex items-center space-x-2 md:col-span-2">
+              <Switch
+                id="enrollment_disabled"
+                checked={formData.enrollment_disabled}
+                onCheckedChange={(checked) => setFormData({ ...formData, enrollment_disabled: checked })}
+              />
+              <Label htmlFor="enrollment_disabled">Disable enrollment (new learners will see "Closed")</Label>
             </div>
           </div>
 

@@ -30,6 +30,7 @@ interface Cohort {
   meeting_link: string;
   group_link: string;
   is_published: boolean;
+  enrollment_disabled: boolean;
 }
 
 interface Course {
@@ -42,6 +43,7 @@ interface Course {
   image_url: string;
   start_date: string;
   is_published: boolean;
+  enrollment_disabled: boolean;
 }
 
 interface Session {

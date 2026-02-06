@@ -17,6 +17,7 @@ interface Course {
   duration: string | null;
   image_url: string | null;
   start_date: string | null;
+  enrollment_disabled: boolean;
 }
 
 export default function Courses() {
@@ -35,7 +36,7 @@ export default function Courses() {
   const fetchCourses = async () => {
     const { data, error } = await supabase
       .from('courses')
-      .select('id, name, description, mentor_name, duration, image_url, start_date')
+      .select('id, name, description, mentor_name, duration, image_url, start_date, enrollment_disabled')
       .eq('is_published', true)
       .order('created_at', { ascending: false });
 
@@ -114,11 +115,15 @@ export default function Courses() {
                         <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
                       </div>
                     )}
-                    {isEnrolled(course.id) && (
+                    {isEnrolled(course.id) ? (
                       <Badge className="absolute top-3 right-3" variant="secondary">
                         Enrolled
                       </Badge>
-                    )}
+                    ) : course.enrollment_disabled ? (
+                      <Badge className="absolute top-3 right-3" variant="secondary">
+                        Closed
+                      </Badge>
+                    ) : null}
                   </div>
                   
                   <CardHeader>

@@ -39,6 +39,7 @@ interface Cohort {
   session_time: string | null;
   meeting_link: string | null;
   group_link: string | null;
+  enrollment_disabled: boolean;
 }
 
 interface Session {
@@ -383,6 +384,10 @@ export default function CohortDetail() {
                     </Badge>
                   )}
                 </div>
+              ) : cohort.enrollment_disabled ? (
+                <Badge variant="secondary" className="text-base px-4 py-2">
+                  Enrollment Closed
+                </Badge>
               ) : (
                 <Button size="lg" onClick={handleEnroll} disabled={isEnrolling || (seatsLeft !== null && seatsLeft <= 0)}>
                   {isEnrolling ? (
