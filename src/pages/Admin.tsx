@@ -8,9 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy, Filter } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy, Filter, Trophy } from 'lucide-react';
  import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CohortForm } from '@/components/admin/CohortForm';
 import { CourseForm } from '@/components/admin/CourseForm';
@@ -98,6 +99,17 @@ interface SessionQuiz {
    user_email: string;
    user_name: string | null;
  }
+
+ interface LeaderboardEntry {
+   user_id: string;
+   user_name: string | null;
+   user_email: string;
+   avg_quiz_score: number;
+   quizzes_attempted: number;
+   sessions_completed: number;
+   total_sessions: number;
+   completion_percentage: number;
+ }
  
 export default function Admin() {
   const { isAdmin, isLoading: authLoading } = useAuth();
@@ -130,6 +142,11 @@ export default function Admin() {
    const [enrollments, setEnrollments] = useState<EnrollmentWithUser[]>([]);
    const [enrollmentFilter, setEnrollmentFilter] = useState<string>('');
    const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
+
+   // Leaderboard state
+   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+   const [leaderboardFilter, setLeaderboardFilter] = useState<string>('');
+   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
   useEffect(() => {
     if (isAdmin) {
@@ -594,6 +611,64 @@ export default function Admin() {
        setEnrollments([]);
      }
    }, [enrollmentFilter]);
+
+   // Fetch leaderboard when filter changes
+   const fetchLeaderboard = async (filter: string) => {
+     if (!filter) {
+       setLeaderboard([]);
+       return;
+     }
+
+     setLeaderboardLoading(true);
+     try {
+       let queryParam = '';
+       if (filter.startsWith('cohort:')) {
+         queryParam = `cohort_id=${filter.replace('cohort:', '')}`;
+       } else if (filter.startsWith('course:')) {
+         queryParam = `course_id=${filter.replace('course:', '')}`;
+       }
+
+       const { data: sessionData } = await supabase.auth.getSession();
+       const token = sessionData?.session?.access_token;
+
+       if (!token) {
+         toast({ title: 'Authentication required', variant: 'destructive' });
+         setLeaderboardLoading(false);
+         return;
+       }
+
+       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+       const res = await fetch(`${supabaseUrl}/functions/v1/get-leaderboard?${queryParam}`, {
+         method: 'GET',
+         headers: {
+           'Authorization': `Bearer ${token}`,
+           'Content-Type': 'application/json',
+         },
+       });
+
+       if (!res.ok) {
+         const errorData = await res.json();
+         throw new Error(errorData.error || 'Failed to fetch leaderboard');
+       }
+
+       const data = await res.json();
+       setLeaderboard(data.leaderboard || []);
+     } catch (error) {
+       console.error('Error fetching leaderboard:', error);
+       toast({ title: 'Error fetching leaderboard', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
+       setLeaderboard([]);
+     } finally {
+       setLeaderboardLoading(false);
+     }
+   };
+
+   useEffect(() => {
+     if (leaderboardFilter) {
+       fetchLeaderboard(leaderboardFilter);
+     } else {
+       setLeaderboard([]);
+     }
+   }, [leaderboardFilter]);
  
    const getEnrollmentParentName = (enrollment: EnrollmentWithUser) => {
      if (enrollment.cohort_id) {
@@ -603,6 +678,19 @@ export default function Admin() {
        return courses.find(c => c.id === enrollment.course_id)?.name || 'Unknown Course';
      }
      return '-';
+   };
+
+   const getScoreColor = (score: number) => {
+     if (score >= 80) return 'text-green-600 dark:text-green-400';
+     if (score >= 50) return 'text-yellow-600 dark:text-yellow-400';
+     return 'text-red-600 dark:text-red-400';
+   };
+
+   const getRankBadge = (rank: number) => {
+     if (rank === 1) return <span className="text-amber-500">🥇</span>;
+     if (rank === 2) return <span className="text-slate-400">🥈</span>;
+     if (rank === 3) return <span className="text-amber-700">🥉</span>;
+     return <span className="text-muted-foreground">{rank}</span>;
    };
 
   if (authLoading) return null;
@@ -620,7 +708,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="cohorts" className="space-y-6">
-           <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+           <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
              <TabsTrigger value="cohorts" className="gap-2">
                <Users className="h-4 w-4" /> Cohorts
              </TabsTrigger>
@@ -635,6 +723,9 @@ export default function Admin() {
              </TabsTrigger>
              <TabsTrigger value="enrollments" className="gap-2">
                <Users className="h-4 w-4" /> Enrollments
+             </TabsTrigger>
+             <TabsTrigger value="leaderboard" className="gap-2">
+               <Trophy className="h-4 w-4" /> Leaderboard
              </TabsTrigger>
            </TabsList>
 
@@ -1048,7 +1139,106 @@ export default function Admin() {
                )}
              </CardContent>
            </Card>
-         </TabsContent>
+          </TabsContent>
+
+          {/* Leaderboard Tab */}
+          <TabsContent value="leaderboard">
+            <Card className="card-elevated">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>
+                    Leaderboard{leaderboard.length > 0 && leaderboardFilter ? ` (${leaderboard.length} students)` : ''}
+                  </CardTitle>
+                  <CardDescription>View student rankings by quiz performance and session completion</CardDescription>
+                </div>
+                <Select value={leaderboardFilter} onValueChange={setLeaderboardFilter}>
+                  <SelectTrigger className="w-[250px]">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Select cohort or course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cohorts.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>Cohorts</SelectLabel>
+                        {cohorts.map((cohort) => (
+                          <SelectItem key={`cohort-${cohort.id}`} value={`cohort:${cohort.id}`}>
+                            {cohort.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
+                    {courses.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>Courses</SelectLabel>
+                        {courses.map((course) => (
+                          <SelectItem key={`course-${course.id}`} value={`course:${course.id}`}>
+                            {course.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
+                  </SelectContent>
+                </Select>
+              </CardHeader>
+              <CardContent>
+                {!leaderboardFilter ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Trophy className="h-12 w-12 text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Select a cohort or course to view the leaderboard</p>
+                  </div>
+                ) : leaderboardLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : leaderboard.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No students found or no quiz submissions yet.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[60px]">#</TableHead>
+                        <TableHead>Student Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead className="text-center">Avg Quiz Score</TableHead>
+                        <TableHead className="text-center">Sessions</TableHead>
+                        <TableHead className="text-center">Completion</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {leaderboard.map((entry, index) => (
+                        <TableRow key={entry.user_id}>
+                          <TableCell className="font-medium text-lg">
+                            {getRankBadge(index + 1)}
+                          </TableCell>
+                          <TableCell className="font-medium">{entry.user_name || 'Unknown'}</TableCell>
+                          <TableCell>{entry.user_email}</TableCell>
+                          <TableCell className="text-center">
+                            <span className={`font-semibold ${getScoreColor(entry.avg_quiz_score)}`}>
+                              {entry.avg_quiz_score}%
+                            </span>
+                            <span className="text-xs text-muted-foreground ml-1">
+                              ({entry.quizzes_attempted} quiz{entry.quizzes_attempted !== 1 ? 'zes' : ''})
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {entry.sessions_completed}/{entry.total_sessions}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Progress value={entry.completion_percentage} className="h-2 w-16" />
+                              <span className="text-sm text-muted-foreground w-10">
+                                {entry.completion_percentage}%
+                              </span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* Forms */}
