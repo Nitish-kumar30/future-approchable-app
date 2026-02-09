@@ -54,18 +54,20 @@ Deno.serve(async (req) => {
     // Create admin client for privileged update
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Update profile - only the row matching the authenticated user's ID
-    const { error: updateError } = await supabaseAdmin
+    // Upsert profile - insert if not exists, update if exists
+    const { error: upsertError } = await supabaseAdmin
       .from("profiles")
-      .update({
+      .upsert({
+        user_id: userId,
         full_name: full_name,
         bio: bio,
         updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
+      }, {
+        onConflict: 'user_id'
+      });
 
-    if (updateError) {
-      console.error("Error updating profile:", updateError.message);
+    if (upsertError) {
+      console.error("Error upserting profile:", upsertError.message);
       return new Response(
         JSON.stringify({ error: "Failed to update profile" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
