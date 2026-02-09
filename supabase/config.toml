@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.get-leaderboard]
 verify_jwt = false
+
+[functions.update-profile]
+verify_jwt = false

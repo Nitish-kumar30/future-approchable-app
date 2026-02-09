@@ -53,28 +53,59 @@ export default function ProfilePage() {
     if (!user) return;
 
     setIsSaving(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        full_name: fullName,
-        bio: bio,
-      })
-      .eq('user_id', user.id);
 
-    setIsSaving(false);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
 
-    if (error) {
+      if (!token) {
+        toast({
+          title: 'Save failed',
+          description: 'You must be logged in to update your profile.',
+          variant: 'destructive',
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-profile`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            full_name: fullName,
+            bio: bio,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast({
+          title: 'Save failed',
+          description: result.error || 'Failed to update profile.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Profile updated',
+          description: 'Your profile has been saved successfully.',
+        });
+      }
+    } catch (error) {
       toast({
         title: 'Save failed',
-        description: error.message,
+        description: 'An unexpected error occurred.',
         variant: 'destructive',
       });
-    } else {
-      toast({
-        title: 'Profile updated',
-        description: 'Your profile has been saved successfully.',
-      });
     }
+
+    setIsSaving(false);
   };
 
   const getInitials = (name: string | null, email: string) => {
