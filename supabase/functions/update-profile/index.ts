@@ -35,16 +35,16 @@ Deno.serve(async (req) => {
     });
 
     // Verify user is authenticated
-    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      console.log("Failed to verify token:", claimsError?.message);
+    const { data: userData, error: userError } = await supabaseAuth.auth.getUser(token);
+    if (userError || !userData?.user) {
+      console.log("Failed to verify token:", userError?.message);
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const userId = claimsData.claims.sub as string;
+    const userId = userData.user.id;
     console.log("User authenticated:", userId);
 
     // Parse request body
