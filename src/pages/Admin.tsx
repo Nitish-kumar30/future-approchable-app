@@ -199,6 +199,7 @@ export default function Admin() {
       meeting_link: cohort.meeting_link || null,
       group_link: cohort.group_link || null,
       is_published: cohort.is_published,
+      enrollment_disabled: cohort.enrollment_disabled,
     };
     
     if (cohort.id) {
