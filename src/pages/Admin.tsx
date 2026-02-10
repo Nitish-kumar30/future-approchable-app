@@ -317,6 +317,23 @@ export default function Admin() {
             }));
             await supabase.from('session_quizzes').insert(newQuizAssignments);
           }
+
+          // 5. Copy mini projects
+          const { data: miniProjects } = await supabase
+            .from('mini_projects')
+            .select('*')
+            .eq('session_id', session.id)
+            .order('display_order', { ascending: true });
+
+          if (miniProjects && miniProjects.length > 0) {
+            const newMiniProjects = miniProjects.map(mp => ({
+              session_id: newSession.id,
+              title: mp.title,
+              description: mp.description || null,
+              display_order: mp.display_order,
+            }));
+            await supabase.from('mini_projects').insert(newMiniProjects);
+          }
         }
       }
 
