@@ -296,7 +296,7 @@ export default function Admin() {
             const newMaterials = materials.map(m => ({
               session_id: newSession.id,
               title: m.title,
-              link: '', // Clear link
+              link: m.link,
               display_order: m.display_order,
             }));
             await supabase.from('pre_reading_materials').insert(newMaterials);
@@ -332,12 +332,13 @@ export default function Admin() {
               description: mp.description || null,
               display_order: mp.display_order,
             }));
-            await supabase.from('mini_projects').insert(newMiniProjects);
+            const { error: mpError } = await supabase.from('mini_projects').insert(newMiniProjects);
+            if (mpError) console.error('Mini project duplication error:', mpError);
           }
         }
       }
 
-      toast({ title: 'Cohort duplicated successfully', description: 'All sessions and quizzes have been copied (URLs excluded)' });
+      toast({ title: 'Cohort duplicated successfully', description: 'All sessions, quizzes, pre-reading materials, and mini projects have been copied.' });
       fetchCohorts();
       fetchSessions();
     } catch (error) {
