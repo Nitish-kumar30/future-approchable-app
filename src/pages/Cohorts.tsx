@@ -47,7 +47,7 @@ export default function Cohorts() {
       .from('cohorts')
       .select('id, name, description, mentor_name, start_date, end_date, max_seats, session_time, enrollment_disabled')
       .eq('is_published', true)
-      .order('start_date', { ascending: true });
+      .order('start_date', { ascending: false });
 
     if (!error && data) {
       setCohorts(data);
