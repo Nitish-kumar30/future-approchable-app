@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,6 +11,8 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Markdown } from '@/components/ui/markdown';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SessionQuizList, SessionQuiz, QuizSubmission } from '@/components/session/SessionQuizList';
 import { formatCohortDateRange, formatShortDate } from '@/lib/formatCohortDate';
 import { 
@@ -24,7 +26,9 @@ import {
   CheckCircle2,
   Loader2,
   BookOpen,
-  FolderKanban
+  FolderKanban,
+  Trophy,
+  Lock
 } from 'lucide-react';
 
 interface Cohort {
@@ -73,6 +77,17 @@ interface MiniProject {
   display_order: number;
 }
 
+interface LeaderboardEntry {
+  user_id: string;
+  user_name: string | null;
+  user_email: string;
+  avg_quiz_score: number;
+  quizzes_attempted: number;
+  sessions_completed: number;
+  total_sessions: number;
+  completion_percentage: number;
+}
+
 export default function CohortDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -90,6 +105,9 @@ export default function CohortDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [enrollmentCount, setEnrollmentCount] = useState(0);
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
+  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
+  const [leaderboardFetched, setLeaderboardFetched] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -122,7 +140,6 @@ export default function CohortDetail() {
   };
 
   const fetchEnrollmentCount = async () => {
-    // Use database function to get accurate count (bypasses RLS)
     const { data } = await supabase.rpc('get_cohort_enrollment_count', { _cohort_id: id });
     setEnrollmentCount(data || 0);
   };
@@ -151,7 +168,6 @@ export default function CohortDetail() {
   };
 
   const fetchEnrolledContent = async () => {
-    // Re-fetch sessions with full data for enrolled users
     const { data: sessionsData } = await supabase
       .from('sessions')
       .select('*')
@@ -163,7 +179,6 @@ export default function CohortDetail() {
       
       const sessionIds = sessionsData.map(s => s.id);
       if (sessionIds.length > 0) {
-        // Fetch quizzes via session_quizzes junction table
         const { data: sessionQuizzesData } = await supabase
           .from('session_quizzes')
           .select(`
@@ -203,7 +218,6 @@ export default function CohortDetail() {
           
           setSessionQuizzes(quizzesMap);
 
-          // Fetch quiz submissions for the user
           if (quizIds.length > 0) {
             const { data: submissionsData } = await supabase
               .from('quiz_submissions')
@@ -213,7 +227,6 @@ export default function CohortDetail() {
               .order('submitted_at', { ascending: false });
             
             if (submissionsData) {
-              // Keep only latest submission per quiz
               const latestSubmissions = new Map<string, QuizSubmission>();
               submissionsData.forEach((s: any) => {
                 if (!latestSubmissions.has(s.quiz_id)) {
@@ -229,7 +242,6 @@ export default function CohortDetail() {
           }
         }
 
-        // Fetch pre-reading materials
         const { data: materialsData } = await supabase
           .from('pre_reading_materials')
           .select('*')
@@ -240,7 +252,6 @@ export default function CohortDetail() {
           setPreReadingMaterials(materialsData);
         }
 
-        // Fetch mini projects
         const { data: projectsData } = await supabase
           .from('mini_projects')
           .select('*')
@@ -251,7 +262,6 @@ export default function CohortDetail() {
           setMiniProjects(projectsData);
         }
 
-        // Fetch session progress
         const { data: progressData } = await supabase
           .from('session_progress')
           .select('session_id, is_completed')
@@ -298,7 +308,38 @@ export default function CohortDetail() {
     }
   };
 
-  // Removed old formatDate function - using shared utility instead
+  const fetchLeaderboard = useCallback(async () => {
+    if (!user || !id || leaderboardFetched) return;
+    setIsLeaderboardLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-leaderboard?cohort_id=${id}&allow_enrolled=true`,
+        {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setLeaderboardData(data.leaderboard || []);
+      }
+    } catch (e) {
+      console.error('Failed to fetch leaderboard:', e);
+    } finally {
+      setIsLeaderboardLoading(false);
+      setLeaderboardFetched(true);
+    }
+  }, [user, id, leaderboardFetched]);
+
+  const handleTabChange = (value: string) => {
+    if (value === 'leaderboard' && isEnrolled && !leaderboardFetched) {
+      fetchLeaderboard();
+    }
+  };
 
   const getQuizzesForSession = (sessionId: string): SessionQuiz[] => 
     sessionQuizzes[sessionId] || [];
@@ -312,11 +353,9 @@ export default function CohortDetail() {
   const isSessionCompleted = (sessionId: string) =>
     sessionProgress.find(p => p.session_id === sessionId)?.is_completed || false;
 
-  // Calculate overall progress
   const completedSessions = sessions.filter(s => isSessionCompleted(s.id)).length;
   const overallProgress = sessions.length > 0 ? (completedSessions / sessions.length) * 100 : 0;
 
-  // Calculate average quiz score
   const averageScore = quizSubmissions.length > 0
     ? Math.round(quizSubmissions.reduce((sum, s) => sum + s.score, 0) / quizSubmissions.length)
     : null;
@@ -422,202 +461,310 @@ export default function CohortDetail() {
 
         <Separator />
 
-        {/* Overall Progress - Only for enrolled users */}
-        {isEnrolled && sessions.length > 0 && (
-          <Card className="card-elevated border-primary/20 bg-primary/5">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Your Progress</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {completedSessions} of {sessions.length} sessions completed
-                  </span>
-                  <span className="font-medium">{Math.round(overallProgress)}%</span>
-                </div>
-                <Progress value={overallProgress} className="h-3" />
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Tabbed Content */}
+        <Tabs defaultValue="about" onValueChange={handleTabChange}>
+          <TabsList className="w-full justify-start">
+            <TabsTrigger value="about">About</TabsTrigger>
+            <TabsTrigger value="sessions">Sessions</TabsTrigger>
+            <TabsTrigger value="mentor">Mentor</TabsTrigger>
+            <TabsTrigger value="leaderboard" className="gap-1.5">
+              <Trophy className="h-4 w-4" /> Leaderboard
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Description */}
-        <Card className="card-elevated">
-          <CardHeader>
-            <CardTitle>About this Cohort</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Markdown content={cohort.description || 'No description available.'} />
-            {cohort.mentor_info && (
-              <div className="mt-6">
-                <h4 className="text-foreground font-semibold mb-2">About the Mentor</h4>
-                <Markdown content={cohort.mentor_info} />
-              </div>
+          {/* About Tab */}
+          <TabsContent value="about" className="space-y-6">
+            {isEnrolled && sessions.length > 0 && (
+              <Card className="card-elevated border-primary/20 bg-primary/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Your Progress</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {completedSessions} of {sessions.length} sessions completed
+                      </span>
+                      <span className="font-medium">{Math.round(overallProgress)}%</span>
+                    </div>
+                    <Progress value={overallProgress} className="h-3" />
+                  </div>
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
 
-        {/* Enrolled Content - Quick Links */}
-        {isEnrolled && (cohort.meeting_link || cohort.group_link) && (
-          <Card className="card-elevated border-primary/20 bg-primary/5">
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Links</CardTitle>
-              <CardDescription>Resources for enrolled learners only</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-3">
-              {cohort.meeting_link && (
-                <Button variant="outline" asChild>
-                  <a href={cohort.meeting_link} target="_blank" rel="noopener noreferrer">
-                    <Video className="mr-2 h-4 w-4" /> Join Meeting
-                    <ExternalLink className="ml-2 h-3 w-3" />
-                  </a>
-                </Button>
-              )}
-              {cohort.group_link && (
-                <Button variant="outline" asChild>
-                  <a href={cohort.group_link} target="_blank" rel="noopener noreferrer">
-                    <Users className="mr-2 h-4 w-4" /> Join Group
-                    <ExternalLink className="ml-2 h-3 w-3" />
-                  </a>
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Sessions - Always Visible */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">Sessions</h2>
-          {sessions.length === 0 ? (
-            <Card className="card-elevated border-dashed">
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No sessions available yet.
+            <Card className="card-elevated">
+              <CardHeader>
+                <CardTitle>About this Cohort</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Markdown content={cohort.description || 'No description available.'} />
               </CardContent>
             </Card>
-          ) : (
-            <div className="space-y-4">
-              {sessions.map((session, index) => {
-                const sessionQuizzesList = getQuizzesForSession(session.id);
-                const sessionMaterials = getMaterialsForSession(session.id);
-                const sessionProjects = getProjectsForSession(session.id);
-                const completed = isSessionCompleted(session.id);
-                
-                return (
-                  <Card key={session.id} className={`card-elevated ${completed ? 'border-success/30 bg-success/5' : ''}`}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              Session {index + 1}
-                            </Badge>
-                            {session.session_date && (
-                              <span className="text-xs text-muted-foreground">
-                                {formatShortDate(session.session_date)}
-                              </span>
-                            )}
-                            {completed && (
-                              <Badge variant="secondary" className="text-xs bg-success/20 text-success border-success/30">
-                                <CheckCircle2 className="h-3 w-3 mr-1" /> Completed
+
+            {isEnrolled && (cohort.meeting_link || cohort.group_link) && (
+              <Card className="card-elevated border-primary/20 bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="text-lg">Quick Links</CardTitle>
+                  <CardDescription>Resources for enrolled learners only</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-3">
+                  {cohort.meeting_link && (
+                    <Button variant="outline" asChild>
+                      <a href={cohort.meeting_link} target="_blank" rel="noopener noreferrer">
+                        <Video className="mr-2 h-4 w-4" /> Join Meeting
+                        <ExternalLink className="ml-2 h-3 w-3" />
+                      </a>
+                    </Button>
+                  )}
+                  {cohort.group_link && (
+                    <Button variant="outline" asChild>
+                      <a href={cohort.group_link} target="_blank" rel="noopener noreferrer">
+                        <Users className="mr-2 h-4 w-4" /> Join Group
+                        <ExternalLink className="ml-2 h-3 w-3" />
+                      </a>
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Sessions Tab */}
+          <TabsContent value="sessions" className="space-y-4">
+            {sessions.length === 0 ? (
+              <Card className="card-elevated border-dashed">
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  No sessions available yet.
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {sessions.map((session, index) => {
+                  const sessionQuizzesList = getQuizzesForSession(session.id);
+                  const sessionMaterials = getMaterialsForSession(session.id);
+                  const sessionProjects = getProjectsForSession(session.id);
+                  const completed = isSessionCompleted(session.id);
+                  
+                  return (
+                    <Card key={session.id} className={`card-elevated ${completed ? 'border-success/30 bg-success/5' : ''}`}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                Session {index + 1}
                               </Badge>
+                              {session.session_date && (
+                                <span className="text-xs text-muted-foreground">
+                                  {formatShortDate(session.session_date)}
+                                </span>
+                              )}
+                              {completed && (
+                                <Badge variant="secondary" className="text-xs bg-success/20 text-success border-success/30">
+                                  <CheckCircle2 className="h-3 w-3 mr-1" /> Completed
+                                </Badge>
+                              )}
+                            </div>
+                            <CardTitle className="text-lg">{session.title}</CardTitle>
+                          </div>
+                        </div>
+                        {session.description && (
+                          <CardDescription>{session.description}</CardDescription>
+                        )}
+                      </CardHeader>
+                      
+                      {isEnrolled ? (
+                        <CardContent className="space-y-4">
+                          {sessionMaterials.length > 0 && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                                <BookOpen className="h-4 w-4" />
+                                Pre-Reading Materials
+                              </div>
+                              <div className="pl-6 space-y-1">
+                                {sessionMaterials.map((material) => (
+                                  <a
+                                    key={material.id}
+                                    href={material.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 text-sm text-primary hover:underline"
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                    {material.title}
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap gap-2">
+                            {session.recording_url && (
+                              <Button variant="secondary" size="sm" asChild>
+                                <a href={session.recording_url} target="_blank" rel="noopener noreferrer">
+                                  <Video className="mr-2 h-4 w-4" /> Recording
+                                </a>
+                              </Button>
+                            )}
+                            {session.presentation_url && (
+                              <Button variant="secondary" size="sm" asChild>
+                                <a href={session.presentation_url} target="_blank" rel="noopener noreferrer">
+                                  <FileText className="mr-2 h-4 w-4" /> Slides
+                                </a>
+                              </Button>
                             )}
                           </div>
-                          <CardTitle className="text-lg">{session.title}</CardTitle>
-                        </div>
-                      </div>
-                      {session.description && (
-                        <CardDescription>{session.description}</CardDescription>
+
+                          {sessionQuizzesList.length > 0 && (
+                            <SessionQuizList
+                              quizzes={sessionQuizzesList}
+                              submissions={quizSubmissions}
+                              sessionTitle={session.title}
+                            />
+                          )}
+
+                          {sessionProjects.length > 0 && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                                <FolderKanban className="h-4 w-4" />
+                                Mini Projects
+                              </div>
+                              <div className="pl-6 space-y-3">
+                                {sessionProjects.map((project) => (
+                                  <div key={project.id} className="p-3 rounded-lg bg-muted/50 border">
+                                    <h4 className="font-medium text-sm">{project.title}</h4>
+                                    {project.description && (
+                                      <p className="text-xs text-muted-foreground mt-1">{project.description}</p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      ) : (
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground italic">
+                            Enroll to access session materials and quizzes
+                          </p>
+                        </CardContent>
                       )}
-                    </CardHeader>
-                    
-                    {/* Show content only if enrolled */}
-                    {isEnrolled ? (
-                      <CardContent className="space-y-4">
-                        {/* Pre-Reading Materials */}
-                        {sessionMaterials.length > 0 && (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                              <BookOpen className="h-4 w-4" />
-                              Pre-Reading Materials
-                            </div>
-                            <div className="pl-6 space-y-1">
-                              {sessionMaterials.map((material) => (
-                                <a
-                                  key={material.id}
-                                  href={material.link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-2 text-sm text-primary hover:underline"
-                                >
-                                  <ExternalLink className="h-3 w-3" />
-                                  {material.title}
-                                </a>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
 
-                        {/* Session Resources */}
-                        <div className="flex flex-wrap gap-2">
-                          {session.recording_url && (
-                            <Button variant="secondary" size="sm" asChild>
-                              <a href={session.recording_url} target="_blank" rel="noopener noreferrer">
-                                <Video className="mr-2 h-4 w-4" /> Recording
-                              </a>
-                            </Button>
-                          )}
-                          {session.presentation_url && (
-                            <Button variant="secondary" size="sm" asChild>
-                              <a href={session.presentation_url} target="_blank" rel="noopener noreferrer">
-                                <FileText className="mr-2 h-4 w-4" /> Slides
-                              </a>
-                            </Button>
-                          )}
-                        </div>
+          {/* Mentor Tab */}
+          <TabsContent value="mentor">
+            <Card className="card-elevated">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <GraduationCap className="h-5 w-5" />
+                  {cohort.mentor_name || 'Mentor'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {cohort.mentor_info ? (
+                  <Markdown content={cohort.mentor_info} />
+                ) : (
+                  <p className="text-muted-foreground">No mentor information available.</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                        {/* Quizzes Section */}
-                        {sessionQuizzesList.length > 0 && (
-                          <SessionQuizList
-                            quizzes={sessionQuizzesList}
-                            submissions={quizSubmissions}
-                            sessionTitle={session.title}
-                          />
-                        )}
-
-                        {/* Mini Projects Section */}
-                        {sessionProjects.length > 0 && (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                              <FolderKanban className="h-4 w-4" />
-                              Mini Projects
-                            </div>
-                            <div className="pl-6 space-y-3">
-                              {sessionProjects.map((project) => (
-                                <div key={project.id} className="p-3 rounded-lg bg-muted/50 border">
-                                  <h4 className="font-medium text-sm">{project.title}</h4>
-                                  {project.description && (
-                                    <p className="text-xs text-muted-foreground mt-1">{project.description}</p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    ) : (
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground italic">
-                          Enroll to access session materials and quizzes
-                        </p>
-                      </CardContent>
-                    )}
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
+          {/* Leaderboard Tab */}
+          <TabsContent value="leaderboard">
+            {isEnrolled ? (
+              <Card className="card-elevated">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="h-5 w-5" /> Leaderboard
+                  </CardTitle>
+                  <CardDescription>See how you compare with other learners</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLeaderboardLoading ? (
+                    <div className="space-y-3">
+                      {[...Array(5)].map((_, i) => (
+                        <Skeleton key={i} className="h-10 w-full" />
+                      ))}
+                    </div>
+                  ) : leaderboardData.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-6">No leaderboard data available yet.</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-16">Rank</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead className="text-center">Avg Score</TableHead>
+                          <TableHead className="text-center">Quizzes</TableHead>
+                          <TableHead className="text-center">Sessions</TableHead>
+                          <TableHead className="text-center">Completion</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {leaderboardData.map((entry, index) => (
+                          <TableRow key={entry.user_id} className={entry.user_id === user?.id ? 'bg-primary/5' : ''}>
+                            <TableCell className="font-medium">
+                              {index + 1 <= 3 ? (
+                                <span className="text-lg">{['🥇', '🥈', '🥉'][index]}</span>
+                              ) : (
+                                index + 1
+                              )}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {entry.user_name || entry.user_email.split('@')[0]}
+                              {entry.user_id === user?.id && (
+                                <Badge variant="outline" className="ml-2 text-xs">You</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">{entry.avg_quiz_score}%</TableCell>
+                            <TableCell className="text-center">{entry.quizzes_attempted}</TableCell>
+                            <TableCell className="text-center">{entry.sessions_completed}/{entry.total_sessions}</TableCell>
+                            <TableCell className="text-center">{entry.completion_percentage}%</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="card-elevated">
+                <CardContent className="py-12 text-center space-y-4">
+                  <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <div>
+                    <h3 className="text-lg font-semibold">Enroll to View the Leaderboard</h3>
+                    <p className="text-muted-foreground mt-1">
+                      Join this cohort to see how learners are performing and track your progress.
+                    </p>
+                  </div>
+                  {cohort.enrollment_disabled ? (
+                    <Badge variant="secondary" className="text-base px-4 py-2">
+                      Enrollment Closed
+                    </Badge>
+                  ) : (
+                    <Button size="lg" onClick={handleEnroll} disabled={isEnrolling || (seatsLeft !== null && seatsLeft <= 0)}>
+                      {isEnrolling ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Enrolling...
+                        </>
+                      ) : (
+                        'Enroll Now'
+                      )}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </MainLayout>
   );
