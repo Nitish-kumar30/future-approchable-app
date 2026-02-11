@@ -61,27 +61,49 @@ Deno.serve(async (req) => {
     // Create admin client for privileged operations
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Check if user has admin role
-    const { data: roleData, error: roleError } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (roleError || !roleData) {
-      console.log("User is not an admin:", userId);
-      return new Response(
-        JSON.stringify({ error: "Forbidden - Admin access required" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log("Admin access verified for user:", userId);
-
-    // Parse query params - require either cohort_id or course_id
+    // Parse query params early to check allow_enrolled flag
     const url = new URL(req.url);
     const cohortId = url.searchParams.get("cohort_id");
+    const allowEnrolled = url.searchParams.get("allow_enrolled") === "true";
+
+    // If allow_enrolled is set and cohort_id is provided, check enrollment instead of admin role
+    if (allowEnrolled && cohortId) {
+      // Verify user is enrolled in this cohort
+      const { data: enrollmentData, error: enrollmentError } = await supabaseAdmin
+        .from("enrollments")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("cohort_id", cohortId)
+        .maybeSingle();
+
+      if (enrollmentError || !enrollmentData) {
+        console.log("User is not enrolled in cohort:", userId, cohortId);
+        return new Response(
+          JSON.stringify({ error: "Forbidden - You must be enrolled in this cohort" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      console.log("Enrolled user access verified for user:", userId);
+    } else {
+      // Default: require admin role
+      const { data: roleData, error: roleError } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (roleError || !roleData) {
+        console.log("User is not an admin:", userId);
+        return new Response(
+          JSON.stringify({ error: "Forbidden - Admin access required" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      console.log("Admin access verified for user:", userId);
+    }
+
+    // cohortId and url already parsed above
     const courseId = url.searchParams.get("course_id");
 
     if (!cohortId && !courseId) {
