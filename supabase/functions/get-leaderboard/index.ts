@@ -171,14 +171,15 @@ Deno.serve(async (req) => {
 
     console.log(`Found ${quizIds.length} quizzes linked to sessions`);
 
-    // Fetch all quiz submissions for these quizzes
-    let allSubmissions: { user_id: string; score: number | null }[] = [];
+    // Fetch all quiz submissions for these quizzes (include quiz_id and submitted_at for dedup)
+    let allSubmissions: { user_id: string; quiz_id: string; score: number | null; submitted_at: string }[] = [];
     if (quizIds.length > 0) {
       const { data: submissions } = await supabaseAdmin
         .from("quiz_submissions")
-        .select("user_id, score")
+        .select("user_id, quiz_id, score, submitted_at")
         .in("quiz_id", quizIds)
-        .in("user_id", userIds);
+        .in("user_id", userIds)
+        .order("submitted_at", { ascending: false });
       allSubmissions = submissions || [];
     }
 
@@ -216,13 +217,19 @@ Deno.serve(async (req) => {
 
     // Calculate leaderboard data for each user
     const leaderboard: LeaderboardEntry[] = userIds.map((uid) => {
-      // Calculate quiz stats
+      // Deduplicate: keep only the latest submission per quiz
       const userSubmissions = allSubmissions.filter((s) => s.user_id === uid);
-      const validScores = userSubmissions.filter((s) => s.score !== null).map((s) => s.score!);
+      const latestByQuiz = new Map<string, number>();
+      for (const sub of userSubmissions) {
+        if (!latestByQuiz.has(sub.quiz_id) && sub.score !== null) {
+          latestByQuiz.set(sub.quiz_id, sub.score);
+        }
+      }
+      const validScores = [...latestByQuiz.values()];
       const avgQuizScore = validScores.length > 0
         ? Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length)
         : 0;
-      const quizzesAttempted = userSubmissions.length;
+      const quizzesAttempted = latestByQuiz.size;
 
       // Calculate session completion
       const userProgress = allProgress.filter((p) => p.user_id === uid && p.is_completed);
