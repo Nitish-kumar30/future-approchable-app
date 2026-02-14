@@ -45,6 +45,7 @@ interface Course {
   start_date: string;
   is_published: boolean;
   enrollment_disabled: boolean;
+  is_on_demand: boolean;
 }
 
 interface Session {
@@ -137,6 +138,9 @@ export default function Admin() {
 
   // Session filter state
   const [sessionFilter, setSessionFilter] = useState<string>('all');
+
+  // Course filter state
+  const [courseFilter, setCourseFilter] = useState<string>('all');
  
    // Enrollment state
    const [enrollments, setEnrollments] = useState<EnrollmentWithUser[]>([]);
@@ -358,6 +362,8 @@ export default function Admin() {
       image_url: course.image_url || null,
       start_date: course.start_date || null,
       is_published: course.is_published,
+      is_on_demand: course.is_on_demand ?? false,
+      enrollment_disabled: course.is_on_demand ? false : course.enrollment_disabled,
     };
     
     if (course.id) {
@@ -823,7 +829,7 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-          {/* Courses Tab */}
+           {/* Courses Tab */}
           <TabsContent value="courses">
             <Card className="card-elevated">
               <CardHeader className="flex flex-row items-center justify-between">
@@ -831,9 +837,22 @@ export default function Admin() {
                   <CardTitle>Manage Courses</CardTitle>
                   <CardDescription>Create, edit, and manage self-paced courses</CardDescription>
                 </div>
-                <Button onClick={() => { setEditingCourse(null); setCourseFormOpen(true); }}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Course
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Select value={courseFilter} onValueChange={setCourseFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Filter courses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Courses</SelectItem>
+                      <SelectItem value="live">Live Courses</SelectItem>
+                      <SelectItem value="on-demand">On-Demand Courses</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={() => { setEditingCourse(null); setCourseFormOpen(true); }}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Course
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
@@ -845,6 +864,7 @@ export default function Admin() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Name</TableHead>
+                        <TableHead>Type</TableHead>
                         <TableHead>Instructor</TableHead>
                         <TableHead>Duration</TableHead>
                         <TableHead>Status</TableHead>
@@ -852,9 +872,16 @@ export default function Admin() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {courses.map((course) => (
+                      {courses
+                        .filter(c => courseFilter === 'all' || (courseFilter === 'on-demand' ? c.is_on_demand : !c.is_on_demand))
+                        .map((course) => (
                         <TableRow key={course.id}>
                           <TableCell className="font-medium">{course.name}</TableCell>
+                          <TableCell>
+                            <Badge variant={course.is_on_demand ? 'outline' : 'secondary'} className={course.is_on_demand ? 'border-accent text-accent-foreground bg-accent/10' : ''}>
+                              {course.is_on_demand ? 'On-Demand' : 'Live'}
+                            </Badge>
+                          </TableCell>
                           <TableCell>{course.mentor_name || '-'}</TableCell>
                           <TableCell>{course.duration || '-'}</TableCell>
                           <TableCell>

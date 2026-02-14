@@ -19,6 +19,7 @@ interface Course {
   start_date: string;
   is_published: boolean;
   enrollment_disabled: boolean;
+  is_on_demand: boolean;
 }
 
 interface CourseFormProps {
@@ -38,6 +39,7 @@ const defaultCourse: Course = {
   start_date: '',
   is_published: false,
   enrollment_disabled: false,
+  is_on_demand: false,
 };
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -306,6 +308,15 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
 
             <div className="flex items-center space-x-2 md:col-span-2">
               <Switch
+                id="is_on_demand"
+                checked={formData.is_on_demand}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_on_demand: checked, enrollment_disabled: checked ? false : formData.enrollment_disabled })}
+              />
+              <Label htmlFor="is_on_demand">On-demand course (no enrollment required, content gated by login)</Label>
+            </div>
+
+            <div className="flex items-center space-x-2 md:col-span-2">
+              <Switch
                 id="is_published"
                 checked={formData.is_published}
                 onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
@@ -313,14 +324,16 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
               <Label htmlFor="is_published">Publish course (visible to learners)</Label>
             </div>
 
-            <div className="flex items-center space-x-2 md:col-span-2">
-              <Switch
-                id="enrollment_disabled"
-                checked={formData.enrollment_disabled}
-                onCheckedChange={(checked) => setFormData({ ...formData, enrollment_disabled: checked })}
-              />
-              <Label htmlFor="enrollment_disabled">Disable enrollment (new learners will see "Closed")</Label>
-            </div>
+            {!formData.is_on_demand && (
+              <div className="flex items-center space-x-2 md:col-span-2">
+                <Switch
+                  id="enrollment_disabled"
+                  checked={formData.enrollment_disabled}
+                  onCheckedChange={(checked) => setFormData({ ...formData, enrollment_disabled: checked })}
+                />
+                <Label htmlFor="enrollment_disabled">Disable enrollment (new learners will see "Closed")</Label>
+              </div>
+            )}
           </div>
 
           <DialogFooter>

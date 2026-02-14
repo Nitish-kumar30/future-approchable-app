@@ -16,6 +16,8 @@ import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import OnDemandCourses from "./pages/OnDemandCourses";
+import OnDemandCourseDetail from "./pages/OnDemandCourseDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +41,8 @@ const App = () => (
             <Route path="/quiz/:id" element={<Quiz />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/on-demand" element={<OnDemandCourses />} />
+            <Route path="/on-demand/:id" element={<OnDemandCourseDetail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />

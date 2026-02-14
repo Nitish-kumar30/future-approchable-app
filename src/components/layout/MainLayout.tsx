@@ -19,7 +19,8 @@ import {
   LogOut, 
   User,
   Loader2,
-  Shield
+  Shield,
+  PlayCircle
 } from 'lucide-react';
 import siteIcon from '@/assets/icon.png';
 import Footer from './Footer';
@@ -32,6 +33,7 @@ const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/cohorts', label: 'Cohorts', icon: Users },
   { path: '/courses', label: 'Live Courses', icon: BookOpen },
+  { path: '/on-demand', label: 'On-Demand', icon: PlayCircle },
 ];
 
 const adminNavItems = [
