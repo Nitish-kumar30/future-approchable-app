@@ -76,6 +76,7 @@ export type Database = {
           enrollment_disabled: boolean
           id: string
           image_url: string | null
+          is_on_demand: boolean
           is_published: boolean | null
           mentor_info: string | null
           mentor_name: string | null
@@ -90,6 +91,7 @@ export type Database = {
           enrollment_disabled?: boolean
           id?: string
           image_url?: string | null
+          is_on_demand?: boolean
           is_published?: boolean | null
           mentor_info?: string | null
           mentor_name?: string | null
@@ -104,6 +106,7 @@ export type Database = {
           enrollment_disabled?: boolean
           id?: string
           image_url?: string | null
+          is_on_demand?: boolean
           is_published?: boolean | null
           mentor_info?: string | null
           mentor_name?: string | null

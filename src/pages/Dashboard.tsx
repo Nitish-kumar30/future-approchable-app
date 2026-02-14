@@ -14,7 +14,9 @@ import {
   ArrowRight,
   GraduationCap,
   Sparkles,
-  Clock
+  Clock,
+  PlayCircle,
+  Image as ImageIcon
 } from 'lucide-react';
 
 interface Cohort {
@@ -35,6 +37,15 @@ interface Course {
   duration: string | null;
 }
 
+interface OnDemandCourse {
+  id: string;
+  name: string;
+  description: string | null;
+  mentor_name: string | null;
+  duration: string | null;
+  image_url: string | null;
+}
+
 interface Enrollment {
   id: string;
   cohort_id: string | null;
@@ -53,12 +64,14 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [cohortProgress, setCohortProgress] = useState<CohortProgress[]>([]);
+  const [onDemandCourses, setOnDemandCourses] = useState<OnDemandCourse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
       fetchEnrollments();
     }
+    fetchOnDemandCourses();
   }, [user]);
 
   const fetchEnrollments = async () => {
@@ -124,6 +137,17 @@ export default function Dashboard() {
   const isCompleted = (cohortId: string) => {
     const progress = cohortProgress.find(p => p.cohortId === cohortId);
     return progress?.isCompleted || false;
+  };
+
+  const fetchOnDemandCourses = async () => {
+    const { data } = await supabase
+      .from('courses')
+      .select('id, name, description, mentor_name, duration, image_url')
+      .eq('is_published', true)
+      .eq('is_on_demand', true)
+      .order('created_at', { ascending: false })
+      .limit(4);
+    if (data) setOnDemandCourses(data);
   };
 
   const cohortEnrollments = enrollments.filter(e => e.cohort_id && e.cohorts);
@@ -308,6 +332,66 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* On-Demand Courses Section */}
+        {onDemandCourses.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">On-Demand Courses</h2>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/on-demand">
+                  View all <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {onDemandCourses.map((course) => (
+                <Link key={course.id} to={`/on-demand/${course.id}`}>
+                  <Card className="card-elevated hover:shadow-lg transition-shadow cursor-pointer h-full group overflow-hidden">
+                    {course.image_url && (
+                      <div className="h-32 bg-muted overflow-hidden">
+                        <img
+                          src={course.image_url}
+                          alt={course.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                    )}
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-lg">{course.name}</CardTitle>
+                          <CardDescription className="line-clamp-2 mt-1">
+                            {course.description}
+                          </CardDescription>
+                        </div>
+                        <Badge variant="outline" className="shrink-0 border-accent text-accent-foreground bg-accent/10">
+                          <PlayCircle className="h-3 w-3 mr-1" /> On-Demand
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        {course.mentor_name && (
+                          <span className="flex items-center gap-1">
+                            <GraduationCap className="h-4 w-4" />
+                            {course.mentor_name}
+                          </span>
+                        )}
+                        {course.duration && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {course.duration}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </div>
         )}
       </div>

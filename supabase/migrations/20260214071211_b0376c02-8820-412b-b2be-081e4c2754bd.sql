@@ -1,0 +1,1 @@
+ALTER TABLE public.courses ADD COLUMN is_on_demand boolean NOT NULL DEFAULT false;

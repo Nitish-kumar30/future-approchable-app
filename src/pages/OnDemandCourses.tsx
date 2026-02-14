@@ -4,10 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import PublicHeader from '@/components/layout/PublicHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BookOpen, Clock, GraduationCap, ArrowRight, Image as ImageIcon } from 'lucide-react';
+import { PlayCircle, Clock, GraduationCap, ArrowRight, Image as ImageIcon } from 'lucide-react';
 
 interface Course {
   id: string;
@@ -18,25 +17,21 @@ interface Course {
   image_url: string | null;
 }
 
-export default function LiveCourses() {
+export default function OnDemandCourses() {
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchCourses();
-    if (user) {
-      fetchEnrollments();
-    }
-  }, [user]);
+  }, []);
 
   const fetchCourses = async () => {
     const { data, error } = await supabase
       .from('courses')
       .select('id, name, description, mentor_name, duration, image_url')
       .eq('is_published', true)
-      .eq('is_on_demand', false)
+      .eq('is_on_demand', true)
       .order('created_at', { ascending: false });
 
     if (!error && data) {
@@ -45,35 +40,19 @@ export default function LiveCourses() {
     setIsLoading(false);
   };
 
-  const fetchEnrollments = async () => {
-    const { data, error } = await supabase
-      .from('enrollments')
-      .select('course_id')
-      .eq('user_id', user?.id)
-      .not('course_id', 'is', null);
-
-    if (!error && data) {
-      setEnrolledCourseIds(data.map(e => e.course_id as string));
-    }
-  };
-
-  const isEnrolled = (courseId: string) => enrolledCourseIds.includes(courseId);
-
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader />
       
       <main className="container py-8">
         <div className="space-y-8 animate-fade-in">
-          {/* Header */}
           <div className="space-y-2">
-            <h1 className="text-3xl font-display font-bold text-foreground">Live Courses</h1>
+            <h1 className="text-3xl font-display font-bold text-foreground">On-Demand Courses</h1>
             <p className="text-muted-foreground">
-              Join instructor-led courses with live sessions and interactive content.
+              Learn at your own pace with self-guided courses. Sign in to access full content.
             </p>
           </div>
 
-          {/* Courses Grid */}
           {isLoading ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3].map((i) => (
@@ -89,19 +68,18 @@ export default function LiveCourses() {
           ) : courses.length === 0 ? (
             <Card className="card-elevated border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No Courses Available</h3>
+                <PlayCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No On-Demand Courses Available</h3>
                 <p className="text-muted-foreground">
-                  Check back soon for new live courses.
+                  Check back soon for new self-paced courses.
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {courses.map((course) => (
-                <Link key={course.id} to={user ? `/courses/${course.id}` : '/auth'}>
+                <Link key={course.id} to={`/on-demand/${course.id}`}>
                   <Card className="card-elevated hover:shadow-lg transition-all duration-200 cursor-pointer h-full group overflow-hidden">
-                    {/* Course Image */}
                     <div className="relative h-48 bg-muted overflow-hidden">
                       {course.image_url ? (
                         <img 
@@ -113,11 +91,6 @@ export default function LiveCourses() {
                         <div className="w-full h-full flex items-center justify-center">
                           <ImageIcon className="h-16 w-16 text-muted-foreground/50" />
                         </div>
-                      )}
-                      {isEnrolled(course.id) && (
-                        <Badge className="absolute top-3 right-3" variant="secondary">
-                          Enrolled
-                        </Badge>
                       )}
                     </div>
                     
@@ -146,7 +119,7 @@ export default function LiveCourses() {
                       </div>
                       <div className="flex items-center justify-end pt-2">
                         <Button variant="ghost" size="sm" className="gap-1">
-                          {user ? 'View details' : 'Sign in to enroll'} <ArrowRight className="h-4 w-4" />
+                          Start learning <ArrowRight className="h-4 w-4" />
                         </Button>
                       </div>
                     </CardContent>
@@ -158,7 +131,6 @@ export default function LiveCourses() {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-border py-8 mt-12">
         <div className="container text-center text-sm text-muted-foreground">
           © 2024 approachable.dev. All rights reserved.
