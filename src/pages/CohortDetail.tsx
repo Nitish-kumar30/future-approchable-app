@@ -450,7 +450,7 @@ export default function CohortDetail() {
                 {formatCohortDateRange(cohort.start_date, cohort.end_date, cohort.session_time)}
               </div>
             )}
-            {seatsLeft !== null && (
+            {seatsLeft !== null && !cohort.enrollment_disabled && (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Users className="h-4 w-4" />
                 {seatsLeft > 0 ? `${seatsLeft} seats left` : 'Fully booked'}
