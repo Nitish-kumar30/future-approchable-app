@@ -70,8 +70,8 @@ function CohortCard({ cohort, isEnrolled, isCompleted, enrollmentCount }: {
             )}
           </div>
           <div className="flex items-center justify-between pt-2">
-            {!isEnrolled && cohort.enrollment_disabled ? (
-              <Badge variant="secondary" className="text-xs">Closed</Badge>
+            {cohort.enrollment_disabled ? (
+              !isEnrolled ? <Badge variant="secondary" className="text-xs">Closed</Badge> : null
             ) : cohort.max_seats ? (
               <span className="text-xs text-muted-foreground">
                 {cohort.max_seats - enrollmentCount > 0 
