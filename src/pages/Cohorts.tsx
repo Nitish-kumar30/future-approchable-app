@@ -27,6 +27,68 @@ interface CohortProgress {
   isCompleted: boolean;
 }
 
+function CohortCard({ cohort, isEnrolled, isCompleted, enrollmentCount }: {
+  cohort: Cohort;
+  isEnrolled: boolean;
+  isCompleted: boolean;
+  enrollmentCount: number;
+}) {
+  return (
+    <Link to={`/cohorts/${cohort.id}`}>
+      <Card className="card-elevated hover:shadow-lg transition-all duration-200 cursor-pointer h-full group">
+        <CardHeader>
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="text-lg group-hover:text-primary transition-colors">
+              {cohort.name}
+            </CardTitle>
+            {isEnrolled && (
+              <Badge 
+                variant={isCompleted ? "default" : "secondary"} 
+                className="shrink-0"
+              >
+                {isCompleted ? 'Completed' : 'Enrolled'}
+              </Badge>
+            )}
+          </div>
+          <CardDescription className="line-clamp-3">
+            {cohort.description}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+            {cohort.mentor_name && (
+              <span className="flex items-center gap-1.5">
+                <GraduationCap className="h-4 w-4" />
+                {cohort.mentor_name}
+              </span>
+            )}
+            {(cohort.start_date || cohort.session_time) && (
+              <span className="flex items-center gap-1.5">
+                <Calendar className="h-4 w-4" />
+                {formatCohortDateRange(cohort.start_date, cohort.end_date, cohort.session_time)}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center justify-between pt-2">
+            {!isEnrolled && cohort.enrollment_disabled ? (
+              <Badge variant="secondary" className="text-xs">Closed</Badge>
+            ) : cohort.max_seats ? (
+              <span className="text-xs text-muted-foreground">
+                {cohort.max_seats - enrollmentCount > 0 
+                  ? `${cohort.max_seats - enrollmentCount} seats left`
+                  : 'Fully booked'}
+              </span>
+            ) : null}
+            <Button variant="ghost" size="sm" className="gap-1 ml-auto">
+              View details <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
 export default function Cohorts() {
   const { user } = useAuth();
   const [cohorts, setCohorts] = useState<Cohort[]>([]);
@@ -171,62 +233,40 @@ export default function Cohorts() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {cohorts.map((cohort) => (
-              <Link key={cohort.id} to={`/cohorts/${cohort.id}`}>
-                <Card className="card-elevated hover:shadow-lg transition-all duration-200 cursor-pointer h-full group">
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                        {cohort.name}
-                      </CardTitle>
-                      {isEnrolled(cohort.id) && (
-                        <Badge 
-                          variant={isCompleted(cohort.id) ? "default" : "secondary"} 
-                          className="shrink-0"
-                        >
-                          {isCompleted(cohort.id) ? 'Completed' : 'Enrolled'}
-                        </Badge>
-                      )}
-                    </div>
-                    <CardDescription className="line-clamp-3">
-                      {cohort.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                      {cohort.mentor_name && (
-                        <span className="flex items-center gap-1.5">
-                          <GraduationCap className="h-4 w-4" />
-                          {cohort.mentor_name}
-                        </span>
-                      )}
-                      {(cohort.start_date || cohort.session_time) && (
-                        <span className="flex items-center gap-1.5">
-                          <Calendar className="h-4 w-4" />
-                          {formatCohortDateRange(cohort.start_date, cohort.end_date, cohort.session_time)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between pt-2">
-                      {!isEnrolled(cohort.id) && cohort.enrollment_disabled ? (
-                        <Badge variant="secondary" className="text-xs">Closed</Badge>
-                      ) : cohort.max_seats ? (
-                        <span className="text-xs text-muted-foreground">
-                          {cohort.max_seats - (enrollmentCounts[cohort.id] || 0) > 0 
-                            ? `${cohort.max_seats - (enrollmentCounts[cohort.id] || 0)} seats left`
-                            : 'Fully booked'}
-                        </span>
-                      ) : null}
-                      <Button variant="ghost" size="sm" className="gap-1 ml-auto">
-                        View details <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          <>
+            {/* Active Cohorts */}
+            {cohorts.filter(c => !c.enrollment_disabled).length > 0 && (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {cohorts.filter(c => !c.enrollment_disabled).map((cohort) => (
+                  <CohortCard
+                    key={cohort.id}
+                    cohort={cohort}
+                    isEnrolled={isEnrolled(cohort.id)}
+                    isCompleted={isCompleted(cohort.id)}
+                    enrollmentCount={enrollmentCounts[cohort.id] || 0}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Past Cohorts */}
+            {cohorts.filter(c => c.enrollment_disabled).length > 0 && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-foreground">Past Cohorts</h2>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {cohorts.filter(c => c.enrollment_disabled).map((cohort) => (
+                    <CohortCard
+                      key={cohort.id}
+                      cohort={cohort}
+                      isEnrolled={isEnrolled(cohort.id)}
+                      isCompleted={isCompleted(cohort.id)}
+                      enrollmentCount={enrollmentCounts[cohort.id] || 0}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </MainLayout>
