@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import PublicHeader from '@/components/layout/PublicHeader';
-import MainLayout from '@/components/layout/MainLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { PlayCircle, Clock, GraduationCap, ArrowRight, Image as ImageIcon } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import PublicHeader from "@/components/layout/PublicHeader";
+import MainLayout from "@/components/layout/MainLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PlayCircle, Clock, GraduationCap, ArrowRight, Image as ImageIcon } from "lucide-react";
 
 interface Course {
   id: string;
@@ -29,11 +29,11 @@ export default function OnDemandCourses() {
 
   const fetchCourses = async () => {
     const { data, error } = await supabase
-      .from('courses')
-      .select('id, name, description, mentor_name, duration, image_url')
-      .eq('is_published', true)
-      .eq('is_on_demand', true)
-      .order('created_at', { ascending: false });
+      .from("courses")
+      .select("id, name, description, mentor_name, duration, image_url")
+      .eq("is_published", true)
+      .eq("is_on_demand", true)
+      .order("created_at", { ascending: false });
 
     if (!error && data) {
       setCourses(data);
@@ -67,9 +67,7 @@ export default function OnDemandCourses() {
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <PlayCircle className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No On-Demand Courses Available</h3>
-            <p className="text-muted-foreground">
-              Check back soon for new self-paced courses.
-            </p>
+            <p className="text-muted-foreground">Check back soon for new self-paced courses.</p>
           </CardContent>
         </Card>
       ) : (
@@ -79,8 +77,8 @@ export default function OnDemandCourses() {
               <Card className="card-elevated hover:shadow-lg transition-all duration-200 cursor-pointer h-full group overflow-hidden">
                 <div className="relative h-48 bg-muted overflow-hidden">
                   {course.image_url ? (
-                    <img 
-                      src={course.image_url} 
+                    <img
+                      src={course.image_url}
                       alt={course.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
@@ -90,14 +88,12 @@ export default function OnDemandCourses() {
                     </div>
                   )}
                 </div>
-                
+
                 <CardHeader>
                   <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-2">
                     {course.name}
                   </CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    {course.description}
-                  </CardDescription>
+                  <CardDescription className="line-clamp-2">{course.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
@@ -138,7 +134,7 @@ export default function OnDemandCourses() {
       <main className="container py-8">{content}</main>
       <footer className="border-t border-border py-8 mt-12">
         <div className="container text-center text-sm text-muted-foreground">
-          © 2024 approachable.dev. All rights reserved.
+          © 2026 approachable.dev. All rights reserved.
         </div>
       </footer>
     </div>
