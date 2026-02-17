@@ -1,22 +1,17 @@
 
 
-# Fix Navigation Bar on /on-demand Page for Logged-In Users
+# Render Session Descriptions as Markdown
 
 ## Problem
-The `/on-demand` page always uses `PublicHeader`, which only shows a minimal nav with a "Dashboard" link. Logged-in users should see the full navigation bar (Dashboard, Cohorts, Live Courses, On-Demand, Admin, etc.).
+Session descriptions contain structured text with dashes (`-`) intended as bullet points and line breaks, but they are rendered as plain text inside `CardDescription`, collapsing everything into one long line.
 
 ## Solution
-Update `src/pages/OnDemandCourses.tsx` to conditionally render:
-- **Logged-in users**: Wrap content in `MainLayout` (full nav bar with all links)
-- **Not logged in**: Keep using `PublicHeader` with the simple footer
+Replace the plain `CardDescription` rendering of session descriptions with the existing `Markdown` component (which uses `react-markdown` with `remark-gfm` and preserves line breaks). This will properly render bullet points, headings, and other formatting.
 
 ## Changes
 
-### `src/pages/OnDemandCourses.tsx`
-- Import `MainLayout` and `useAuth`
-- Check `user` from `useAuth()`
-- If logged in, wrap the content in `MainLayout`
-- If not logged in, keep the current `PublicHeader` + footer layout
+### `src/pages/CohortDetail.tsx`
+- Import the `Markdown` component from `@/components/ui/markdown`
+- Replace `<CardDescription>{session.description}</CardDescription>` with `<Markdown content={session.description} className="text-sm" />`
 
-This is a small, targeted fix -- just conditional layout wrapping based on auth state.
-
+This is a one-line swap using an already-existing component -- no new dependencies or components needed.
