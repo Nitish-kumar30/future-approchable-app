@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Plus, Trash2, BookOpen, ClipboardList, FolderKanban } from 'lucide-react';
 
@@ -35,6 +36,7 @@ interface Session {
   recording_url: string;
   presentation_url: string;
   session_order: number;
+  is_content_unlocked: boolean;
 }
 
 interface Cohort {
@@ -74,6 +76,7 @@ const defaultSession: Session = {
   recording_url: '',
   presentation_url: '',
   session_order: 0,
+  is_content_unlocked: false,
 };
 
 export function SessionForm({ 
@@ -316,6 +319,20 @@ export function SessionForm({
                 placeholder="https://docs.google.com/..."
               />
             </div>
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="is_content_unlocked" className="text-sm font-medium">Unlock content for learners</Label>
+              <p className="text-xs text-muted-foreground">When enabled, learners can see quizzes, materials, and projects for this session</p>
+            </div>
+            <Switch
+              id="is_content_unlocked"
+              checked={formData.is_content_unlocked}
+              onCheckedChange={(checked) => setFormData({ ...formData, is_content_unlocked: checked })}
+            />
           </div>
 
           <Separator />

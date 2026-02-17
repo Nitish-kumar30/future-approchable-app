@@ -12,6 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy, Filter, Trophy } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
  import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CohortForm } from '@/components/admin/CohortForm';
 import { CourseForm } from '@/components/admin/CourseForm';
@@ -58,6 +59,7 @@ interface Session {
   recording_url: string;
   presentation_url: string;
   session_order: number;
+  is_content_unlocked: boolean;
 }
 
 interface PreReadingMaterial {
@@ -406,6 +408,7 @@ export default function Admin() {
       recording_url: session.recording_url || null,
       presentation_url: session.presentation_url || null,
       session_order: session.session_order || 0,
+      is_content_unlocked: session.is_content_unlocked ?? false,
     };
     
     let sessionId = session.id;
@@ -1003,6 +1006,7 @@ export default function Admin() {
                             <TableHead>Parent</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Order</TableHead>
+                            <TableHead>Content</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1015,6 +1019,21 @@ export default function Admin() {
                             {session.session_date ? new Date(session.session_date).toLocaleDateString() : '-'}
                           </TableCell>
                           <TableCell>{session.session_order}</TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={session.is_content_unlocked}
+                              onCheckedChange={async (checked) => {
+                                const { error } = await supabase.from('sessions').update({ is_content_unlocked: checked }).eq('id', session.id);
+                                if (error) {
+                                  toast({ title: 'Error updating session', description: error.message, variant: 'destructive' });
+                                } else {
+                                  setSessions(prev => prev.map(s => s.id === session.id ? { ...s, is_content_unlocked: checked } : s));
+                                  toast({ title: checked ? 'Content unlocked' : 'Content locked' });
+                                }
+                              }}
+                              aria-label="Toggle content visibility"
+                            />
+                          </TableCell>
                           <TableCell className="text-right space-x-2">
                             <Button variant="ghost" size="sm" onClick={() => handleEditSession(session)}>
                               <Pencil className="h-4 w-4" />

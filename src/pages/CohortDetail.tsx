@@ -54,6 +54,7 @@ interface Session {
   recording_url: string | null;
   presentation_url: string | null;
   session_order: number;
+  is_content_unlocked?: boolean;
 }
 
 interface SessionProgress {
@@ -576,71 +577,79 @@ export default function CohortDetail() {
                       
                       {isEnrolled ? (
                         <CardContent className="space-y-4">
-                          {sessionMaterials.length > 0 && (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                                <BookOpen className="h-4 w-4" />
-                                Pre-Reading Materials
-                              </div>
-                              <div className="pl-6 space-y-1">
-                                {sessionMaterials.map((material) => (
-                                  <a
-                                    key={material.id}
-                                    href={material.link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 text-sm text-primary hover:underline"
-                                  >
-                                    <ExternalLink className="h-3 w-3" />
-                                    {material.title}
-                                  </a>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="flex flex-wrap gap-2">
-                            {session.recording_url && (
-                              <Button variant="secondary" size="sm" asChild>
-                                <a href={session.recording_url} target="_blank" rel="noopener noreferrer">
-                                  <Video className="mr-2 h-4 w-4" /> Recording
-                                </a>
-                              </Button>
-                            )}
-                            {session.presentation_url && (
-                              <Button variant="secondary" size="sm" asChild>
-                                <a href={session.presentation_url} target="_blank" rel="noopener noreferrer">
-                                  <FileText className="mr-2 h-4 w-4" /> Slides
-                                </a>
-                              </Button>
-                            )}
-                          </div>
-
-                          {sessionQuizzesList.length > 0 && (
-                            <SessionQuizList
-                              quizzes={sessionQuizzesList}
-                              submissions={quizSubmissions}
-                              sessionTitle={session.title}
-                            />
-                          )}
-
-                          {sessionProjects.length > 0 && (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                                <FolderKanban className="h-4 w-4" />
-                                Mini Projects
-                              </div>
-                              <div className="pl-6 space-y-3">
-                                {sessionProjects.map((project) => (
-                                  <div key={project.id} className="p-3 rounded-lg bg-muted/50 border">
-                                    <h4 className="font-medium text-sm">{project.title}</h4>
-                                    {project.description && (
-                                      <Markdown content={project.description} className="text-xs" />
-                                    )}
+                          {session.is_content_unlocked ? (
+                            <>
+                              {sessionMaterials.length > 0 && (
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                                    <BookOpen className="h-4 w-4" />
+                                    Pre-Reading Materials
                                   </div>
-                                ))}
+                                  <div className="pl-6 space-y-1">
+                                    {sessionMaterials.map((material) => (
+                                      <a
+                                        key={material.id}
+                                        href={material.link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 text-sm text-primary hover:underline"
+                                      >
+                                        <ExternalLink className="h-3 w-3" />
+                                        {material.title}
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="flex flex-wrap gap-2">
+                                {session.recording_url && (
+                                  <Button variant="secondary" size="sm" asChild>
+                                    <a href={session.recording_url} target="_blank" rel="noopener noreferrer">
+                                      <Video className="mr-2 h-4 w-4" /> Recording
+                                    </a>
+                                  </Button>
+                                )}
+                                {session.presentation_url && (
+                                  <Button variant="secondary" size="sm" asChild>
+                                    <a href={session.presentation_url} target="_blank" rel="noopener noreferrer">
+                                      <FileText className="mr-2 h-4 w-4" /> Slides
+                                    </a>
+                                  </Button>
+                                )}
                               </div>
-                            </div>
+
+                              {sessionQuizzesList.length > 0 && (
+                                <SessionQuizList
+                                  quizzes={sessionQuizzesList}
+                                  submissions={quizSubmissions}
+                                  sessionTitle={session.title}
+                                />
+                              )}
+
+                              {sessionProjects.length > 0 && (
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                                    <FolderKanban className="h-4 w-4" />
+                                    Mini Projects
+                                  </div>
+                                  <div className="pl-6 space-y-3">
+                                    {sessionProjects.map((project) => (
+                                      <div key={project.id} className="p-3 rounded-lg bg-muted/50 border">
+                                        <h4 className="font-medium text-sm">{project.title}</h4>
+                                        {project.description && (
+                                          <Markdown content={project.description} className="text-xs" />
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-sm text-muted-foreground flex items-center gap-2">
+                              <Lock className="h-4 w-4" /> This session's content will be available soon.
+                            </p>
                           )}
                         </CardContent>
                       ) : (
