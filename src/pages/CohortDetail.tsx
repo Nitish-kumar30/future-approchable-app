@@ -635,7 +635,7 @@ export default function CohortDetail() {
                                   <div key={project.id} className="p-3 rounded-lg bg-muted/50 border">
                                     <h4 className="font-medium text-sm">{project.title}</h4>
                                     {project.description && (
-                                      <p className="text-xs text-muted-foreground mt-1">{project.description}</p>
+                                      <Markdown content={project.description} className="text-xs" />
                                     )}
                                   </div>
                                 ))}
