@@ -425,6 +425,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_content_unlocked: boolean
           presentation_url: string | null
           recording_url: string | null
           session_date: string | null
@@ -438,6 +439,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_content_unlocked?: boolean
           presentation_url?: string | null
           recording_url?: string | null
           session_date?: string | null
@@ -451,6 +453,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_content_unlocked?: boolean
           presentation_url?: string | null
           recording_url?: string | null
           session_date?: string | null

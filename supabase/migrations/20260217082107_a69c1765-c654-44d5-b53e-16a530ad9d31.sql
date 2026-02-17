@@ -1,0 +1,1 @@
+ALTER TABLE public.sessions ADD COLUMN is_content_unlocked BOOLEAN NOT NULL DEFAULT false;
