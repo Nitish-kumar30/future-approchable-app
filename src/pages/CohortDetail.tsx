@@ -570,7 +570,7 @@ export default function CohortDetail() {
                           </div>
                         </div>
                         {session.description && (
-                          <CardDescription>{session.description}</CardDescription>
+                          <Markdown content={session.description} className="text-sm" />
                         )}
                       </CardHeader>
                       
