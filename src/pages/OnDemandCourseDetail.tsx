@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import PublicHeader from '@/components/layout/PublicHeader';
+import VimeoPlayer from '@/components/session/VimeoPlayer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 import {
   PlayCircle,
   FileText,
@@ -17,6 +19,7 @@ import {
   LogIn,
   ChevronLeft,
   ExternalLink,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface Course {
@@ -48,18 +51,22 @@ interface PreReadingMaterial {
   link: string;
 }
 
-function getVideoEmbed(url: string): string | null {
-  // YouTube
+function isVimeoUrl(url: string) {
+  return url.includes('vimeo.com');
+}
+
+function isVideoUrl(url: string) {
+  return url.includes('youtube') || url.includes('youtu.be') || url.includes('vimeo.com');
+}
+
+function getYouTubeEmbed(url: string): string | null {
   const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
   if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
-  // Vimeo
-  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
-  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
   return null;
 }
 
 function getContentType(session: Session, hasQuizzes: boolean, hasReadings: boolean): string {
-  if (session.recording_url && (session.recording_url.includes('youtube') || session.recording_url.includes('vimeo') || session.recording_url.includes('youtu.be'))) return 'video';
+  if (session.recording_url && isVideoUrl(session.recording_url)) return 'video';
   if (hasQuizzes) return 'quiz';
   if (session.presentation_url) return 'link';
   if (hasReadings) return 'reading';
@@ -83,10 +90,32 @@ export default function OnDemandCourseDetail() {
   const [sessionReadings, setSessionReadings] = useState<Record<string, PreReadingMaterial[]>>({});
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [completedSessionIds, setCompletedSessionIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (id) fetchCourseData();
   }, [id]);
+
+  // Fetch existing progress when user logs in
+  useEffect(() => {
+    if (user && sessions.length > 0) {
+      fetchProgress(sessions.map(s => s.id));
+    }
+  }, [user, sessions.length]);
+
+  const fetchProgress = async (sessionIds: string[]) => {
+    if (!user || sessionIds.length === 0) return;
+    const { data } = await supabase
+      .from('session_progress')
+      .select('session_id')
+      .eq('user_id', user.id)
+      .eq('is_completed', true)
+      .in('session_id', sessionIds);
+
+    if (data) {
+      setCompletedSessionIds(new Set(data.map(p => p.session_id)));
+    }
+  };
 
   const fetchCourseData = async () => {
     const [courseRes, sessionsRes] = await Promise.all([
@@ -99,7 +128,6 @@ export default function OnDemandCourseDetail() {
       setSessions(sessionsRes.data);
       if (sessionsRes.data.length > 0) setActiveSessionId(sessionsRes.data[0].id);
 
-      // Fetch quizzes and readings for all sessions
       const sessionIds = sessionsRes.data.map(s => s.id);
       if (sessionIds.length > 0) {
         const [quizzesRes, readingsRes] = await Promise.all([
@@ -129,7 +157,41 @@ export default function OnDemandCourseDetail() {
     setIsLoading(false);
   };
 
+  const handleSessionCompleted = useCallback(async (sessionId: string) => {
+    if (!user || completedSessionIds.has(sessionId)) return;
+
+    // Optimistically update UI
+    setCompletedSessionIds(prev => new Set([...prev, sessionId]));
+
+    // Upsert into session_progress
+    await supabase.from('session_progress').upsert(
+      { user_id: user.id, session_id: sessionId, is_completed: true, completed_at: new Date().toISOString() },
+      { onConflict: 'user_id,session_id' }
+    );
+  }, [user, completedSessionIds]);
+
+  const handleNextSession = useCallback(() => {
+    const currentIdx = sessions.findIndex(s => s.id === activeSessionId);
+    if (currentIdx >= 0 && currentIdx < sessions.length - 1) {
+      setActiveSessionId(sessions[currentIdx + 1].id);
+    }
+  }, [sessions, activeSessionId]);
+
   const activeSession = sessions.find(s => s.id === activeSessionId);
+
+  // Progress calculation: only sessions with video URLs count
+  const videoSessions = sessions.filter(s => s.recording_url && isVideoUrl(s.recording_url));
+  const completedVideoCount = videoSessions.filter(s => completedSessionIds.has(s.id)).length;
+  const completionPercent = videoSessions.length > 0 ? Math.round((completedVideoCount / videoSessions.length) * 100) : 0;
+
+  // Next session for popup
+  const currentIdx = sessions.findIndex(s => s.id === activeSessionId);
+  const nextSessionRaw = currentIdx >= 0 && currentIdx < sessions.length - 1 ? sessions[currentIdx + 1] : null;
+  const nextSessionForPlayer = nextSessionRaw ? {
+    id: nextSessionRaw.id,
+    title: nextSessionRaw.title,
+    type: getContentType(nextSessionRaw, (sessionQuizzes[nextSessionRaw.id]?.length || 0) > 0, (sessionReadings[nextSessionRaw.id]?.length || 0) > 0),
+  } : null;
 
   if (isLoading) {
     return (
@@ -176,8 +238,8 @@ export default function OnDemandCourseDetail() {
       {/* Split pane */}
       <div className="flex-1 flex flex-col md:flex-row">
         {/* Left sidebar - session list */}
-        <aside className="md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-border bg-card shrink-0">
-          <ScrollArea className="h-auto md:h-[calc(100vh-12rem)]">
+        <aside className="md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-border bg-card shrink-0 flex flex-col">
+          <ScrollArea className="flex-1 h-auto md:h-[calc(100vh-16rem)]">
             <div className="p-4 space-y-1">
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
                 Lessons ({sessions.length})
@@ -188,6 +250,7 @@ export default function OnDemandCourseDetail() {
                 const type = getContentType(session, hasQuizzes, hasReadings);
                 const Icon = contentIcons[type];
                 const isActive = activeSessionId === session.id;
+                const isCompleted = completedSessionIds.has(session.id);
 
                 return (
                   <button
@@ -202,7 +265,7 @@ export default function OnDemandCourseDetail() {
                     <div className={`mt-0.5 shrink-0 ${isActive ? 'text-primary' : ''}`}>
                       <Icon className="h-4 w-4" />
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className={`text-sm font-medium leading-snug ${isActive ? 'text-foreground' : ''}`}>
                         {idx + 1}. {session.title}
                       </p>
@@ -210,11 +273,28 @@ export default function OnDemandCourseDetail() {
                         <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{session.description}</p>
                       )}
                     </div>
+                    {user && isCompleted && (
+                      <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" style={{ color: 'hsl(142 71% 45%)' }} />
+                    )}
                   </button>
                 );
               })}
             </div>
           </ScrollArea>
+
+          {/* Progress bar at bottom of sidebar */}
+          {user && videoSessions.length > 0 && (
+            <div className="p-4 border-t border-border bg-card shrink-0">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs text-muted-foreground font-medium">Your progress</span>
+                <span className="text-xs font-semibold text-foreground">{completionPercent}%</span>
+              </div>
+              <Progress value={completionPercent} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-1.5">
+                {completedVideoCount} of {videoSessions.length} videos watched
+              </p>
+            </div>
+          )}
         </aside>
 
         {/* Right panel - content area */}
@@ -260,12 +340,29 @@ export default function OnDemandCourseDetail() {
 
                 {/* Video embed */}
                 {activeSession.recording_url && (() => {
-                  const embedUrl = getVideoEmbed(activeSession.recording_url);
-                  if (embedUrl) {
+                  const url = activeSession.recording_url;
+
+                  // Vimeo: use SDK player with popup + 20s completion
+                  if (isVimeoUrl(url)) {
+                    return (
+                      <VimeoPlayer
+                        key={activeSession.id}
+                        videoUrl={url}
+                        title={activeSession.title}
+                        nextSession={nextSessionForPlayer}
+                        onCompleted={() => handleSessionCompleted(activeSession.id)}
+                        onNextSession={handleNextSession}
+                      />
+                    );
+                  }
+
+                  // YouTube: plain iframe
+                  const ytEmbed = getYouTubeEmbed(url);
+                  if (ytEmbed) {
                     return (
                       <div className="aspect-video bg-muted rounded-lg overflow-hidden border border-border">
                         <iframe
-                          src={embedUrl}
+                          src={ytEmbed}
                           className="w-full h-full"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                           allowFullScreen
@@ -274,8 +371,10 @@ export default function OnDemandCourseDetail() {
                       </div>
                     );
                   }
+
+                  // External link fallback
                   return (
-                    <a href={activeSession.recording_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-primary hover:underline">
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-primary hover:underline">
                       <ExternalLink className="h-4 w-4" /> Open recording
                     </a>
                   );
