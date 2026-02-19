@@ -1,54 +1,37 @@
 
+# Add Enrollment Confetti in CohortDetail
 
-# Drip Content: Admin-Controlled Session Content Visibility
+## What's changing
 
-## Overview
-Add a per-session toggle that lets admins control whether enrolled learners can see the detailed content (quizzes, pre-reading materials, mini projects, recording/slides links) for each session. Session title, description, date, and order remain always visible. By default, content is locked -- the admin explicitly unlocks sessions as the cohort progresses.
+A small confetti burst fires the moment a user successfully enrolls in a cohort. No tracking, no persistence — it fires once per enrollment click and that's it.
 
-## How It Works
+## Technical approach
 
-**Admin side**: Each session gets an `is_content_unlocked` toggle (default: off). The admin can flip this from the Sessions tab or when editing a session.
+Install `canvas-confetti` (a tiny, zero-dependency library specifically for this) and call it right after the successful enrollment in `handleEnroll`.
 
-**Learner side**: For locked sessions, a message like "Content will be available soon" replaces the quizzes/materials/projects sections. Session title and description remain visible so learners know what's coming.
+### Package
+- Add `canvas-confetti` + its types (`@types/canvas-confetti`) to `package.json`.
 
-## Technical Changes
+### `src/pages/CohortDetail.tsx`
+- Import `confetti` from `canvas-confetti`.
+- After `setIsEnrolled(true)` in the `handleEnroll` success block, fire a short confetti burst:
 
-### 1. Database Migration
-- Add `is_content_unlocked BOOLEAN NOT NULL DEFAULT false` column to the `sessions` table.
+```ts
+confetti({
+  particleCount: 120,
+  spread: 70,
+  origin: { y: 0.6 },
+  colors: ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ffffff'],
+});
+```
 
-### 2. Admin Page (`src/pages/Admin.tsx`)
-- Add a quick-toggle (switch) in the sessions table row so admins can unlock/lock content without opening the edit form.
-- When toggled, update the `is_content_unlocked` field on the session directly.
+The colors are pulled from the app's existing indigo/violet palette to feel native. `origin: { y: 0.6 }` fires it from slightly below center — looks natural on a page with a header.
 
-### 3. Session Form (`src/components/admin/SessionForm.tsx`)
-- Add a Switch/Checkbox labeled "Unlock content for learners" so admins can also set this when creating or editing a session.
+## Files changed
 
-### 4. Cohort Detail Page (`src/pages/CohortDetail.tsx`)
-- Add `is_content_unlocked` to the Session interface.
-- In the enrolled view, check `session.is_content_unlocked` before rendering:
-  - Pre-reading materials
-  - Recording/Slides buttons
-  - Quizzes
-  - Mini projects
-- When locked, show a subtle message with a Lock icon: "This session's content will be available soon."
+| File | Change |
+|---|---|
+| `package.json` | Add `canvas-confetti` + `@types/canvas-confetti` |
+| `src/pages/CohortDetail.tsx` | Import `confetti`, call it on successful enrollment |
 
-### 5. Course Detail Page (`src/pages/CourseDetail.tsx`)
-- Apply the same content-gating logic for consistency.
-
-### 6. Types Update
-- The `is_content_unlocked` column will auto-appear in the generated types after migration.
-
-## What Stays Visible (Even When Locked)
-- Session title
-- Session description
-- Session date
-- Session order/number
-- Completion badge (if already completed)
-
-## What Gets Hidden (When Locked)
-- Quizzes
-- Pre-reading materials
-- Mini projects
-- Recording URL button
-- Slides/Presentation URL button
-
+That's it — two files, minimal footprint.
