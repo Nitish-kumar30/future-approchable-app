@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import confetti from 'canvas-confetti';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -301,6 +302,12 @@ export default function CohortDetail() {
     } else {
       setIsEnrolled(true);
       setEnrollmentCount(prev => prev + 1);
+      confetti({
+        particleCount: 120,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ffffff'],
+      });
       toast({
         title: 'Successfully enrolled!',
         description: `You're now part of ${cohort?.name}`,
