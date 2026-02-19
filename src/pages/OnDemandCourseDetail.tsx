@@ -170,9 +170,12 @@ export default function OnDemandCourseDetail() {
     );
   }, [user, completedSessionIds]);
 
+  const [autoPlayNext, setAutoPlayNext] = useState(false);
+
   const handleNextSession = useCallback(() => {
     const currentIdx = sessions.findIndex(s => s.id === activeSessionId);
     if (currentIdx >= 0 && currentIdx < sessions.length - 1) {
+      setAutoPlayNext(true);
       setActiveSessionId(sessions[currentIdx + 1].id);
     }
   }, [sessions, activeSessionId]);
@@ -352,6 +355,8 @@ export default function OnDemandCourseDetail() {
                         nextSession={nextSessionForPlayer}
                         onCompleted={() => handleSessionCompleted(activeSession.id)}
                         onNextSession={handleNextSession}
+                        autoPlay={autoPlayNext}
+                        onAutoPlayConsumed={() => setAutoPlayNext(false)}
                       />
                     );
                   }
