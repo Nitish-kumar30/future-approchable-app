@@ -15,6 +15,8 @@ interface VimeoPlayerProps {
   nextSession: NextSession | null;
   onCompleted: () => void;
   onNextSession: () => void;
+  autoPlay?: boolean;
+  onAutoPlayConsumed?: () => void;
 }
 
 const typeIcons: Record<string, typeof PlayCircle> = {
@@ -33,7 +35,7 @@ const typeLabels: Record<string, string> = {
   link: 'Resource',
 };
 
-export default function VimeoPlayer({ videoUrl, title, nextSession, onCompleted, onNextSession }: VimeoPlayerProps) {
+export default function VimeoPlayer({ videoUrl, title, nextSession, onCompleted, onNextSession, autoPlay, onAutoPlayConsumed }: VimeoPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
   const completedFiredRef = useRef(false);
@@ -60,9 +62,15 @@ export default function VimeoPlayer({ videoUrl, title, nextSession, onCompleted,
       title: false,
       byline: false,
       portrait: false,
+      autoplay: !!autoPlay,
     });
 
     playerRef.current = player;
+
+    // Notify parent that autoplay has been consumed so it doesn't persist
+    player.ready().then(() => {
+      onAutoPlayConsumed?.();
+    }).catch(() => {});
 
     // 20-second rule: mark complete when ≤20s remaining
     player.on('timeupdate', (data: { seconds: number; duration: number }) => {
