@@ -81,6 +81,7 @@ export type Database = {
           mentor_info: string | null
           mentor_name: string | null
           name: string
+          slug: string
           start_date: string | null
           updated_at: string
         }
@@ -96,6 +97,7 @@ export type Database = {
           mentor_info?: string | null
           mentor_name?: string | null
           name: string
+          slug: string
           start_date?: string | null
           updated_at?: string
         }
@@ -111,6 +113,7 @@ export type Database = {
           mentor_info?: string | null
           mentor_name?: string | null
           name?: string
+          slug?: string
           start_date?: string | null
           updated_at?: string
         }
@@ -552,6 +555,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_slug: { Args: { input_text: string }; Returns: string }
       get_cohort_enrollment_count: {
         Args: { _cohort_id: string }
         Returns: number

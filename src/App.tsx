@@ -37,12 +37,12 @@ const App = () => (
             <Route path="/cohorts" element={<Cohorts />} />
             <Route path="/cohorts/:id" element={<CohortDetail />} />
             <Route path="/courses" element={<Courses />} />
-            <Route path="/courses/:id" element={<CourseDetail />} />
+            <Route path="/courses/:slug" element={<CourseDetail />} />
             <Route path="/quiz/:id" element={<Quiz />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/on-demand" element={<OnDemandCourses />} />
-            <Route path="/on-demand/:id" element={<OnDemandCourseDetail />} />
+            <Route path="/on-demand/:slug" element={<OnDemandCourseDetail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />

@@ -67,7 +67,7 @@ interface SessionProgress {
 }
 
 export default function CourseDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -84,50 +84,49 @@ export default function CourseDetail() {
   const [isEnrolling, setIsEnrolling] = useState(false);
 
   useEffect(() => {
-    if (id) {
+    if (slug) {
       fetchCourse();
-      fetchSessions();
-      if (user) {
-        checkEnrollment();
-      }
     }
-  }, [id, user]);
+  }, [slug, user]);
 
   useEffect(() => {
-    if (isEnrolled && id && user) {
-      fetchEnrolledContent();
+    if (isEnrolled && course && user) {
+      fetchEnrolledContent(course.id);
     }
-  }, [isEnrolled, id, user]);
+  }, [isEnrolled, course, user]);
 
   const fetchCourse = async () => {
     const { data, error } = await supabase
       .from('courses')
       .select('*')
-      .eq('id', id)
+      .eq('slug', slug!)
       .single();
 
     if (!error && data) {
       setCourse(data);
+      // Now fetch sessions and enrollment using the course id
+      fetchSessions(data.id);
+      if (user) checkEnrollment(data.id);
     }
     setIsLoading(false);
   };
 
-  const checkEnrollment = async () => {
+  const checkEnrollment = async (courseId: string) => {
     const { data } = await supabase
       .from('enrollments')
       .select('id')
       .eq('user_id', user?.id)
-      .eq('course_id', id)
+      .eq('course_id', courseId)
       .maybeSingle();
 
     setIsEnrolled(!!data);
   };
 
-  const fetchSessions = async () => {
+  const fetchSessions = async (courseId: string) => {
     const { data: sessionsData } = await supabase
       .from('sessions')
       .select('id, title, description, session_date, session_order')
-      .eq('course_id', id)
+      .eq('course_id', courseId)
       .order('session_order', { ascending: true });
 
     if (sessionsData) {
@@ -135,12 +134,12 @@ export default function CourseDetail() {
     }
   };
 
-  const fetchEnrolledContent = async () => {
+  const fetchEnrolledContent = async (courseId: string) => {
     // Re-fetch sessions with full data for enrolled users
     const { data: sessionsData } = await supabase
       .from('sessions')
       .select('*')
-      .eq('course_id', id)
+      .eq('course_id', courseId)
       .order('session_order', { ascending: true });
 
     if (sessionsData) {
@@ -153,7 +152,7 @@ export default function CourseDetail() {
       const { data: courseQuizzesData } = await supabase
         .from('quizzes')
         .select('id, title')
-        .eq('course_id', id)
+        .eq('course_id', courseId)
         .is('session_id', null);
       
       if (courseQuizzesData) {
@@ -263,7 +262,7 @@ export default function CourseDetail() {
       .from('enrollments')
       .insert({
         user_id: user.id,
-        course_id: id,
+        course_id: course?.id,
       });
 
     setIsEnrolling(false);
@@ -280,7 +279,7 @@ export default function CourseDetail() {
         title: 'Successfully enrolled!',
         description: `You're now enrolled in ${course?.name}`,
       });
-      fetchSessions();
+      if (course) fetchSessions(course.id);
     }
   };
 

@@ -11,6 +11,7 @@ import { BookOpen, Clock, GraduationCap, ArrowRight, Image as ImageIcon } from '
 
 interface Course {
   id: string;
+  slug: string;
   name: string;
   description: string | null;
   mentor_name: string | null;
@@ -34,7 +35,7 @@ export default function LiveCourses() {
   const fetchCourses = async () => {
     const { data, error } = await supabase
       .from('courses')
-      .select('id, name, description, mentor_name, duration, image_url')
+      .select('id, slug, name, description, mentor_name, duration, image_url')
       .eq('is_published', true)
       .eq('is_on_demand', false)
       .order('created_at', { ascending: false });
@@ -99,7 +100,7 @@ export default function LiveCourses() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {courses.map((course) => (
-                <Link key={course.id} to={user ? `/courses/${course.id}` : '/auth'}>
+                <Link key={course.id} to={user ? `/courses/${course.slug}` : '/auth'}>
                   <Card className="card-elevated hover:shadow-lg transition-all duration-200 cursor-pointer h-full group overflow-hidden">
                     {/* Course Image */}
                     <div className="relative h-48 bg-muted overflow-hidden">

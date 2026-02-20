@@ -31,6 +31,7 @@ interface Cohort {
 
 interface Course {
   id: string;
+  slug: string;
   name: string;
   description: string | null;
   mentor_name: string | null;
@@ -39,6 +40,7 @@ interface Course {
 
 interface OnDemandCourse {
   id: string;
+  slug: string;
   name: string;
   description: string | null;
   mentor_name: string | null;
@@ -83,7 +85,7 @@ export default function Dashboard() {
         course_id,
         enrolled_at,
         cohorts (id, name, description, mentor_name, start_date, end_date, session_time),
-        courses (id, name, description, mentor_name, duration)
+        courses (id, slug, name, description, mentor_name, duration)
       `)
       .eq('user_id', user?.id);
 
@@ -142,7 +144,7 @@ export default function Dashboard() {
   const fetchOnDemandCourses = async () => {
     const { data } = await supabase
       .from('courses')
-      .select('id, name, description, mentor_name, duration, image_url')
+      .select('id, slug, name, description, mentor_name, duration, image_url')
       .eq('is_published', true)
       .eq('is_on_demand', true)
       .order('created_at', { ascending: false })
@@ -297,7 +299,7 @@ export default function Dashboard() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   {courseEnrollments.slice(0, 4).map((enrollment) => (
-                    <Link key={enrollment.id} to={`/courses/${enrollment.course_id}`}>
+                    <Link key={enrollment.id} to={`/courses/${enrollment.courses?.slug}`}>
                       <Card className="card-elevated hover:shadow-lg transition-shadow cursor-pointer h-full">
                         <CardHeader>
                           <div className="flex items-start justify-between">
@@ -348,7 +350,7 @@ export default function Dashboard() {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {onDemandCourses.map((course) => (
-                <Link key={course.id} to={`/on-demand/${course.id}`}>
+                <Link key={course.id} to={`/on-demand/${course.slug}`}>
                   <Card className="card-elevated hover:shadow-lg transition-shadow cursor-pointer h-full group overflow-hidden">
                     {course.image_url && (
                       <div className="h-32 bg-muted overflow-hidden">
