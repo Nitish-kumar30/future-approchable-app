@@ -38,6 +38,7 @@ export default function Courses() {
       .from('courses')
       .select('id, name, description, mentor_name, duration, image_url, start_date, enrollment_disabled')
       .eq('is_published', true)
+      .eq('is_on_demand', false)
       .order('start_date', { ascending: false });
 
     if (!error && data) {
