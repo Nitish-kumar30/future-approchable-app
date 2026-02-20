@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import confetti from 'canvas-confetti';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -164,14 +165,26 @@ export default function OnDemandCourseDetail() {
     if (!user || completedSessionIds.has(sessionId)) return;
 
     // Optimistically update UI
-    setCompletedSessionIds(prev => new Set([...prev, sessionId]));
+    const newCompleted = new Set([...completedSessionIds, sessionId]);
+    setCompletedSessionIds(newCompleted);
+
+    // Check if this brings us to 100%
+    const trackable = sessions.filter(s => {
+      const hasVideo = s.recording_url && isVideoUrl(s.recording_url);
+      const hasQuizzes = (sessionQuizzes[s.id]?.length || 0) > 0;
+      return hasVideo || hasQuizzes;
+    });
+    const allDone = trackable.length > 0 && trackable.every(s => newCompleted.has(s.id));
+    if (allDone) {
+      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+    }
 
     // Upsert into session_progress
     await supabase.from('session_progress').upsert(
       { user_id: user.id, session_id: sessionId, is_completed: true, completed_at: new Date().toISOString() },
       { onConflict: 'user_id,session_id' }
     );
-  }, [user, completedSessionIds]);
+  }, [user, completedSessionIds, sessions, sessionQuizzes]);
 
   const [autoPlayNext, setAutoPlayNext] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
