@@ -1,42 +1,49 @@
 
 
-# Fix Cohort Session Progress (Production Bug)
+# Improve On-Demand Course Layout — Video & Progress Visible Without Scrolling
 
 ## Problem
+The current layout has too much vertical space consumed before the video:
+- PublicHeader: 64px
+- Course header (back link + title + mentor): ~100px
+- Total: ~164px wasted before the split pane starts
 
-Cohort session progress always shows "0 of X sessions completed" even after completing quizzes. The progress bar never updates.
+In the DeepLearning.AI reference, the header is compact and the course title lives in the sidebar, so the video fills the viewport immediately.
 
-## Root Cause
+## Changes
 
-The database function `check_session_completion()` exists and is designed to automatically mark sessions as complete when all their quizzes are submitted. However, **no trigger was ever created** to call this function when a row is inserted into `quiz_submissions`. So quiz completions never write to `session_progress` for cohort sessions.
+### 1. Merge course header into the sidebar
+Move the back link, course title, mentor name, and feedback button out of the separate "course header" bar and into the top of the left sidebar. This eliminates the entire course header section (~100px saved).
 
-On-demand courses are unaffected because they have client-side code that manually updates `session_progress`.
+The sidebar will now show:
+- Back link (small)
+- Course title (compact)
+- Mentor name
+- Feedback button
+- Lesson list
+- Progress bar at bottom
 
-## Fix
+### 2. Make the split pane fill the remaining viewport
+Change the split pane container to use `h-[calc(100vh-4rem)]` (viewport minus header height) so sidebar and content area fill the screen without scrolling.
 
-### 1. Create the missing database trigger
+### 3. Adjust sidebar ScrollArea height
+Update the ScrollArea to use `flex-1` with proper overflow so lessons scroll within the sidebar while the progress bar stays pinned at the bottom — all within viewport height.
 
-Add a trigger on the `quiz_submissions` table that fires `check_session_completion()` after each insert. This will automatically update `session_progress` whenever a quiz is submitted -- for both cohorts and courses.
+### 4. Remove the content area top padding
+Reduce `p-6 md:p-8` on the content area to `p-4 md:p-6` so the video sits closer to the top.
 
-```sql
-CREATE TRIGGER on_quiz_submission_check_completion
-  AFTER INSERT ON public.quiz_submissions
-  FOR EACH ROW
-  EXECUTE FUNCTION public.check_session_completion();
-```
+---
 
-### 2. Backfill existing progress (one-time)
+### Technical Details
 
-For users who already submitted quizzes in production but never got their progress recorded, we need to provide a backfill query. This will be a one-time SQL statement the admin runs against the Live database to retroactively populate `session_progress` rows for completed sessions.
+**File: `src/pages/OnDemandCourseDetail.tsx`**
 
-## What changes
+- Remove the "Course header" `<div>` block (lines 273-291) entirely
+- Move back link, title, mentor, and feedback button into the sidebar `<aside>`, above the "Lessons" heading
+- Change the split pane container from `flex-1` to `flex-1 h-[calc(100vh-4rem)]` to lock it to viewport
+- Update sidebar ScrollArea to properly fill remaining space
+- Reduce right panel padding from `p-6 md:p-8` to `p-4 md:p-6`
+- Make the course title in sidebar smaller (text-lg instead of text-2xl) to keep it compact
 
-| Change | Detail |
-|---|---|
-| Database migration | Create trigger `on_quiz_submission_check_completion` on `quiz_submissions` |
-| No code changes | The existing `check_session_completion` function and `CohortDetail.tsx` progress logic are already correct |
-
-## After publishing
-
-Since the trigger only fires for new quiz submissions, existing production users with missing progress will need a backfill. A SQL query will be provided to run in Cloud View > Run SQL (with Live selected) to fix historical data.
+These are purely layout/CSS changes in a single file — no database or logic changes needed.
 
