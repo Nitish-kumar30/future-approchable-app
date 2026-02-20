@@ -443,6 +443,7 @@ export default function OnDemandCourseDetail() {
                           quizId={sq.quiz_id}
                           quizTitle={sq.quizzes?.title || 'Quiz'}
                           onCompleted={() => {
+                            handleAutoEnroll();
                             handleSessionCompleted(activeSession.id);
                           }}
                         />
