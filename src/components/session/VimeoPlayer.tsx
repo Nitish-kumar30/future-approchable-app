@@ -17,6 +17,7 @@ interface VimeoPlayerProps {
   onNextSession: () => void;
   autoPlay?: boolean;
   onAutoPlayConsumed?: () => void;
+  onPlay?: () => void;
 }
 
 const typeIcons: Record<string, typeof PlayCircle> = {
@@ -35,10 +36,11 @@ const typeLabels: Record<string, string> = {
   link: 'Resource',
 };
 
-export default function VimeoPlayer({ videoUrl, title, nextSession, onCompleted, onNextSession, autoPlay, onAutoPlayConsumed }: VimeoPlayerProps) {
+export default function VimeoPlayer({ videoUrl, title, nextSession, onCompleted, onNextSession, autoPlay, onAutoPlayConsumed, onPlay }: VimeoPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
   const completedFiredRef = useRef(false);
+  const playFiredRef = useRef(false);
   const [showOverlay, setShowOverlay] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -52,6 +54,7 @@ export default function VimeoPlayer({ videoUrl, title, nextSession, onCompleted,
 
     // Reset state when video changes
     completedFiredRef.current = false;
+    playFiredRef.current = false;
     setShowOverlay(false);
     setCountdown(5);
     if (countdownRef.current) clearInterval(countdownRef.current);
@@ -71,6 +74,14 @@ export default function VimeoPlayer({ videoUrl, title, nextSession, onCompleted,
     player.ready().then(() => {
       onAutoPlayConsumed?.();
     }).catch(() => {});
+
+    // Fire onPlay callback on first play event
+    player.on('play', () => {
+      if (!playFiredRef.current) {
+        playFiredRef.current = true;
+        onPlay?.();
+      }
+    });
 
     // 20-second rule: mark complete when ≤20s remaining
     player.on('timeupdate', (data: { seconds: number; duration: number }) => {
