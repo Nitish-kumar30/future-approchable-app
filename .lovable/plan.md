@@ -1,55 +1,42 @@
 
 
-# Auto-Enroll On-Demand Course Users on First Video Play
+# Fix Cohort Session Progress (Production Bug)
 
-## What's changing
+## Problem
 
-On-demand courses currently have no enrollment record -- users just log in and watch. This means the admin Enrollments and Leaderboard tabs show nothing for on-demand courses. We'll silently create an enrollment record when a user starts watching their first video, making on-demand learners visible in admin views alongside cohort/course enrollments.
+Cohort session progress always shows "0 of X sessions completed" even after completing quizzes. The progress bar never updates.
 
-## How it works
+## Root Cause
 
-When a Vimeo video starts playing in an on-demand course, we check if the user already has an enrollment for that course. If not, we insert one. This happens once per course, silently in the background -- no UI change for the learner.
+The database function `check_session_completion()` exists and is designed to automatically mark sessions as complete when all their quizzes are submitted. However, **no trigger was ever created** to call this function when a row is inserted into `quiz_submissions`. So quiz completions never write to `session_progress` for cohort sessions.
 
-```text
-User clicks play on first video
-        |
-        v
-  Check enrollments table
-  for (user_id, course_id)
-        |
-   +----+----+
-   |         |
- Exists    Missing
-   |         |
- Do nothing  Insert enrollment
-               row silently
+On-demand courses are unaffected because they have client-side code that manually updates `session_progress`.
+
+## Fix
+
+### 1. Create the missing database trigger
+
+Add a trigger on the `quiz_submissions` table that fires `check_session_completion()` after each insert. This will automatically update `session_progress` whenever a quiz is submitted -- for both cohorts and courses.
+
+```sql
+CREATE TRIGGER on_quiz_submission_check_completion
+  AFTER INSERT ON public.quiz_submissions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.check_session_completion();
 ```
 
-## Technical details
+### 2. Backfill existing progress (one-time)
 
-### `src/pages/OnDemandCourseDetail.tsx`
+For users who already submitted quizzes in production but never got their progress recorded, we need to provide a backfill query. This will be a one-time SQL statement the admin runs against the Live database to retroactively populate `session_progress` rows for completed sessions.
 
-1. Add state to track whether auto-enrollment has been handled for this course: `autoEnrolledRef = useRef(false)`
-2. Add a new callback `handleAutoEnroll` that:
-   - Checks the ref to avoid duplicate calls
-   - Queries `enrollments` for the current `(user_id, course_id)` pair
-   - If no row exists, inserts one
-   - Sets the ref to `true` regardless
-3. Pass a new `onPlay` prop to `VimeoPlayer` that calls `handleAutoEnroll`
+## What changes
 
-### `src/components/session/VimeoPlayer.tsx`
-
-1. Add an optional `onPlay?: () => void` prop
-2. Listen to the Vimeo player's `play` event and call `onPlay()` on the first fire (using a ref to fire only once)
-
-### No database changes needed
-
-The `enrollments` table already supports `course_id` and has the right RLS policies ("Users can enroll themselves" with `user_id = auth.uid()`). The existing admin Enrollments edge function and Leaderboard edge function already query by `course_id`, so on-demand enrollments will appear automatically in both admin views.
-
-## Files changed
-
-| File | Change |
+| Change | Detail |
 |---|---|
-| `src/components/session/VimeoPlayer.tsx` | Add `onPlay` prop, listen to Vimeo `play` event |
-| `src/pages/OnDemandCourseDetail.tsx` | Add auto-enrollment logic, pass `onPlay` to VimeoPlayer |
+| Database migration | Create trigger `on_quiz_submission_check_completion` on `quiz_submissions` |
+| No code changes | The existing `check_session_completion` function and `CohortDetail.tsx` progress logic are already correct |
+
+## After publishing
+
+Since the trigger only fires for new quiz submissions, existing production users with missing progress will need a backfill. A SQL query will be provided to run in Cloud View > Run SQL (with Live selected) to fix historical data.
 
