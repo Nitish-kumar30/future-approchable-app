@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -174,6 +174,28 @@ export default function OnDemandCourseDetail() {
 
   const [autoPlayNext, setAutoPlayNext] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const autoEnrolledRef = useRef(false);
+
+  // Reset auto-enroll ref when course changes
+  useEffect(() => {
+    autoEnrolledRef.current = false;
+  }, [id]);
+
+  const handleAutoEnroll = useCallback(async () => {
+    if (autoEnrolledRef.current || !user || !id) return;
+    autoEnrolledRef.current = true;
+
+    const { data } = await supabase
+      .from('enrollments')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('course_id', id)
+      .maybeSingle();
+
+    if (!data) {
+      await supabase.from('enrollments').insert({ user_id: user.id, course_id: id });
+    }
+  }, [user, id]);
 
   const handleNextSession = useCallback(() => {
     const currentIdx = sessions.findIndex(s => s.id === activeSessionId);
@@ -369,6 +391,7 @@ export default function OnDemandCourseDetail() {
                         onNextSession={handleNextSession}
                         autoPlay={autoPlayNext}
                         onAutoPlayConsumed={() => setAutoPlayNext(false)}
+                        onPlay={handleAutoEnroll}
                       />
                     );
                   }
