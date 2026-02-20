@@ -270,33 +270,27 @@ export default function OnDemandCourseDetail() {
     <div className="min-h-screen bg-background flex flex-col">
       <PublicHeader />
 
-      {/* Course header */}
-      <div className="border-b border-border bg-card">
-        <div className="container py-4">
-          <Link to="/on-demand" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-2">
-            <ChevronLeft className="h-4 w-4" /> Back to On-Demand Courses
-          </Link>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-display font-bold text-foreground">{course.name}</h1>
-              {course.mentor_name && <p className="text-sm text-muted-foreground mt-1">by {course.mentor_name}</p>}
-            </div>
+      {/* Split pane - fills remaining viewport */}
+      <div className="flex-1 flex flex-col md:flex-row h-[calc(100vh-4rem)] overflow-hidden">
+        {/* Left sidebar - session list */}
+        <aside className="md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-border bg-card shrink-0 flex flex-col">
+          {/* Course info merged into sidebar */}
+          <div className="p-4 border-b border-border shrink-0">
+            <Link to="/on-demand" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-2">
+              <ChevronLeft className="h-3 w-3" /> Back to On-Demand Courses
+            </Link>
+            <h1 className="text-lg font-display font-bold text-foreground leading-tight">{course.name}</h1>
+            {course.mentor_name && <p className="text-xs text-muted-foreground mt-1">by {course.mentor_name}</p>}
             {user && (
-              <Button variant="ghost" size="sm" onClick={() => setFeedbackOpen(true)} className="gap-2 shrink-0">
-                <MessageSquare className="h-4 w-4" /> Feedback
+              <Button variant="ghost" size="sm" onClick={() => setFeedbackOpen(true)} className="gap-1.5 mt-2 -ml-2 text-xs h-7 px-2">
+                <MessageSquare className="h-3 w-3" /> Feedback
               </Button>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* Split pane */}
-      <div className="flex-1 flex flex-col md:flex-row">
-        {/* Left sidebar - session list */}
-        <aside className="md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-border bg-card shrink-0 flex flex-col">
-          <ScrollArea className="flex-1 h-auto md:h-[calc(100vh-16rem)]">
+          <ScrollArea className="flex-1">
             <div className="p-4 space-y-1">
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+              <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
                 Lessons ({sessions.length})
               </h2>
               {sessions.map((session, idx) => {
@@ -383,7 +377,7 @@ export default function OnDemandCourseDetail() {
           ) : null}
 
           {/* Content (blurred when not logged in) */}
-          <div className={`p-6 md:p-8 ${!user ? 'filter blur-sm pointer-events-none select-none' : ''}`}>
+          <div className={`p-4 md:p-6 ${!user ? 'filter blur-sm pointer-events-none select-none' : ''}`}>
             {activeSession ? (
               <div className="max-w-4xl space-y-6">
                 <div>
