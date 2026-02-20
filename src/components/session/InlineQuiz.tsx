@@ -15,7 +15,7 @@ import {
   RotateCcw,
   ClipboardList,
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
+
 
 interface Question {
   id: string;
@@ -99,9 +99,6 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
       setLatestScore(result.score);
       setShowResults(true);
       toast({ title: 'Quiz submitted!', description: `You scored ${result.score}%` });
-
-      // Fire confetti
-      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
 
       onCompleted?.();
     }
