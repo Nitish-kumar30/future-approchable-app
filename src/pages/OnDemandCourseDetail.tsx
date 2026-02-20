@@ -20,7 +20,9 @@ import {
   ChevronLeft,
   ExternalLink,
   CheckCircle2,
+  MessageSquare,
 } from 'lucide-react';
+import FeedbackDialog from '@/components/FeedbackDialog';
 
 interface Course {
   id: string;
@@ -171,6 +173,7 @@ export default function OnDemandCourseDetail() {
   }, [user, completedSessionIds]);
 
   const [autoPlayNext, setAutoPlayNext] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const handleNextSession = useCallback(() => {
     const currentIdx = sessions.findIndex(s => s.id === activeSessionId);
@@ -233,8 +236,17 @@ export default function OnDemandCourseDetail() {
           <Link to="/on-demand" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-2">
             <ChevronLeft className="h-4 w-4" /> Back to On-Demand Courses
           </Link>
-          <h1 className="text-2xl font-display font-bold text-foreground">{course.name}</h1>
-          {course.mentor_name && <p className="text-sm text-muted-foreground mt-1">by {course.mentor_name}</p>}
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-display font-bold text-foreground">{course.name}</h1>
+              {course.mentor_name && <p className="text-sm text-muted-foreground mt-1">by {course.mentor_name}</p>}
+            </div>
+            {user && (
+              <Button variant="ghost" size="sm" onClick={() => setFeedbackOpen(true)} className="gap-2 shrink-0">
+                <MessageSquare className="h-4 w-4" /> Feedback
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -452,6 +464,15 @@ export default function OnDemandCourseDetail() {
           </div>
         </div>
       </div>
+
+      {user && course && (
+        <FeedbackDialog
+          open={feedbackOpen}
+          onOpenChange={setFeedbackOpen}
+          courseId={course.id}
+          entityName={course.name}
+        />
+      )}
     </div>
   );
 }
