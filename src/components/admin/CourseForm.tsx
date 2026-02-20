@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface Course {
   id?: string;
   name: string;
+  slug: string;
   description: string;
   mentor_name: string;
   mentor_info: string;
@@ -31,6 +32,7 @@ interface CourseFormProps {
 
 const defaultCourse: Course = {
   name: '',
+  slug: '',
   description: '',
   mentor_name: '',
   mentor_info: '',
@@ -193,9 +195,28 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
                 id="name"
                 required
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => {
+                  const newName = e.target.value;
+                  const autoSlug = !formData.slug || formData.slug === formData.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+                  setFormData({
+                    ...formData,
+                    name: newName,
+                    ...(autoSlug ? { slug: newName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-') } : {}),
+                  });
+                }}
                 placeholder="e.g., Introduction to Machine Learning"
               />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="slug">URL Slug</Label>
+              <Input
+                id="slug"
+                value={formData.slug}
+                onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                placeholder="e.g., intro-to-machine-learning"
+              />
+              <p className="text-xs text-muted-foreground">Used in the URL. Auto-generated from name if left empty.</p>
             </div>
 
             <div className="space-y-2 md:col-span-2">

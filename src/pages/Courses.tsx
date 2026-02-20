@@ -11,6 +11,7 @@ import { BookOpen, Clock, Calendar, GraduationCap, ArrowRight, Image as ImageIco
 
 interface Course {
   id: string;
+  slug: string;
   name: string;
   description: string | null;
   mentor_name: string | null;
@@ -36,7 +37,7 @@ export default function Courses() {
   const fetchCourses = async () => {
     const { data, error } = await supabase
       .from('courses')
-      .select('id, name, description, mentor_name, duration, image_url, start_date, enrollment_disabled')
+      .select('id, slug, name, description, mentor_name, duration, image_url, start_date, enrollment_disabled')
       .eq('is_published', true)
       .eq('is_on_demand', false)
       .order('start_date', { ascending: false });
@@ -101,7 +102,7 @@ export default function Courses() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {courses.map((course) => (
-              <Link key={course.id} to={`/courses/${course.id}`}>
+              <Link key={course.id} to={`/courses/${course.slug}`}>
                 <Card className="card-elevated hover:shadow-lg transition-all duration-200 cursor-pointer h-full group overflow-hidden">
                   {/* Course Image */}
                   <div className="relative h-40 bg-muted overflow-hidden">

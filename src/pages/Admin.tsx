@@ -38,6 +38,7 @@ interface Cohort {
 interface Course {
   id: string;
   name: string;
+  slug: string;
   description: string;
   mentor_name: string;
   mentor_info: string;
@@ -371,8 +372,10 @@ export default function Admin() {
 
   // Course CRUD
   const handleSaveCourse = async (course: Omit<Course, 'id'> & { id?: string }) => {
+    const slug = course.slug || course.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
     const courseData = {
       name: course.name,
+      slug,
       description: course.description || null,
       mentor_name: course.mentor_name || null,
       mentor_info: course.mentor_info || null,

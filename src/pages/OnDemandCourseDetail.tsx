@@ -86,7 +86,7 @@ const contentIcons: Record<string, typeof PlayCircle> = {
 };
 
 export default function OnDemandCourseDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -97,8 +97,8 @@ export default function OnDemandCourseDetail() {
   const [completedSessionIds, setCompletedSessionIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (id) fetchCourseData();
-  }, [id]);
+    if (slug) fetchCourseData();
+  }, [slug]);
 
   // Fetch existing progress when user logs in
   useEffect(() => {
@@ -122,12 +122,15 @@ export default function OnDemandCourseDetail() {
   };
 
   const fetchCourseData = async () => {
-    const [courseRes, sessionsRes] = await Promise.all([
-      supabase.from('courses').select('id, name, description, mentor_name, duration, image_url').eq('id', id!).single(),
-      supabase.from('sessions').select('id, title, description, recording_url, presentation_url, session_order').eq('course_id', id!).order('session_order', { ascending: true }),
-    ]);
+    // First fetch the course by slug
+    const courseRes = await supabase.from('courses').select('id, name, description, mentor_name, duration, image_url').eq('slug', slug!).single();
 
-    if (courseRes.data) setCourse(courseRes.data);
+    if (!courseRes.data) { setIsLoading(false); return; }
+    const courseData = courseRes.data;
+    setCourse(courseData);
+
+    const sessionsRes = await supabase.from('sessions').select('id, title, description, recording_url, presentation_url, session_order').eq('course_id', courseData.id).order('session_order', { ascending: true });
+
     if (sessionsRes.data) {
       setSessions(sessionsRes.data);
       if (sessionsRes.data.length > 0) setActiveSessionId(sessionsRes.data[0].id);
@@ -193,23 +196,23 @@ export default function OnDemandCourseDetail() {
   // Reset auto-enroll ref when course changes
   useEffect(() => {
     autoEnrolledRef.current = false;
-  }, [id]);
+  }, [slug]);
 
   const handleAutoEnroll = useCallback(async () => {
-    if (autoEnrolledRef.current || !user || !id) return;
+    if (autoEnrolledRef.current || !user || !course) return;
     autoEnrolledRef.current = true;
 
     const { data } = await supabase
       .from('enrollments')
       .select('id')
       .eq('user_id', user.id)
-      .eq('course_id', id)
+      .eq('course_id', course.id)
       .maybeSingle();
 
     if (!data) {
-      await supabase.from('enrollments').insert({ user_id: user.id, course_id: id });
+      await supabase.from('enrollments').insert({ user_id: user.id, course_id: course.id });
     }
-  }, [user, id]);
+  }, [user, course]);
 
   const handleNextSession = useCallback(() => {
     const currentIdx = sessions.findIndex(s => s.id === activeSessionId);
@@ -362,12 +365,12 @@ export default function OnDemandCourseDetail() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button asChild>
-                    <Link to={`/auth?tab=signup&redirect=/on-demand/${course.id}`}>
+                    <Link to={`/auth?tab=signup&redirect=/on-demand/${slug}`}>
                       <UserPlus className="mr-2 h-4 w-4" /> Sign Up Free
                     </Link>
                   </Button>
                   <Button variant="outline" asChild>
-                    <Link to={`/auth?redirect=/on-demand/${course.id}`}>
+                    <Link to={`/auth?redirect=/on-demand/${slug}`}>
                       <LogIn className="mr-2 h-4 w-4" /> Log In
                     </Link>
                   </Button>
