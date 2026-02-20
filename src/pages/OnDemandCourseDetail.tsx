@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import PublicHeader from '@/components/layout/PublicHeader';
 import VimeoPlayer from '@/components/session/VimeoPlayer';
+import InlineQuiz from '@/components/session/InlineQuiz';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -430,15 +431,14 @@ export default function OnDemandCourseDetail() {
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Quizzes</h3>
                     <div className="space-y-2">
                       {sessionQuizzes[activeSession.id].map((sq) => (
-                        <Link
+                        <InlineQuiz
                           key={sq.quiz_id}
-                          to={`/quiz/${sq.quiz_id}`}
-                          className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted transition-colors"
-                        >
-                          <ClipboardList className="h-5 w-5 text-primary shrink-0" />
-                          <span className="font-medium text-sm">{sq.quizzes?.title || 'Quiz'}</span>
-                          <Badge variant="secondary" className="ml-auto">Take Quiz</Badge>
-                        </Link>
+                          quizId={sq.quiz_id}
+                          quizTitle={sq.quizzes?.title || 'Quiz'}
+                          onCompleted={() => {
+                            handleSessionCompleted(activeSession.id);
+                          }}
+                        />
                       ))}
                     </div>
                   </div>
