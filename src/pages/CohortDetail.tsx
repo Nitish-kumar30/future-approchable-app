@@ -29,8 +29,10 @@ import {
   BookOpen,
   FolderKanban,
   Trophy,
-  Lock
+  Lock,
+  MessageSquare,
 } from 'lucide-react';
+import FeedbackDialog from '@/components/FeedbackDialog';
 
 interface Cohort {
   id: string;
@@ -110,6 +112,7 @@ export default function CohortDetail() {
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
   const [leaderboardFetched, setLeaderboardFetched] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -394,6 +397,7 @@ export default function CohortDetail() {
   const seatsLeft = cohort.max_seats ? cohort.max_seats - enrollmentCount : null;
 
   return (
+    <>
     <MainLayout>
       <div className="space-y-8 animate-fade-in">
         {/* Back Button */}
@@ -430,6 +434,9 @@ export default function CohortDetail() {
                       Avg Score: {averageScore}%
                     </Badge>
                   )}
+                  <Button variant="ghost" size="sm" onClick={() => setFeedbackOpen(true)} className="gap-2">
+                    <MessageSquare className="h-4 w-4" /> Feedback
+                  </Button>
                 </div>
               ) : cohort.enrollment_disabled ? (
                 <Badge variant="secondary" className="text-base px-4 py-2">
@@ -783,5 +790,15 @@ export default function CohortDetail() {
         </Tabs>
       </div>
     </MainLayout>
+
+    {isEnrolled && cohort && (
+      <FeedbackDialog
+        open={feedbackOpen}
+        onOpenChange={setFeedbackOpen}
+        cohortId={cohort.id}
+        entityName={cohort.name}
+      />
+    )}
+    </>
   );
 }
