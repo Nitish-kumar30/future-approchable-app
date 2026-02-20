@@ -207,10 +207,14 @@ export default function OnDemandCourseDetail() {
 
   const activeSession = sessions.find(s => s.id === activeSessionId);
 
-  // Progress calculation: only sessions with video URLs count
-  const videoSessions = sessions.filter(s => s.recording_url && isVideoUrl(s.recording_url));
-  const completedVideoCount = videoSessions.filter(s => completedSessionIds.has(s.id)).length;
-  const completionPercent = videoSessions.length > 0 ? Math.round((completedVideoCount / videoSessions.length) * 100) : 0;
+  // Progress calculation: sessions with video OR quizzes count as trackable
+  const trackableSessions = sessions.filter(s => {
+    const hasVideo = s.recording_url && isVideoUrl(s.recording_url);
+    const hasQuizzes = (sessionQuizzes[s.id]?.length || 0) > 0;
+    return hasVideo || hasQuizzes;
+  });
+  const completedTrackableCount = trackableSessions.filter(s => completedSessionIds.has(s.id)).length;
+  const completionPercent = trackableSessions.length > 0 ? Math.round((completedTrackableCount / trackableSessions.length) * 100) : 0;
 
   // Next session for popup
   const currentIdx = sessions.findIndex(s => s.id === activeSessionId);
@@ -320,7 +324,7 @@ export default function OnDemandCourseDetail() {
           </ScrollArea>
 
           {/* Progress bar at bottom of sidebar */}
-          {user && videoSessions.length > 0 && (
+          {user && trackableSessions.length > 0 && (
             <div className="p-4 border-t border-border bg-card shrink-0">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xs text-muted-foreground font-medium">Your progress</span>
@@ -328,7 +332,7 @@ export default function OnDemandCourseDetail() {
               </div>
               <Progress value={completionPercent} className="h-2" />
               <p className="text-xs text-muted-foreground mt-1.5">
-                {completedVideoCount} of {videoSessions.length} videos watched
+                {completedTrackableCount} of {trackableSessions.length} lessons completed
               </p>
             </div>
           )}
