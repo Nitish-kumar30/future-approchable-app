@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy, Filter, Trophy } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy, Filter, Trophy, MessageSquare, Star } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
  import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CohortForm } from '@/components/admin/CohortForm';
@@ -113,7 +113,18 @@ interface SessionQuiz {
    total_sessions: number;
    completion_percentage: number;
  }
- 
+ interface FeedbackEntry {
+   id: string;
+   user_id: string;
+   course_id: string | null;
+   cohort_id: string | null;
+   rating: number;
+   comment: string | null;
+   created_at: string;
+   user_name: string | null;
+   user_email: string | null;
+ }
+
 export default function Admin() {
   const { isAdmin, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -153,6 +164,11 @@ export default function Admin() {
    const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
    const [leaderboardFilter, setLeaderboardFilter] = useState<string>('');
    const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+
+   // Feedback state
+   const [feedbackEntries, setFeedbackEntries] = useState<FeedbackEntry[]>([]);
+   const [feedbackFilter, setFeedbackFilter] = useState<string>('');
+   const [feedbackLoading, setFeedbackLoading] = useState(false);
 
   useEffect(() => {
     if (isAdmin) {
@@ -697,6 +713,63 @@ export default function Admin() {
        setLeaderboard([]);
      }
    }, [leaderboardFilter]);
+
+   // Fetch feedback when filter changes
+   const fetchFeedback = async (filter: string) => {
+     if (!filter) {
+       setFeedbackEntries([]);
+       return;
+     }
+
+     setFeedbackLoading(true);
+     try {
+       let query = supabase.from('feedback').select('*').order('created_at', { ascending: false });
+
+       if (filter.startsWith('cohort:')) {
+         query = query.eq('cohort_id', filter.replace('cohort:', ''));
+       } else if (filter.startsWith('course:')) {
+         query = query.eq('course_id', filter.replace('course:', ''));
+       }
+
+       const { data: feedbackData, error } = await query;
+       if (error) throw error;
+
+       if (!feedbackData || feedbackData.length === 0) {
+         setFeedbackEntries([]);
+         setFeedbackLoading(false);
+         return;
+       }
+
+       // Fetch profile names for each unique user_id
+       const userIds = [...new Set(feedbackData.map(f => f.user_id))];
+       const { data: profiles } = await supabase
+         .from('profiles')
+         .select('user_id, full_name')
+         .in('user_id', userIds);
+
+       const profileMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
+
+       setFeedbackEntries(feedbackData.map(f => ({
+         ...f,
+         user_name: profileMap.get(f.user_id) || null,
+         user_email: null,
+       })));
+     } catch (error) {
+       console.error('Error fetching feedback:', error);
+       toast({ title: 'Error fetching feedback', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
+       setFeedbackEntries([]);
+     } finally {
+       setFeedbackLoading(false);
+     }
+   };
+
+   useEffect(() => {
+     if (feedbackFilter) {
+       fetchFeedback(feedbackFilter);
+     } else {
+       setFeedbackEntries([]);
+     }
+   }, [feedbackFilter]);
  
    const getEnrollmentParentName = (enrollment: EnrollmentWithUser) => {
      if (enrollment.cohort_id) {
@@ -736,7 +809,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="cohorts" className="space-y-6">
-           <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
+           <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-grid">
              <TabsTrigger value="cohorts" className="gap-2">
                <Users className="h-4 w-4" /> Cohorts
              </TabsTrigger>
@@ -752,9 +825,12 @@ export default function Admin() {
              <TabsTrigger value="enrollments" className="gap-2">
                <Users className="h-4 w-4" /> Enrollments
              </TabsTrigger>
-             <TabsTrigger value="leaderboard" className="gap-2">
-               <Trophy className="h-4 w-4" /> Leaderboard
-             </TabsTrigger>
+              <TabsTrigger value="leaderboard" className="gap-2">
+                <Trophy className="h-4 w-4" /> Leaderboard
+              </TabsTrigger>
+              <TabsTrigger value="feedback" className="gap-2">
+                <MessageSquare className="h-4 w-4" /> Feedback
+              </TabsTrigger>
            </TabsList>
 
           {/* Cohorts Tab */}
@@ -1295,6 +1371,96 @@ export default function Admin() {
                                 {entry.completion_percentage}%
                               </span>
                             </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Feedback Tab */}
+          <TabsContent value="feedback">
+            <Card className="card-elevated">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>
+                    Feedback{feedbackEntries.length > 0 && feedbackFilter ? ` (${feedbackEntries.length})` : ''}
+                  </CardTitle>
+                  <CardDescription>View learner feedback by cohort or course</CardDescription>
+                </div>
+                <Select value={feedbackFilter} onValueChange={setFeedbackFilter}>
+                  <SelectTrigger className="w-[250px]">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Select cohort or course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cohorts.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>Cohorts</SelectLabel>
+                        {cohorts.map((cohort) => (
+                          <SelectItem key={`fb-cohort-${cohort.id}`} value={`cohort:${cohort.id}`}>
+                            {cohort.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
+                    {courses.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>Courses</SelectLabel>
+                        {courses.map((course) => (
+                          <SelectItem key={`fb-course-${course.id}`} value={`course:${course.id}`}>
+                            {course.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
+                  </SelectContent>
+                </Select>
+              </CardHeader>
+              <CardContent>
+                {!feedbackFilter ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Select a cohort or course to view feedback</p>
+                  </div>
+                ) : feedbackLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : feedbackEntries.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No feedback found for this selection.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Rating</TableHead>
+                        <TableHead className="w-[50%]">Comment</TableHead>
+                        <TableHead>Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {feedbackEntries.map((entry) => (
+                        <TableRow key={entry.id}>
+                          <TableCell className="font-medium">{entry.user_name || 'Unknown'}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-0.5">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`h-4 w-4 ${star <= entry.rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`}
+                                />
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {entry.comment || <span className="italic">No comment</span>}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {new Date(entry.created_at).toLocaleDateString()}
                           </TableCell>
                         </TableRow>
                       ))}
