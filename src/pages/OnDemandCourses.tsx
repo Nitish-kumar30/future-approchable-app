@@ -46,9 +46,7 @@ export default function OnDemandCourses() {
     <div className="space-y-8 animate-fade-in">
       <div className="space-y-2">
         <h1 className="text-3xl font-display font-bold text-foreground">On-Demand Courses</h1>
-        <p className="text-muted-foreground">
-          Learn at your own pace with self-guided courses. Sign in to access full content.
-        </p>
+        <p className="text-muted-foreground">Learn at your own pace with self-guided courses.</p>
       </div>
 
       {isLoading ? (
