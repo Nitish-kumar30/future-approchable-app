@@ -49,8 +49,10 @@ export default function Auth() {
     );
   }
 
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
+
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={redirectTo} replace />;
   }
 
   const validateLogin = () => {
@@ -110,7 +112,7 @@ export default function Auth() {
         variant: "destructive",
       });
     } else {
-      navigate("/dashboard");
+      navigate(redirectTo);
     }
   };
 
@@ -137,14 +139,14 @@ export default function Auth() {
         title: "Account created!",
         description: "Welcome to approachable.dev. Redirecting to your dashboard...",
       });
-      navigate("/dashboard");
+      navigate(redirectTo);
     }
   };
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: `${window.location.origin}${redirectTo}`,
     });
 
     if (error) {
