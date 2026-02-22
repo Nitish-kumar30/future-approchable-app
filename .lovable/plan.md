@@ -1,26 +1,23 @@
 
 
-# Fix Slug Migration for Live Deployment
+# Fix: Replace the Broken Slug Migration
 
 ## Problem
-The migration to add the `slug` column fails when publishing to Live because the backfill `DO` block doesn't execute properly before the `NOT NULL` constraint is applied. The Live database has 2 courses without slugs, and the migration errors with "column slug contains null values".
+There are currently **two** migration files for the slug column:
+1. `20260220124527_...sql` -- The **original broken** migration (adds nullable column, backfills, then sets NOT NULL -- which fails on Live)
+2. `20260222134826_...sql` -- The **fix** migration (meant to replace the first, but was added alongside it)
+
+When publishing, migration `20260220124527` runs **first** and fails before the fix migration ever executes. The Live database confirmed: the `slug` column doesn't exist at all there.
 
 ## Solution
-Replace the current migration with one that handles the backfill inline with a DEFAULT, ensuring no null values exist before the NOT NULL constraint is set. The approach:
-
-1. Drop the existing migration file
-2. Create a new migration that:
-   - Adds the `slug` column with a temporary default (empty string) so it's never null
-   - Immediately backfills all rows with proper slugs generated from names
-   - Sets the NOT NULL constraint (already satisfied)
-   - Creates the unique index
-   - Includes `NOTIFY pgrst, 'reload schema'` to refresh the API cache
+1. **Replace the original migration file** (`20260220124527_...sql`) with the fixed SQL that uses `NOT NULL DEFAULT ''` to safely add and backfill the column
+2. **Delete the second migration file** (`20260222134826_...sql`) since it's now redundant
 
 ## Technical Details
 
-**File:** `supabase/migrations/20260220124527_333e6a9e-8065-46a0-ac2d-03d3e8b1d547.sql`
+**File to update:** `supabase/migrations/20260220124527_333e6a9e-8065-46a0-ac2d-03d3e8b1d547.sql`
 
-Replace the migration with:
+Replace its contents with:
 
 ```sql
 -- Add slug column with a default to avoid null issues
@@ -69,12 +66,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_courses_slug ON public.courses (slug);
 NOTIFY pgrst, 'reload schema';
 ```
 
-Key differences from the original:
-- Uses `NOT NULL DEFAULT ''` to add the column, so it's never null at any point
-- Uses `IF NOT EXISTS` to handle partial application gracefully
-- Calls the `generate_slug` function for consistency
-- Drops the default after backfill so future inserts require explicit slugs
-- Adds `NOTIFY pgrst, 'reload schema'` to refresh the API cache
+**File to delete:** `supabase/migrations/20260222134826_c4899374-9c5f-4ba1-a99d-46f909770889.sql`
 
-No frontend code changes needed -- this is purely a migration fix.
+This is a duplicate and no longer needed once the original is fixed.
+
+After these changes, publish again and the migration should apply cleanly to Live.
 
