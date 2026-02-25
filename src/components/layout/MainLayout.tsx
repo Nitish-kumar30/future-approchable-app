@@ -20,7 +20,8 @@ import {
   User,
   Loader2,
   Shield,
-  PlayCircle
+  PlayCircle,
+  FileText
 } from 'lucide-react';
 import siteIcon from '@/assets/icon.png';
 import Footer from './Footer';
@@ -34,6 +35,7 @@ const navItems = [
   { path: '/cohorts', label: 'Cohorts', icon: Users },
   { path: '/courses', label: 'Live Courses', icon: BookOpen },
   { path: '/on-demand', label: 'On-Demand', icon: PlayCircle },
+  { path: '/prompts', label: 'Prompts', icon: FileText },
 ];
 
 const adminNavItems = [
@@ -152,7 +154,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
       {/* Mobile Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-sm">
-        <div className="grid grid-cols-4 gap-1 p-2">
+        <div className="grid grid-cols-5 gap-1 p-2">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path || 
               (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
