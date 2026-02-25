@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy, Filter, Trophy, MessageSquare, Star } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy, Filter, Trophy, MessageSquare, Star, FileText } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
  import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CohortForm } from '@/components/admin/CohortForm';
@@ -171,6 +171,12 @@ export default function Admin() {
    const [feedbackFilter, setFeedbackFilter] = useState<string>('');
    const [feedbackLoading, setFeedbackLoading] = useState(false);
 
+   // Prompts state
+   const [prompts, setPrompts] = useState<{ id: string; title: string; content: string; display_order: number }[]>([]);
+   const [promptTitle, setPromptTitle] = useState('');
+   const [promptContent, setPromptContent] = useState('');
+   const [promptsLoading, setPromptsLoading] = useState(false);
+
   useEffect(() => {
     if (isAdmin) {
       fetchAllData();
@@ -184,8 +190,16 @@ export default function Admin() {
       fetchCourses(),
       fetchSessions(),
       fetchQuizzes(),
+      fetchPrompts(),
     ]);
     setIsLoading(false);
+  };
+
+  const fetchPrompts = async () => {
+    setPromptsLoading(true);
+    const { data } = await supabase.from('prompts').select('*').order('display_order').order('created_at', { ascending: false });
+    if (data) setPrompts(data as { id: string; title: string; content: string; display_order: number }[]);
+    setPromptsLoading(false);
   };
 
   const fetchCohorts = async () => {
@@ -811,8 +825,8 @@ export default function Admin() {
           <p className="text-muted-foreground">Manage cohorts, courses, sessions, and quizzes</p>
         </div>
 
-        <Tabs defaultValue="cohorts" className="space-y-6">
-           <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-grid">
+         <Tabs defaultValue="cohorts" className="space-y-6">
+           <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-grid">
              <TabsTrigger value="cohorts" className="gap-2">
                <Users className="h-4 w-4" /> Cohorts
              </TabsTrigger>
@@ -832,9 +846,12 @@ export default function Admin() {
                 <Trophy className="h-4 w-4" /> Leaderboard
               </TabsTrigger>
               <TabsTrigger value="feedback" className="gap-2">
-                <MessageSquare className="h-4 w-4" /> Feedback
-              </TabsTrigger>
-           </TabsList>
+               <MessageSquare className="h-4 w-4" /> Feedback
+               </TabsTrigger>
+               <TabsTrigger value="prompts" className="gap-2">
+                 <FileText className="h-4 w-4" /> Prompts
+               </TabsTrigger>
+            </TabsList>
 
           {/* Cohorts Tab */}
           <TabsContent value="cohorts">
@@ -1464,6 +1481,104 @@ export default function Admin() {
                           </TableCell>
                           <TableCell className="text-sm">
                             {new Date(entry.created_at).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Prompts Tab */}
+          <TabsContent value="prompts">
+            <Card className="card-elevated">
+              <CardHeader>
+                <CardTitle>Manage Prompts</CardTitle>
+                <CardDescription>Add prompts that learners can browse and copy</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Add Prompt Form */}
+                <div className="space-y-3 border rounded-lg p-4 bg-muted/30">
+                  <h3 className="font-medium text-sm">Add New Prompt</h3>
+                  <input
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    placeholder="Prompt title"
+                    value={promptTitle}
+                    onChange={(e) => setPromptTitle(e.target.value)}
+                  />
+                  <textarea
+                    className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    placeholder="Prompt content"
+                    value={promptContent}
+                    onChange={(e) => setPromptContent(e.target.value)}
+                  />
+                  <Button
+                    onClick={async () => {
+                      if (!promptTitle.trim() || !promptContent.trim()) {
+                        toast({ title: 'Please fill in both title and content', variant: 'destructive' });
+                        return;
+                      }
+                      const { error } = await supabase.from('prompts').insert({
+                        title: promptTitle.trim(),
+                        content: promptContent.trim(),
+                      });
+                      if (error) {
+                        toast({ title: 'Failed to add prompt', description: error.message, variant: 'destructive' });
+                      } else {
+                        toast({ title: 'Prompt added!' });
+                        setPromptTitle('');
+                        setPromptContent('');
+                        fetchPrompts();
+                      }
+                    }}
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> Add Prompt
+                  </Button>
+                </div>
+
+                {/* Prompts List */}
+                {promptsLoading ? (
+                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                ) : prompts.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No prompts yet.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Content</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {prompts.map((prompt) => (
+                        <TableRow key={prompt.id}>
+                          <TableCell className="font-medium">{prompt.title}</TableCell>
+                          <TableCell className="max-w-md truncate text-muted-foreground">{prompt.content}</TableCell>
+                          <TableCell className="text-right">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Prompt?</AlertDialogTitle>
+                                  <AlertDialogDescription>This will permanently delete "{prompt.title}".</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={async () => {
+                                    const { error } = await supabase.from('prompts').delete().eq('id', prompt.id);
+                                    if (!error) {
+                                      toast({ title: 'Prompt deleted' });
+                                      fetchPrompts();
+                                    }
+                                  }}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </TableCell>
                         </TableRow>
                       ))}
