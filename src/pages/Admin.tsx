@@ -1468,12 +1468,29 @@ export default function Admin() {
                           <TableCell className="font-medium">{entry.user_name || 'Unknown'}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-0.5">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                  key={star}
-                                  className={`h-4 w-4 ${star <= entry.rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`}
-                                />
-                              ))}
+                              {[1, 2, 3, 4, 5].map((star) => {
+                                const isFull = entry.rating >= star;
+                                const isHalf = !isFull && entry.rating >= star - 0.5;
+                                if (isHalf) {
+                                  return (
+                                    <svg key={star} viewBox="0 0 24 24" className="h-4 w-4">
+                                      <defs>
+                                        <clipPath id={`admin-half-l-${entry.id}-${star}`}><rect x="0" y="0" width="12" height="24" /></clipPath>
+                                        <clipPath id={`admin-half-r-${entry.id}-${star}`}><rect x="12" y="0" width="12" height="24" /></clipPath>
+                                      </defs>
+                                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#facc15" stroke="#facc15" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" clipPath={`url(#admin-half-l-${entry.id}-${star})`} />
+                                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="none" stroke="hsl(var(--muted-foreground) / 0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" clipPath={`url(#admin-half-r-${entry.id}-${star})`} />
+                                    </svg>
+                                  );
+                                }
+                                return (
+                                  <Star
+                                    key={star}
+                                    className={`h-4 w-4 ${isFull ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`}
+                                  />
+                                );
+                              })}
+                              <span className="ml-1 text-xs text-muted-foreground">{entry.rating}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
