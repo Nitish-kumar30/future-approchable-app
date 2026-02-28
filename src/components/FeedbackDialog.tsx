@@ -119,44 +119,29 @@ export default function FeedbackDialog({ open, onOpenChange, courseId, cohortId,
                       onMouseLeave={() => setHoveredRating(0)}
                       aria-label={`${star} stars`}
                     />
-                    {/* Render star */}
+                    {/* Render star – always use raw SVG to prevent layout shift */}
                     <div className="pointer-events-none flex items-center justify-center h-full w-full">
-                      {isFull ? (
-                        <Star className="h-8 w-8" fill="#facc15" stroke="#facc15" />
-                      ) : isHalf ? (
-                        <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <defs>
-                            <clipPath id={`half-l-${star}`}>
-                              <rect x="0" y="0" width="12" height="24" />
-                            </clipPath>
-                            <clipPath id={`half-r-${star}`}>
-                              <rect x="12" y="0" width="12" height="24" />
-                            </clipPath>
-                          </defs>
-                          {/* Filled left half */}
+                      <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        {isHalf ? (
+                          <>
+                            <defs>
+                              <clipPath id={`half-l-${star}`}><rect x="0" y="0" width="12" height="24" /></clipPath>
+                              <clipPath id={`half-r-${star}`}><rect x="12" y="0" width="12" height="24" /></clipPath>
+                            </defs>
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#facc15" stroke="#facc15" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" clipPath={`url(#half-l-${star})`} />
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="none" stroke="#d4d4d8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" clipPath={`url(#half-r-${star})`} />
+                          </>
+                        ) : (
                           <path
                             d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-                            fill="#facc15"
-                            stroke="#facc15"
+                            fill={isFull ? '#facc15' : 'none'}
+                            stroke={isFull ? '#facc15' : '#d4d4d8'}
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            clipPath={`url(#half-l-${star})`}
                           />
-                          {/* Empty right half */}
-                          <path
-                            d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            clipPath={`url(#half-r-${star})`}
-                          />
-                        </svg>
-                      ) : (
-                        <Star className="h-8 w-8" fill="none" stroke="currentColor" />
-                      )}
+                        )}
+                      </svg>
                     </div>
                   </div>
                 );
