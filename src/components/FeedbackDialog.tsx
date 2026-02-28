@@ -93,24 +93,79 @@ export default function FeedbackDialog({ open, onOpenChange, courseId, cohortId,
           </div>
         ) : (
           <div className="space-y-4 py-2">
-            {/* Star rating */}
-            <div className="flex items-center gap-1 justify-center">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => setRating(star)}
-                  onMouseEnter={() => setHoveredRating(star)}
-                  onMouseLeave={() => setHoveredRating(0)}
-                  className="p-1 transition-transform hover:scale-110"
-                >
-                  <Star
-                    className="h-8 w-8 transition-colors"
-                    fill={(hoveredRating || rating) >= star ? '#facc15' : 'none'}
-                    stroke={(hoveredRating || rating) >= star ? '#facc15' : 'currentColor'}
-                  />
-                </button>
-              ))}
+            {/* Star rating – supports half stars */}
+            <div className="flex items-center gap-0 justify-center">
+              {[1, 2, 3, 4, 5].map((star) => {
+                const active = hoveredRating || rating;
+                const isFull = active >= star;
+                const isHalf = !isFull && active >= star - 0.5;
+                return (
+                  <div key={star} className="relative h-9 w-9 cursor-pointer">
+                    {/* Left half – sets x.5 */}
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 left-0 w-1/2 z-10"
+                      onClick={() => setRating(star - 0.5)}
+                      onMouseEnter={() => setHoveredRating(star - 0.5)}
+                      onMouseLeave={() => setHoveredRating(0)}
+                      aria-label={`${star - 0.5} stars`}
+                    />
+                    {/* Right half – sets x */}
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 w-1/2 z-10"
+                      onClick={() => setRating(star)}
+                      onMouseEnter={() => setHoveredRating(star)}
+                      onMouseLeave={() => setHoveredRating(0)}
+                      aria-label={`${star} stars`}
+                    />
+                    {/* Render star */}
+                    <div className="pointer-events-none flex items-center justify-center h-full w-full">
+                      {isFull ? (
+                        <Star className="h-8 w-8" fill="#facc15" stroke="#facc15" />
+                      ) : isHalf ? (
+                        <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <defs>
+                            <clipPath id={`half-l-${star}`}>
+                              <rect x="0" y="0" width="12" height="24" />
+                            </clipPath>
+                            <clipPath id={`half-r-${star}`}>
+                              <rect x="12" y="0" width="12" height="24" />
+                            </clipPath>
+                          </defs>
+                          {/* Filled left half */}
+                          <path
+                            d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                            fill="#facc15"
+                            stroke="#facc15"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            clipPath={`url(#half-l-${star})`}
+                          />
+                          {/* Empty right half */}
+                          <path
+                            d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            clipPath={`url(#half-r-${star})`}
+                          />
+                        </svg>
+                      ) : (
+                        <Star className="h-8 w-8" fill="none" stroke="currentColor" />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {(hoveredRating || rating) > 0 && (
+                <span className="ml-2 text-sm text-muted-foreground font-medium">
+                  {hoveredRating || rating}/5
+                </span>
+              )}
             </div>
 
             <Textarea
