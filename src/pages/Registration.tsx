@@ -77,43 +77,8 @@ export default function Registration() {
   };
 
   if (submitted) {
-    const steps = [
-      'Next steps for onboarding',
-      'Payment link for commitment fee',
-      'Access to your study group workspace',
-      'Week 1 cohort materials and schedule',
-    ];
-
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <PublicHeader hideAuth />
-        <main className="flex-1 flex items-center justify-center p-4">
-          <div className="max-w-md w-full text-center space-y-6">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center">
-              <PartyPopper className="h-12 w-12 text-primary" />
-            </div>
-            <h1 className="text-3xl font-bold text-primary">You're In!</h1>
-            <Card>
-              <CardContent className="pt-6 space-y-4">
-                <p className="font-semibold text-lg">Welcome to the Approachable community!</p>
-                <p className="text-muted-foreground">
-                  We'll email you within <span className="font-bold text-foreground">24-48 hours</span> with:
-                </p>
-                <ul className="text-left space-y-3 pt-2">
-                  {steps.map((step) => (
-                    <li key={step} className="flex items-center gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                      <span>{step}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
+    return <ThankYouScreen />;
+  }
   }
 
   return (
