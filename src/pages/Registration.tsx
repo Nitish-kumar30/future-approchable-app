@@ -154,10 +154,6 @@ export default function Registration() {
 
   const onSubmit = async (data: RegistrationForm) => {
     setSubmitted(true);
-    toast({
-      title: 'Registration submitted!',
-      description: "We'll review your application and get back to you soon.",
-    });
 
     // Trigger n8n webhook via edge function
     try {
