@@ -124,7 +124,10 @@ function ThankYouScreen() {
               </ul>
             </CardContent>
           </Card>
-          <p className="text-sm text-muted-foreground">Redirecting you to on-demand courses page...</p>
+          <p className="text-sm text-muted-foreground">You'll be redirected to on-demand courses shortly...</p>
+          <Button onClick={() => navigate('/on-demand')} variant="outline" size="lg" className="mt-2">
+            Go to On-Demand Courses →
+          </Button>
         </div>
       </main>
       <Footer />
@@ -154,10 +157,6 @@ export default function Registration() {
 
   const onSubmit = async (data: RegistrationForm) => {
     setSubmitted(true);
-    toast({
-      title: 'Registration submitted!',
-      description: "We'll review your application and get back to you soon.",
-    });
 
     // Trigger n8n webhook via edge function
     try {
