@@ -17,18 +17,18 @@ import { toast } from '@/hooks/use-toast';
 import { CheckCircle2, PartyPopper } from 'lucide-react';
 
 const COHORT_OPTIONS = [
-  'AI Fundamentals Cohort 1',
-  'Vibe Coding Cohort 2',
-  'No-code AI Agents Cohort 1',
-];
+'AI Fundamentals Cohort 1',
+'Vibe Coding Cohort 2',
+'No-code AI Agents Cohort 1'];
+
 
 const INTEREST_OPTIONS = [
-  'AI Fundamentals',
-  'Vibe Coding',
-  'No-code AI Agents',
-  'Prompt Engineering',
-  'Other',
-];
+'AI Fundamentals',
+'Vibe Coding',
+'No-code AI Agents',
+'Prompt Engineering',
+'Other'];
+
 
 const registrationSchema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -42,8 +42,8 @@ const registrationSchema = z.object({
   reason: z.string().min(1, 'Please tell us why you want to join'),
   additional_info: z.string().optional(),
   fee_acknowledged: z.literal(true, {
-    errorMap: () => ({ message: 'You must acknowledge the commitment fee' }),
-  }),
+    errorMap: () => ({ message: 'You must acknowledge the commitment fee' })
+  })
 });
 
 type RegistrationForm = z.infer<typeof registrationSchema>;
@@ -93,11 +93,11 @@ function ThankYouScreen() {
   }, [navigate]);
 
   const steps = [
-    'Next steps for onboarding',
-    'Payment link for commitment fee',
-    'Access to your study group workspace',
-    'Week 1 cohort materials and schedule',
-  ];
+  'Next steps for onboarding',
+  'Payment link for commitment fee',
+  'Access to your study group workspace',
+  'Week 1 cohort materials and schedule'];
+
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -115,12 +115,12 @@ function ThankYouScreen() {
                 We'll email you within <span className="font-bold text-foreground">24-48 hours</span> with:
               </p>
               <ul className="text-left space-y-3 pt-2">
-                {steps.map((step) => (
-                  <li key={step} className="flex items-center gap-3">
+                {steps.map((step) =>
+                <li key={step} className="flex items-center gap-3">
                     <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
                     <span>{step}</span>
                   </li>
-                ))}
+                )}
               </ul>
             </CardContent>
           </Card>
@@ -131,8 +131,8 @@ function ThankYouScreen() {
         </div>
       </main>
       <Footer />
-    </div>
-  );
+    </div>);
+
 }
 
 export default function Registration() {
@@ -151,8 +151,8 @@ export default function Registration() {
       role: '',
       reason: '',
       additional_info: '',
-      fee_acknowledged: undefined,
-    },
+      fee_acknowledged: undefined
+    }
   });
 
   const onSubmit = async (data: RegistrationForm) => {
@@ -168,15 +168,15 @@ export default function Registration() {
           company: data.company,
           role: data.role,
           reason: data.reason,
-          additional_info: data.additional_info || null,
-        },
+          additional_info: data.additional_info || null
+        }
       });
 
       if (error) {
         toast({
           title: 'Registration failed',
           description: 'Something went wrong. Please try again.',
-          variant: 'destructive',
+          variant: 'destructive'
         });
         console.error('Registration error:', error);
         return;
@@ -187,7 +187,7 @@ export default function Registration() {
       toast({
         title: 'Registration failed',
         description: 'Something went wrong. Please try again.',
-        variant: 'destructive',
+        variant: 'destructive'
       });
       console.error('Registration error:', err);
     }
@@ -215,53 +215,53 @@ export default function Registration() {
                 <FormField
                   control={form.control}
                   name="name"
-                  render={({ field }) => (
-                    <FormItem>
+                  render={({ field }) =>
+                  <FormItem>
                       <FormLabel>Full Name *</FormLabel>
                       <FormControl>
                         <Input placeholder="Your full name" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
+                  } />
+                
 
                 {/* Email */}
                 <FormField
                   control={form.control}
                   name="email"
-                  render={({ field }) => (
-                    <FormItem>
+                  render={({ field }) =>
+                  <FormItem>
                       <FormLabel>Email *</FormLabel>
                       <FormControl>
                         <Input type="email" placeholder="you@example.com" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
+                  } />
+                
 
                 {/* WhatsApp */}
                 <FormField
                   control={form.control}
                   name="whatsapp_number"
-                  render={({ field }) => (
-                    <FormItem>
+                  render={({ field }) =>
+                  <FormItem>
                       <FormLabel>WhatsApp Number (with country code) *</FormLabel>
                       <FormControl>
                         <Input placeholder="+91 98765 43210" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
+                  } />
+                
 
                 {/* Cohort */}
                 <FormField
                   control={form.control}
                   name="cohort"
-                  render={({ field }) => (
-                    <FormItem>
+                  render={({ field }) =>
+                  <FormItem>
                       <FormLabel>Select Cohort *</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
@@ -270,156 +270,156 @@ export default function Registration() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {COHORT_OPTIONS.map((cohort) => (
-                            <SelectItem key={cohort} value={cohort}>
+                          {COHORT_OPTIONS.map((cohort) =>
+                        <SelectItem key={cohort} value={cohort}>
                               {cohort}
                             </SelectItem>
-                          ))}
+                        )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
+                  } />
+                
 
                 {/* Interests */}
                 <FormField
                   control={form.control}
                   name="interests"
-                  render={() => (
-                    <FormItem>
+                  render={() =>
+                  <FormItem>
                       <FormLabel>What do you want to learn? *</FormLabel>
                       <div className="space-y-3 pt-1">
-                        {INTEREST_OPTIONS.map((interest) => (
-                          <FormField
-                            key={interest}
-                            control={form.control}
-                            name="interests"
-                            render={({ field }) => (
-                              <FormItem className="flex items-center space-x-3 space-y-0">
+                        {INTEREST_OPTIONS.map((interest) =>
+                      <FormField
+                        key={interest}
+                        control={form.control}
+                        name="interests"
+                        render={({ field }) =>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
                                 <FormControl>
                                   <Checkbox
-                                    checked={field.value?.includes(interest)}
-                                    onCheckedChange={(checked) => {
-                                      const updated = checked
-                                        ? [...(field.value || []), interest]
-                                        : (field.value || []).filter((v) => v !== interest);
-                                      field.onChange(updated);
-                                    }}
-                                  />
+                              checked={field.value?.includes(interest)}
+                              onCheckedChange={(checked) => {
+                                const updated = checked ?
+                                [...(field.value || []), interest] :
+                                (field.value || []).filter((v) => v !== interest);
+                                field.onChange(updated);
+                              }} />
+                            
                                 </FormControl>
                                 <FormLabel className="font-normal cursor-pointer">{interest}</FormLabel>
                               </FormItem>
-                            )}
-                          />
-                        ))}
+                        } />
+
+                      )}
                       </div>
-                      {form.watch('interests')?.includes('Other') && (
-                        <FormField
-                          control={form.control}
-                          name="other_interest"
-                          render={({ field }) => (
-                            <FormItem className="pt-2">
+                      {form.watch('interests')?.includes('Other') &&
+                    <FormField
+                      control={form.control}
+                      name="other_interest"
+                      render={({ field }) =>
+                      <FormItem className="pt-2">
                               <FormControl>
                                 <Input placeholder="Please specify your interest" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
-                          )}
-                        />
-                      )}
+                      } />
+
+                    }
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
+                  } />
+                
 
                 {/* Company */}
                 <FormField
                   control={form.control}
                   name="company"
-                  render={({ field }) => (
-                    <FormItem>
+                  render={({ field }) =>
+                  <FormItem>
                       <FormLabel>Company Name *</FormLabel>
                       <FormControl>
                         <Input placeholder="Your company" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
+                  } />
+                
 
                 {/* Role */}
                 <FormField
                   control={form.control}
                   name="role"
-                  render={({ field }) => (
-                    <FormItem>
+                  render={({ field }) =>
+                  <FormItem>
                       <FormLabel>Role *</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g. Product Manager, Developer" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
+                  } />
+                
 
                 {/* Reason */}
                 <FormField
                   control={form.control}
                   name="reason"
-                  render={({ field }) => (
-                    <FormItem>
+                  render={({ field }) =>
+                  <FormItem>
                       <FormLabel>Why do you want to join? *</FormLabel>
                       <FormControl>
                         <Textarea placeholder="Tell us what you hope to learn and achieve..." rows={4} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
+                  } />
+                
 
                 {/* Additional Info */}
                 <FormField
                   control={form.control}
                   name="additional_info"
-                  render={({ field }) => (
-                    <FormItem>
+                  render={({ field }) =>
+                  <FormItem>
                       <FormLabel>Anything else you'd like us to know?</FormLabel>
                       <FormControl>
                         <Textarea placeholder="Optional" rows={3} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
+                  } />
+                
 
                 {/* Fee Acknowledgment */}
                 <FormField
                   control={form.control}
                   name="fee_acknowledged"
-                  render={({ field }) => (
-                    <FormItem className="flex items-start space-x-3 space-y-0 rounded-md border border-border p-4">
+                  render={({ field }) =>
+                  <FormItem className="flex items-start space-x-3 space-y-0 rounded-md border border-border p-4">
                       <FormControl>
                         <Checkbox
-                          checked={field.value === true}
-                          onCheckedChange={field.onChange}
-                        />
+                        checked={field.value === true}
+                        onCheckedChange={field.onChange} />
+                      
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel className="cursor-pointer font-medium">
                           I agree to the Commitment fee (non-refundable) *
                         </FormLabel>
-                        <p className="text-sm text-muted-foreground pt-1">
-                          Course fee: Rs0/$0. Commitment fees: nominal.
-                        </p>
+                        <p className="text-sm text-muted-foreground pt-1">Course fee: Rs0/$0. Commitment fee: nominal.
+
+                      </p>
                         <p className="text-sm text-muted-foreground">
                           In previous free cohorts, many registered but didn't show up. To ensure a serious, engaged learning experience for everyone, we now require a small commitment fee to reserve your seat.
                         </p>
                       </div>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
+                  } />
+                
 
                 <Button type="submit" className="w-full" size="lg">
                   Submit Registration
@@ -430,6 +430,6 @@ export default function Registration() {
         </Card>
       </main>
       <Footer />
-    </div>
-  );
+    </div>);
+
 }
