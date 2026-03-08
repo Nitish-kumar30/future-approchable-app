@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -48,6 +48,14 @@ type RegistrationForm = z.infer<typeof registrationSchema>;
 
 export default function Registration() {
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    (function(c: any,l: any,a: string,r: string,i: string,t?: any,y?: any){
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "vsgq487abi");
+  }, []);
 
   const form = useForm<RegistrationForm>({
     resolver: zodResolver(registrationSchema),
