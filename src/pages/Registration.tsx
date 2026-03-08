@@ -407,7 +407,7 @@ export default function Registration() {
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel className="cursor-pointer font-medium">
-                          Commitment fees (non-refundable) *
+                          Commitment fee (non-refundable) *
                         </FormLabel>
                         <p className="text-sm text-muted-foreground pt-1">
                           Course fee: Rs0/$0. Commitment fees: nominal.
