@@ -125,7 +125,7 @@ function ThankYouScreen() {
             </CardContent>
           </Card>
           <p className="text-sm text-muted-foreground">You'll be redirected to on-demand courses shortly...</p>
-          <Button onClick={() => navigate('/on-demand')} variant="outline" size="lg" className="mt-2">
+          <Button onClick={() => navigate('/on-demand')} size="lg" className="mt-2 bg-accent text-accent-foreground hover:bg-accent/90">
             Go to On-Demand Courses →
           </Button>
         </div>
