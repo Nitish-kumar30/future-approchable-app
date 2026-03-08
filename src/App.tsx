@@ -19,6 +19,7 @@ import ResetPassword from "./pages/ResetPassword";
 import OnDemandCourses from "./pages/OnDemandCourses";
 import OnDemandCourseDetail from "./pages/OnDemandCourseDetail";
 import PromptLibrary from "./pages/PromptLibrary";
+import Registration from "./pages/Registration";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/prompts" element={<PromptLibrary />} />
             <Route path="/on-demand/:slug" element={<OnDemandCourseDetail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/registration" element={<Registration />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
