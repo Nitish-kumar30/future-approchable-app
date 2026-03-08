@@ -1649,6 +1649,51 @@ export default function Admin() {
           quiz={editingQuiz}
           onSave={handleSaveQuiz}
         />
+
+        {/* Edit Prompt Dialog */}
+        <Dialog open={!!editingPromptId} onOpenChange={(open) => !open && setEditingPromptId(null)}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader><DialogTitle>Edit Prompt</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Title</label>
+                <input
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  value={editPromptTitle}
+                  onChange={(e) => setEditPromptTitle(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Content</label>
+                <textarea
+                  className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  value={editPromptContent}
+                  onChange={(e) => setEditPromptContent(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingPromptId(null)}>Cancel</Button>
+              <Button onClick={async () => {
+                if (!editPromptTitle.trim() || !editPromptContent.trim()) {
+                  toast({ title: 'Title and content are required', variant: 'destructive' });
+                  return;
+                }
+                const { error } = await supabase.from('prompts').update({
+                  title: editPromptTitle.trim(),
+                  content: editPromptContent.trim(),
+                }).eq('id', editingPromptId!);
+                if (error) {
+                  toast({ title: 'Failed to update prompt', description: error.message, variant: 'destructive' });
+                } else {
+                  toast({ title: 'Prompt updated!' });
+                  setEditingPromptId(null);
+                  fetchPrompts();
+                }
+              }}>Save</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );
