@@ -39,7 +39,7 @@ const registrationSchema = z.object({
   company: z.string().min(1, 'Company name is required'),
   other_interest: z.string().optional(),
   role: z.string().min(1, 'Role is required'),
-  reason: z.string().min(10, 'Please tell us why you want to join (at least 10 characters)'),
+  reason: z.string().min(1, 'Please tell us why you want to join'),
   additional_info: z.string().optional(),
   fee_acknowledged: z.literal(true, {
     errorMap: () => ({ message: 'You must acknowledge the commitment fee' }),
