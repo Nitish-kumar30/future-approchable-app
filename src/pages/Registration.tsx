@@ -77,7 +77,7 @@ export default function Registration() {
   if (submitted) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
-        <PublicHeader />
+        <PublicHeader hideAuth />
         <main className="flex-1 flex items-center justify-center p-4">
           <Card className="max-w-md w-full text-center">
             <CardHeader>
