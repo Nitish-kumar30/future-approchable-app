@@ -20,10 +20,7 @@ serve(async (req) => {
       );
     }
 
-    const webhookUrl = Deno.env.get('N8N_WEBHOOK_URL');
-    if (!webhookUrl) {
-      throw new Error('N8N_WEBHOOK_URL is not configured');
-    }
+    const webhookUrl = 'https://n8n.shya.me/webhook-test/010f16db-723c-4b23-b4ce-6501307b02c9';
 
     const response = await fetch(webhookUrl, {
       method: 'POST',
