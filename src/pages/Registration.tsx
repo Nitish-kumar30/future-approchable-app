@@ -98,7 +98,7 @@ export default function Registration() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <PublicHeader />
+      <PublicHeader hideAuth />
       <main className="flex-1 container max-w-2xl py-10 px-4">
         <Card>
           <CardHeader>
