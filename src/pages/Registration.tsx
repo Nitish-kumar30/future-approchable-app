@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, PartyPopper } from 'lucide-react';
 
 const COHORT_OPTIONS = [
   'AI Fundamentals Cohort 1',
