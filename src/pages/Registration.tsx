@@ -156,19 +156,52 @@ export default function Registration() {
   });
 
   const onSubmit = async (data: RegistrationForm) => {
-    setSubmitted(true);
-
-    // Trigger n8n webhook via edge function
     try {
-      await supabase.functions.invoke('trigger-registration-webhook', {
-        body: {
-          Name: data.name,
-          Email: data.email,
-          Cohort: data.cohort,
-        },
+      // Save registration to database
+      const { error } = await supabase.from('cohort_registrations').insert({
+        name: data.name,
+        email: data.email,
+        whatsapp_number: data.whatsapp_number,
+        cohort: data.cohort,
+        interests: data.interests,
+        other_interest: data.other_interest || null,
+        company: data.company,
+        role: data.role,
+        reason: data.reason,
+        additional_info: data.additional_info || null,
       });
+
+      if (error) {
+        toast({
+          title: 'Registration failed',
+          description: 'Something went wrong. Please try again.',
+          variant: 'destructive',
+        });
+        console.error('Registration insert error:', error);
+        return;
+      }
+
+      setSubmitted(true);
+
+      // Trigger n8n webhook via edge function
+      try {
+        await supabase.functions.invoke('trigger-registration-webhook', {
+          body: {
+            Name: data.name,
+            Email: data.email,
+            Cohort: data.cohort,
+          },
+        });
+      } catch (err) {
+        console.error('Webhook trigger failed:', err);
+      }
     } catch (err) {
-      console.error('Webhook trigger failed:', err);
+      toast({
+        title: 'Registration failed',
+        description: 'Something went wrong. Please try again.',
+        variant: 'destructive',
+      });
+      console.error('Registration error:', err);
     }
   };
 
