@@ -98,7 +98,7 @@ serve(async (req) => {
   }
 
   // Block non-whitelisted origins
-  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+  if (origin && !isAllowedOrigin(origin)) {
     return new Response(JSON.stringify({ error: "Forbidden" }), {
       status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
