@@ -25,28 +25,30 @@ export default function PublicHeader({ hideAuth = false }: { hideAuth?: boolean 
         </nav>
 
         {/* Auth Buttons */}
-        <div className="flex items-center gap-2">
-          {user ? (
-            <Button asChild>
-              <Link to="/dashboard">Go to Dashboard</Link>
-            </Button>
-          ) : (
-            <>
-              <Button variant="ghost" size="sm" asChild className="gap-2">
-                <Link to="/auth">
-                  <LogIn className="h-4 w-4" />
-                  <span className="hidden sm:inline">Sign In</span>
-                </Link>
+        {!hideAuth && (
+          <div className="flex items-center gap-2">
+            {user ? (
+              <Button asChild>
+                <Link to="/dashboard">Go to Dashboard</Link>
               </Button>
-              <Button size="sm" asChild className="gap-2">
-                <Link to="/auth?tab=signup">
-                  <UserPlus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Sign Up</span>
-                </Link>
-              </Button>
-            </>
-          )}
-        </div>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild className="gap-2">
+                  <Link to="/auth">
+                    <LogIn className="h-4 w-4" />
+                    <span className="hidden sm:inline">Sign In</span>
+                  </Link>
+                </Button>
+                <Button size="sm" asChild className="gap-2">
+                  <Link to="/auth?tab=signup">
+                    <UserPlus className="h-4 w-4" />
+                    <span className="hidden sm:inline">Sign Up</span>
+                  </Link>
+                </Button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );
