@@ -1577,7 +1577,14 @@ export default function Admin() {
                         <TableRow key={prompt.id}>
                           <TableCell className="font-medium">{prompt.title}</TableCell>
                           <TableCell className="max-w-md truncate text-muted-foreground">{prompt.content}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right flex justify-end gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => {
+                              setEditingPromptId(prompt.id);
+                              setEditPromptTitle(prompt.title);
+                              setEditPromptContent(prompt.content);
+                            }}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="sm"><Trash2 className="h-4 w-4 text-destructive" /></Button>
