@@ -49,6 +49,82 @@ type RegistrationForm = z.infer<typeof registrationSchema>;
 
 export default function Registration() {
   const [submitted, setSubmitted] = useState(false);
+function ThankYouScreen() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Load Google Analytics
+    const gtagScript = document.createElement('script');
+    gtagScript.async = true;
+    gtagScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-XG391DQQCV';
+    document.head.appendChild(gtagScript);
+
+    const inlineScript = document.createElement('script');
+    inlineScript.textContent = `
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XG391DQQCV');
+      gtag('event', 'conversion', {
+        'event_category': 'Funnel',
+        'event_label': 'Form Submitted',
+        'value': 399,
+        'currency': 'INR'
+      });
+    `;
+    document.head.appendChild(inlineScript);
+
+    // Redirect after 5 seconds
+    const timer = setTimeout(() => {
+      navigate('/on-demand-courses');
+    }, 5000);
+
+    return () => {
+      clearTimeout(timer);
+      document.head.removeChild(gtagScript);
+      document.head.removeChild(inlineScript);
+    };
+  }, [navigate]);
+
+  const steps = [
+    'Next steps for onboarding',
+    'Payment link for commitment fee',
+    'Access to your study group workspace',
+    'Week 1 cohort materials and schedule',
+  ];
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <PublicHeader hideAuth />
+      <main className="flex-1 flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center">
+            <PartyPopper className="h-12 w-12 text-primary" />
+          </div>
+          <h1 className="text-3xl font-bold text-primary">You're In!</h1>
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <p className="font-semibold text-lg">Welcome to the Approachable community!</p>
+              <p className="text-muted-foreground">
+                We'll email you within <span className="font-bold text-foreground">24-48 hours</span> with:
+              </p>
+              <ul className="text-left space-y-3 pt-2">
+                {steps.map((step) => (
+                  <li key={step} className="flex items-center gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+          <p className="text-sm text-muted-foreground">Redirecting to courses in a few seconds...</p>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
 
 
   const form = useForm<RegistrationForm>({
