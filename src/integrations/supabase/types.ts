@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      cohort_registrations: {
+        Row: {
+          additional_info: string | null
+          cohort: string
+          company: string
+          created_at: string
+          email: string
+          id: string
+          interests: string[]
+          name: string
+          other_interest: string | null
+          reason: string
+          role: string
+          status: string
+          updated_at: string
+          whatsapp_number: string
+        }
+        Insert: {
+          additional_info?: string | null
+          cohort: string
+          company: string
+          created_at?: string
+          email: string
+          id?: string
+          interests?: string[]
+          name: string
+          other_interest?: string | null
+          reason: string
+          role: string
+          status?: string
+          updated_at?: string
+          whatsapp_number: string
+        }
+        Update: {
+          additional_info?: string | null
+          cohort?: string
+          company?: string
+          created_at?: string
+          email?: string
+          id?: string
+          interests?: string[]
+          name?: string
+          other_interest?: string | null
+          reason?: string
+          role?: string
+          status?: string
+          updated_at?: string
+          whatsapp_number?: string
+        }
+        Relationships: []
+      }
       cohorts: {
         Row: {
           created_at: string
