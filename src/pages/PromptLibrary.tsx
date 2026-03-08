@@ -1,30 +1,21 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import MainLayout from '@/components/layout/MainLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Copy, Check, Plus, Pencil, Trash2, X, Save } from 'lucide-react';
+import { Loader2, Copy, Check, Plus, Pencil, Trash2, Save, ChevronDown, BookOpen, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
 
 interface Prompt {
   id: string;
@@ -34,10 +25,74 @@ interface Prompt {
   user_id: string | null;
 }
 
+function PromptCard({ prompt, canEdit, onEdit, onDelete }: {
+  prompt: Prompt;
+  canEdit: boolean;
+  onEdit: (p: Prompt) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(prompt.content);
+      setCopied(true);
+      toast({ title: 'Copied!', description: `"${prompt.title}" copied to clipboard.` });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ title: 'Failed to copy', variant: 'destructive' });
+    }
+  };
+
+  return (
+    <Card
+      className={cn(
+        "cursor-pointer transition-all duration-200 hover:shadow-md border-border/60",
+        expanded && "ring-1 ring-primary/20"
+      )}
+      onClick={() => setExpanded(!expanded)}
+    >
+      <div className="flex items-center justify-between p-4 gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <ChevronDown className={cn(
+            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
+            expanded && "rotate-180"
+          )} />
+          <h3 className="font-medium text-foreground truncate">{prompt.title}</h3>
+        </div>
+        <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCopy}>
+            {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
+          </Button>
+          {canEdit && (
+            <>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(prompt)}>
+                <Pencil className="h-4 w-4 text-muted-foreground" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(prompt.id)}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+      {expanded && (
+        <CardContent className="pt-0 pb-4 px-4">
+          <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-mono bg-muted/50 rounded-md p-4">
+            {prompt.content}
+          </pre>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
 export default function PromptLibrary() {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
   const [title, setTitle] = useState('');
@@ -47,9 +102,7 @@ export default function PromptLibrary() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  useEffect(() => {
-    fetchPrompts();
-  }, []);
+  useEffect(() => { fetchPrompts(); }, []);
 
   const fetchPrompts = async () => {
     const { data, error } = await supabase
@@ -57,22 +110,8 @@ export default function PromptLibrary() {
       .select('*')
       .order('display_order', { ascending: true })
       .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setPrompts(data as Prompt[]);
-    }
+    if (!error && data) setPrompts(data as Prompt[]);
     setIsLoading(false);
-  };
-
-  const handleCopy = async (prompt: Prompt) => {
-    try {
-      await navigator.clipboard.writeText(prompt.content);
-      setCopiedId(prompt.id);
-      toast({ title: 'Copied!', description: `"${prompt.title}" copied to clipboard.` });
-      setTimeout(() => setCopiedId(null), 2000);
-    } catch {
-      toast({ title: 'Failed to copy', variant: 'destructive' });
-    }
   };
 
   const openNewDialog = () => {
@@ -95,28 +134,13 @@ export default function PromptLibrary() {
       return;
     }
     setSaving(true);
-
     if (editingPrompt) {
-      const { error } = await supabase
-        .from('prompts')
-        .update({ title: title.trim(), content: content.trim() })
-        .eq('id', editingPrompt.id);
-      if (error) {
-        toast({ title: 'Failed to update prompt', variant: 'destructive' });
-      } else {
-        toast({ title: 'Prompt updated' });
-      }
+      const { error } = await supabase.from('prompts').update({ title: title.trim(), content: content.trim() }).eq('id', editingPrompt.id);
+      toast({ title: error ? 'Failed to update prompt' : 'Prompt updated', variant: error ? 'destructive' : 'default' });
     } else {
-      const { error } = await supabase
-        .from('prompts')
-        .insert({ title: title.trim(), content: content.trim(), user_id: user?.id });
-      if (error) {
-        toast({ title: 'Failed to add prompt', variant: 'destructive' });
-      } else {
-        toast({ title: 'Prompt added' });
-      }
+      const { error } = await supabase.from('prompts').insert({ title: title.trim(), content: content.trim(), user_id: user?.id });
+      toast({ title: error ? 'Failed to add prompt' : 'Prompt added', variant: error ? 'destructive' : 'default' });
     }
-
     setSaving(false);
     setDialogOpen(false);
     fetchPrompts();
@@ -125,51 +149,19 @@ export default function PromptLibrary() {
   const handleDelete = async () => {
     if (!deleteId) return;
     const { error } = await supabase.from('prompts').delete().eq('id', deleteId);
-    if (error) {
-      toast({ title: 'Failed to delete', variant: 'destructive' });
-    } else {
-      toast({ title: 'Prompt deleted' });
-      fetchPrompts();
-    }
+    toast({ title: error ? 'Failed to delete' : 'Prompt deleted', variant: error ? 'destructive' : 'default' });
+    if (!error) fetchPrompts();
     setDeleteId(null);
   };
 
-  const adminPrompts = prompts.filter(p => p.user_id === null);
+  const publishedPrompts = prompts.filter(p => p.user_id === null);
   const myPrompts = prompts.filter(p => p.user_id === user?.id);
-
-  const PromptCard = ({ prompt, canEdit }: { prompt: Prompt; canEdit: boolean }) => (
-    <Card key={prompt.id} className="card-elevated">
-      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-3">
-        <CardTitle className="text-lg">{prompt.title}</CardTitle>
-        <div className="flex shrink-0 gap-1">
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => handleCopy(prompt)}>
-            {copiedId === prompt.id ? <><Check className="h-4 w-4" /> Copied</> : <><Copy className="h-4 w-4" /> Copy</>}
-          </Button>
-          {canEdit && (
-            <>
-              <Button variant="ghost" size="sm" onClick={() => openEditDialog(prompt)}>
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setDeleteId(prompt.id)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-mono bg-muted/50 rounded-md p-4">
-          {prompt.content}
-        </pre>
-      </CardContent>
-    </Card>
-  );
 
   return (
     <MainLayout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-8 animate-fade-in">
         <div className="flex items-start justify-between gap-4">
-          <div className="space-y-2">
+          <div className="space-y-1">
             <h1 className="text-3xl font-display font-bold text-foreground">Prompt Library</h1>
             <p className="text-muted-foreground">Browse shared prompts and manage your own collection</p>
           </div>
@@ -183,42 +175,49 @@ export default function PromptLibrary() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="space-y-8">
-            {/* My Prompts */}
+          <div className="space-y-10">
+            {/* Published Prompts */}
             <section className="space-y-4">
-              <h2 className="text-xl font-semibold text-foreground">My Prompts</h2>
-              {myPrompts.length === 0 ? (
-                <Card>
-                  <CardContent className="py-8 text-center text-muted-foreground">
-                    You haven't added any prompts yet. Click "Add Prompt" to get started.
-                  </CardContent>
-                </Card>
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-semibold text-foreground">Published Prompts</h2>
+                <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">{publishedPrompts.length}</span>
+              </div>
+              {publishedPrompts.length === 0 ? (
+                <Card><CardContent className="py-8 text-center text-muted-foreground">No published prompts yet.</CardContent></Card>
               ) : (
-                <div className="grid gap-4">
-                  {myPrompts.map(p => <PromptCard key={p.id} prompt={p} canEdit />)}
+                <div className="grid gap-2">
+                  {publishedPrompts.map(p => (
+                    <PromptCard key={p.id} prompt={p} canEdit={false} onEdit={openEditDialog} onDelete={setDeleteId} />
+                  ))}
                 </div>
               )}
             </section>
 
-            {/* Shared Prompts */}
-            {adminPrompts.length > 0 && (
-              <section className="space-y-4">
-                <h2 className="text-xl font-semibold text-foreground">Shared Prompts</h2>
-                <div className="grid gap-4">
-                  {adminPrompts.map(p => <PromptCard key={p.id} prompt={p} canEdit={false} />)}
+            {/* My Prompts */}
+            <section className="space-y-4">
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-semibold text-foreground">My Prompts</h2>
+                <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">{myPrompts.length}</span>
+              </div>
+              {myPrompts.length === 0 ? (
+                <Card><CardContent className="py-8 text-center text-muted-foreground">You haven't added any prompts yet. Click "Add Prompt" to get started.</CardContent></Card>
+              ) : (
+                <div className="grid gap-2">
+                  {myPrompts.map(p => (
+                    <PromptCard key={p.id} prompt={p} canEdit onEdit={openEditDialog} onDelete={setDeleteId} />
+                  ))}
                 </div>
-              </section>
-            )}
+              )}
+            </section>
           </div>
         )}
       </div>
 
-      {/* Add / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editingPrompt ? 'Edit Prompt' : 'Add Prompt'}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{editingPrompt ? 'Edit Prompt' : 'Add Prompt'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Title</label>
@@ -239,7 +238,6 @@ export default function PromptLibrary() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={open => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
