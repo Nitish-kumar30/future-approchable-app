@@ -58,6 +58,7 @@ export default function Registration() {
       cohort: '',
       interests: [],
       company: '',
+      other_interest: '',
       role: '',
       reason: '',
       additional_info: '',
