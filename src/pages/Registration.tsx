@@ -238,7 +238,7 @@ export default function Registration() {
                   name="company"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Company Name</FormLabel>
+                      <FormLabel>Company Name *</FormLabel>
                       <FormControl>
                         <Input placeholder="Your company" {...field} />
                       </FormControl>
