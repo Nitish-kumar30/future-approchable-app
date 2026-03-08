@@ -47,6 +47,7 @@ const App = () => (
             <Route path="/prompts" element={<PromptLibrary />} />
             <Route path="/on-demand/:slug" element={<OnDemandCourseDetail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/registration" element={<Registration />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
