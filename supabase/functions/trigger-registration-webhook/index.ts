@@ -7,6 +7,13 @@ const ALLOWED_ORIGINS = [
   "https://id-preview--f23e6c6f-1b0f-4f1f-b278-b82852cb6004.lovable.app",
 ];
 
+function isAllowedOrigin(origin: string): boolean {
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  // Allow Lovable preview domains
+  if (origin.endsWith(".lovableproject.com") || origin.endsWith(".lovable.app")) return true;
+  return false;
+}
+
 function getCorsHeaders(origin: string | null) {
   const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
