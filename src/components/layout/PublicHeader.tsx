@@ -4,7 +4,7 @@ import { LogIn, UserPlus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import logo from '@/assets/icon.png';
 
-export default function PublicHeader() {
+export default function PublicHeader({ hideAuth = false }: { hideAuth?: boolean }) {
   const location = useLocation();
   const { user } = useAuth();
 
