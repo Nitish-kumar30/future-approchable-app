@@ -144,7 +144,7 @@ export default function Registration() {
                   name="whatsapp_number"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>WhatsApp Number *</FormLabel>
+                      <FormLabel>WhatsApp Number (with country code) *</FormLabel>
                       <FormControl>
                         <Input placeholder="+91 98765 43210" {...field} />
                       </FormControl>
