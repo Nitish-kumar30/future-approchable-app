@@ -19,6 +19,7 @@ import ResetPassword from "./pages/ResetPassword";
 import OnDemandCourses from "./pages/OnDemandCourses";
 import OnDemandCourseDetail from "./pages/OnDemandCourseDetail";
 import PromptLibrary from "./pages/PromptLibrary";
+import Registration from "./pages/Registration";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
