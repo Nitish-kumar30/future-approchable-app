@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,24 +13,55 @@ serve(async (req) => {
   }
 
   try {
-    const { Name, Email, Cohort } = await req.json();
+    const body = await req.json();
+    const { name, email, whatsapp_number, cohort, interests, other_interest, company, role, reason, additional_info } = body;
 
-    if (!Name || !Email || !Cohort) {
-      return new Response(JSON.stringify({ error: "Name, Email, and Cohort are required" }), {
+    if (!name || !email || !cohort || !whatsapp_number || !company || !role || !reason) {
+      return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const webhookUrl = "https://n8n.shya.me/webhook/010f16db-723c-4b23-b4ce-6501307b02c9";
+    // Use service role to insert (bypasses RLS)
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
 
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ Name, Email, Cohort }),
+    const { error: dbError } = await supabase.from("cohort_registrations").insert({
+      name,
+      email,
+      whatsapp_number,
+      cohort,
+      interests: interests || [],
+      other_interest: other_interest || null,
+      company,
+      role,
+      reason,
+      additional_info: additional_info || null,
     });
 
-    const responseText = await response.text();
+    if (dbError) {
+      console.error("DB insert error:", dbError);
+      return new Response(JSON.stringify({ error: "Failed to save registration" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Trigger n8n webhook
+    try {
+      const webhookUrl = "https://n8n.shya.me/webhook/010f16db-723c-4b23-b4ce-6501307b02c9";
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ Name: name, Email: email, Cohort: cohort }),
+      });
+      await response.text();
+    } catch (err) {
+      console.error("Webhook trigger failed:", err);
+    }
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
