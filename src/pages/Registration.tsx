@@ -213,6 +213,20 @@ export default function Registration() {
                           />
                         ))}
                       </div>
+                      {form.watch('interests')?.includes('Other') && (
+                        <FormField
+                          control={form.control}
+                          name="other_interest"
+                          render={({ field }) => (
+                            <FormItem className="pt-2">
+                              <FormControl>
+                                <Input placeholder="Please specify your interest" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
