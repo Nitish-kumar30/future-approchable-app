@@ -47,12 +47,17 @@ const registrationSchema = z.object({
 
 type RegistrationForm = z.infer<typeof registrationSchema>;
 
-export default function Registration() {
-  const [submitted, setSubmitted] = useState(false);
 function ThankYouScreen() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Fire confetti
+    import('canvas-confetti').then((mod) => {
+      const confetti = mod.default;
+      confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+      setTimeout(() => confetti({ particleCount: 100, spread: 100, origin: { y: 0.5 } }), 300);
+    });
+
     // Load Google Analytics
     const gtagScript = document.createElement('script');
     gtagScript.async = true;
@@ -74,10 +79,10 @@ function ThankYouScreen() {
     `;
     document.head.appendChild(inlineScript);
 
-    // Redirect after 5 seconds
+    // Redirect after 10 seconds
     const timer = setTimeout(() => {
-      navigate('/on-demand-courses');
-    }, 5000);
+      navigate('/on-demand');
+    }, 10000);
 
     return () => {
       clearTimeout(timer);
@@ -97,7 +102,7 @@ function ThankYouScreen() {
     <div className="min-h-screen flex flex-col bg-background">
       <PublicHeader hideAuth />
       <main className="flex-1 flex items-center justify-center p-4">
-        <div className="max-w-md w-full text-center space-y-6">
+        <div className="max-w-md w-full text-center space-y-6 animate-fade-in">
           <div className="mx-auto flex h-16 w-16 items-center justify-center">
             <PartyPopper className="h-12 w-12 text-primary" />
           </div>
@@ -118,7 +123,7 @@ function ThankYouScreen() {
               </ul>
             </CardContent>
           </Card>
-          <p className="text-sm text-muted-foreground">Redirecting to courses in a few seconds...</p>
+          <p className="text-sm text-muted-foreground">Redirecting you to on-demand courses page...</p>
         </div>
       </main>
       <Footer />
@@ -126,6 +131,8 @@ function ThankYouScreen() {
   );
 }
 
+export default function Registration() {
+  const [submitted, setSubmitted] = useState(false);
 
   const form = useForm<RegistrationForm>({
     resolver: zodResolver(registrationSchema),
