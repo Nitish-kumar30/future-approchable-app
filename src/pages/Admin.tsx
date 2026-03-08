@@ -172,10 +172,13 @@ export default function Admin() {
    const [feedbackLoading, setFeedbackLoading] = useState(false);
 
    // Prompts state
-   const [prompts, setPrompts] = useState<{ id: string; title: string; content: string; display_order: number }[]>([]);
-   const [promptTitle, setPromptTitle] = useState('');
-   const [promptContent, setPromptContent] = useState('');
-   const [promptsLoading, setPromptsLoading] = useState(false);
+    const [prompts, setPrompts] = useState<{ id: string; title: string; content: string; display_order: number }[]>([]);
+    const [promptTitle, setPromptTitle] = useState('');
+    const [promptContent, setPromptContent] = useState('');
+    const [promptsLoading, setPromptsLoading] = useState(false);
+    const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
+    const [editPromptTitle, setEditPromptTitle] = useState('');
+    const [editPromptContent, setEditPromptContent] = useState('');
 
   useEffect(() => {
     if (isAdmin) {
