@@ -152,12 +152,25 @@ export default function Registration() {
     },
   });
 
-  const onSubmit = (_data: RegistrationForm) => {
+  const onSubmit = async (data: RegistrationForm) => {
     setSubmitted(true);
     toast({
       title: 'Registration submitted!',
       description: "We'll review your application and get back to you soon.",
     });
+
+    // Trigger n8n webhook via edge function
+    try {
+      await supabase.functions.invoke('trigger-registration-webhook', {
+        body: {
+          Name: data.name,
+          Email: data.email,
+          Cohort: data.cohort,
+        },
+      });
+    } catch (err) {
+      console.error('Webhook trigger failed:', err);
+    }
   };
 
   if (submitted) {
