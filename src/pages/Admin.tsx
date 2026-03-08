@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy, Filter, Trophy, MessageSquare, Star, FileText } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
  import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -172,10 +173,13 @@ export default function Admin() {
    const [feedbackLoading, setFeedbackLoading] = useState(false);
 
    // Prompts state
-   const [prompts, setPrompts] = useState<{ id: string; title: string; content: string; display_order: number }[]>([]);
-   const [promptTitle, setPromptTitle] = useState('');
-   const [promptContent, setPromptContent] = useState('');
-   const [promptsLoading, setPromptsLoading] = useState(false);
+    const [prompts, setPrompts] = useState<{ id: string; title: string; content: string; display_order: number }[]>([]);
+    const [promptTitle, setPromptTitle] = useState('');
+    const [promptContent, setPromptContent] = useState('');
+    const [promptsLoading, setPromptsLoading] = useState(false);
+    const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
+    const [editPromptTitle, setEditPromptTitle] = useState('');
+    const [editPromptContent, setEditPromptContent] = useState('');
 
   useEffect(() => {
     if (isAdmin) {
@@ -1574,7 +1578,14 @@ export default function Admin() {
                         <TableRow key={prompt.id}>
                           <TableCell className="font-medium">{prompt.title}</TableCell>
                           <TableCell className="max-w-md truncate text-muted-foreground">{prompt.content}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right flex justify-end gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => {
+                              setEditingPromptId(prompt.id);
+                              setEditPromptTitle(prompt.title);
+                              setEditPromptContent(prompt.content);
+                            }}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="sm"><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -1638,6 +1649,51 @@ export default function Admin() {
           quiz={editingQuiz}
           onSave={handleSaveQuiz}
         />
+
+        {/* Edit Prompt Dialog */}
+        <Dialog open={!!editingPromptId} onOpenChange={(open) => !open && setEditingPromptId(null)}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader><DialogTitle>Edit Prompt</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Title</label>
+                <input
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  value={editPromptTitle}
+                  onChange={(e) => setEditPromptTitle(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Content</label>
+                <textarea
+                  className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  value={editPromptContent}
+                  onChange={(e) => setEditPromptContent(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingPromptId(null)}>Cancel</Button>
+              <Button onClick={async () => {
+                if (!editPromptTitle.trim() || !editPromptContent.trim()) {
+                  toast({ title: 'Title and content are required', variant: 'destructive' });
+                  return;
+                }
+                const { error } = await supabase.from('prompts').update({
+                  title: editPromptTitle.trim(),
+                  content: editPromptContent.trim(),
+                }).eq('id', editingPromptId!);
+                if (error) {
+                  toast({ title: 'Failed to update prompt', description: error.message, variant: 'destructive' });
+                } else {
+                  toast({ title: 'Prompt updated!' });
+                  setEditingPromptId(null);
+                  fetchPrompts();
+                }
+              }}>Save</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );
