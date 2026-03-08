@@ -34,7 +34,8 @@ const registrationSchema = z.object({
   whatsapp_number: z.string().min(5, 'WhatsApp number is required'),
   cohort: z.string().min(1, 'Please select a cohort'),
   interests: z.array(z.string()).min(1, 'Select at least one interest'),
-  company: z.string().optional(),
+  company: z.string().min(1, 'Company name is required'),
+  other_interest: z.string().optional(),
   role: z.string().min(1, 'Role is required'),
   reason: z.string().min(10, 'Please tell us why you want to join (at least 10 characters)'),
   additional_info: z.string().optional(),
@@ -57,6 +58,7 @@ export default function Registration() {
       cohort: '',
       interests: [],
       company: '',
+      other_interest: '',
       role: '',
       reason: '',
       additional_info: '',
@@ -211,6 +213,20 @@ export default function Registration() {
                           />
                         ))}
                       </div>
+                      {form.watch('interests')?.includes('Other') && (
+                        <FormField
+                          control={form.control}
+                          name="other_interest"
+                          render={({ field }) => (
+                            <FormItem className="pt-2">
+                              <FormControl>
+                                <Input placeholder="Please specify your interest" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -222,7 +238,7 @@ export default function Registration() {
                   name="company"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Company Name</FormLabel>
+                      <FormLabel>Company Name *</FormLabel>
                       <FormControl>
                         <Input placeholder="Your company" {...field} />
                       </FormControl>
@@ -289,9 +305,15 @@ export default function Registration() {
                         />
                       </FormControl>
                       <div className="space-y-1 leading-none">
-                        <FormLabel className="cursor-pointer">
-                          I acknowledge the commitment fee for this cohort *
+                        <FormLabel className="cursor-pointer font-medium">
+                          Commitment fees (non-refundable) *
                         </FormLabel>
+                        <p className="text-sm text-muted-foreground pt-1">
+                          Course fee: Rs0/$0. Commitment fees: nominal.
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          In previous free cohorts, many registered but didn't show up. To ensure a serious, engaged learning experience for everyone, we now require a small commitment fee to reserve your seat.
+                        </p>
                       </div>
                       <FormMessage />
                     </FormItem>
