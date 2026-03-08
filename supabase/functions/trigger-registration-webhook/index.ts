@@ -21,13 +21,10 @@ serve(async (req) => {
       });
     }
 
-    const webhookUrl = "https://n8n.shya.me/webhook/010f16db-723c-4b23-b4ce-6501307b02c9";
+    const params = new URLSearchParams({ Name, Email, Cohort });
+    const webhookUrl = `https://n8n.shya.me/webhook/010f16db-723c-4b23-b4ce-6501307b02c9?${params.toString()}`;
 
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ Name, Email, Cohort }),
-    });
+    const response = await fetch(webhookUrl, { method: "GET" });
 
     const responseText = await response.text();
 
