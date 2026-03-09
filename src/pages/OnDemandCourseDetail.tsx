@@ -97,7 +97,10 @@ export default function OnDemandCourseDetail() {
   const [completedSessionIds, setCompletedSessionIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (slug) fetchCourseData();
+    if (slug) {
+      enrolledContentLoadedRef2.current = false;
+      fetchCourseData();
+    }
   }, [slug]);
 
   // Fetch full session data (with URLs) when user authenticates and course is loaded
@@ -128,6 +131,8 @@ export default function OnDemandCourseDetail() {
     }
   };
 
+  const enrolledContentLoadedRef2 = useRef(false);
+
   const fetchCourseData = async () => {
     // First fetch the course by slug
     const courseRes = await supabase.from('courses').select('id, name, description, mentor_name, duration, image_url').eq('slug', slug!).single();
@@ -151,8 +156,11 @@ export default function OnDemandCourseDetail() {
       if (res.ok) {
         const data = await res.json();
         const publicSessions = (data.sessions || []) as Session[];
-        setSessions(publicSessions);
-        if (publicSessions.length > 0 && !activeSessionId) setActiveSessionId(publicSessions[0].id);
+        // Only set public sessions if enrolled content hasn't loaded yet
+        if (!enrolledContentLoadedRef2.current) {
+          setSessions(publicSessions);
+          if (publicSessions.length > 0 && !activeSessionId) setActiveSessionId(publicSessions[0].id);
+        }
       }
     } catch (e) {
       console.error('Failed to fetch public sessions:', e);
@@ -181,6 +189,7 @@ export default function OnDemandCourseDetail() {
     const sessionsRes = await supabase.from('sessions').select('id, title, description, recording_url, presentation_url, session_order').eq('course_id', course.id).order('session_order', { ascending: true });
 
     if (sessionsRes.data) {
+      enrolledContentLoadedRef2.current = true;
       setSessions(sessionsRes.data);
       if (sessionsRes.data.length > 0 && !activeSessionId) setActiveSessionId(sessionsRes.data[0].id);
 

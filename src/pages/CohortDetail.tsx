@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -97,6 +97,7 @@ export default function CohortDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const enrolledContentLoadedRef = useRef(false);
   
   const [cohort, setCohort] = useState<Cohort | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -116,6 +117,7 @@ export default function CohortDetail() {
 
   useEffect(() => {
     if (id) {
+      enrolledContentLoadedRef.current = false;
       fetchCohort();
       fetchSessions(); // Always fetch public sessions as baseline
       fetchEnrollmentCount();
@@ -189,7 +191,10 @@ export default function CohortDetail() {
       );
       if (res.ok) {
         const data = await res.json();
-        setSessions((data.sessions || []) as Session[]);
+        // Only set public sessions if enrolled content hasn't loaded yet
+        if (!enrolledContentLoadedRef.current) {
+          setSessions((data.sessions || []) as Session[]);
+        }
       }
     } catch (e) {
       console.error('Failed to fetch public sessions:', e);
@@ -204,6 +209,7 @@ export default function CohortDetail() {
       .order('session_order', { ascending: true });
 
     if (sessionsData) {
+      enrolledContentLoadedRef.current = true;
       setSessions(sessionsData);
       
       const sessionIds = sessionsData.map(s => s.id);
