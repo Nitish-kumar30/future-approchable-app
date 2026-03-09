@@ -136,28 +136,26 @@ export default function OnDemandCourseDetail() {
     const courseData = courseRes.data;
     setCourse(courseData);
 
-    // Only fetch public session metadata if user is NOT logged in.
-    // If logged in, fetchEnrolledSessionData will handle fetching full data.
-    if (!user) {
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-public-sessions?course_id=${courseData.id}`,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            },
-          }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          const publicSessions = (data.sessions || []) as Session[];
-          setSessions(publicSessions);
-          if (publicSessions.length > 0) setActiveSessionId(publicSessions[0].id);
+    // Always fetch public session metadata as a baseline (titles, descriptions, order)
+    // If user is logged in, fetchEnrolledSessionData will upgrade with full data (URLs, quizzes)
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-public-sessions?course_id=${courseData.id}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
         }
-      } catch (e) {
-        console.error('Failed to fetch public sessions:', e);
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const publicSessions = (data.sessions || []) as Session[];
+        setSessions(publicSessions);
+        if (publicSessions.length > 0 && !activeSessionId) setActiveSessionId(publicSessions[0].id);
       }
+    } catch (e) {
+      console.error('Failed to fetch public sessions:', e);
     }
     setIsLoading(false);
   };
