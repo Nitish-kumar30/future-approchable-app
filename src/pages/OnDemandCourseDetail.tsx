@@ -175,28 +175,9 @@ export default function OnDemandCourseDetail() {
       .maybeSingle();
 
     if (!enrollment) {
-      // Not enrolled yet — fetch public session metadata as fallback
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-public-sessions?course_id=${course.id}`,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            },
-          }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          const publicSessions = (data.sessions || []) as Session[];
-          setSessions(publicSessions);
-          if (publicSessions.length > 0 && !activeSessionId) setActiveSessionId(publicSessions[0].id);
-        }
-      } catch (e) {
-        console.error('Failed to fetch public sessions:', e);
-      }
-      setIsLoading(false);
-      return;
+      // Auto-enroll for on-demand courses so user can see content immediately
+      await supabase.from('enrollments').insert({ user_id: user.id, course_id: course.id });
+      autoEnrolledRef.current = true;
     }
 
     const sessionsRes = await supabase.from('sessions').select('id, title, description, recording_url, presentation_url, session_order').eq('course_id', course.id).order('session_order', { ascending: true });
