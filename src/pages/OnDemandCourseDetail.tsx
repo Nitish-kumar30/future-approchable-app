@@ -97,7 +97,10 @@ export default function OnDemandCourseDetail() {
   const [completedSessionIds, setCompletedSessionIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (slug) fetchCourseData();
+    if (slug) {
+      enrolledContentLoadedRef2.current = false;
+      fetchCourseData();
+    }
   }, [slug]);
 
   // Fetch full session data (with URLs) when user authenticates and course is loaded
