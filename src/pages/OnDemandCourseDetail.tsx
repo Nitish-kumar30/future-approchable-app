@@ -159,9 +159,19 @@ export default function OnDemandCourseDetail() {
     setIsLoading(false);
   };
 
-  // Fetch full session data (with sensitive URLs) once user is authenticated
+  // Fetch full session data (with sensitive URLs) once user is authenticated AND enrolled
   const fetchEnrolledSessionData = useCallback(async () => {
     if (!user || !course) return;
+
+    // Check enrollment first — RLS now requires it
+    const { data: enrollment } = await supabase
+      .from('enrollments')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('course_id', course.id)
+      .maybeSingle();
+
+    if (!enrollment) return; // Not enrolled yet, keep public session data
 
     const sessionsRes = await supabase.from('sessions').select('id, title, description, recording_url, presentation_url, session_order').eq('course_id', course.id).order('session_order', { ascending: true });
 
