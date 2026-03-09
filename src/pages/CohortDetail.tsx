@@ -132,14 +132,30 @@ export default function CohortDetail() {
   }, [isEnrolled, id, user]);
 
   const fetchCohort = async () => {
-    const { data, error } = await supabase
-      .from('cohorts')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (!error && data) {
-      setCohort(data);
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      };
+      // Pass auth token if available so enrolled users get full data
+      if (user) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+      }
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-cohort-detail?cohort_id=${id}`,
+        { headers }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.cohort) {
+          setCohort(data.cohort);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch cohort:', e);
     }
     setIsLoading(false);
   };
