@@ -208,6 +208,7 @@ export default function CohortDetail() {
       .order('session_order', { ascending: true });
 
     if (sessionsData) {
+      enrolledContentLoadedRef.current = true;
       setSessions(sessionsData);
       
       const sessionIds = sessionsData.map(s => s.id);
