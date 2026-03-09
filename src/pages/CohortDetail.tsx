@@ -97,6 +97,7 @@ export default function CohortDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const enrolledContentLoadedRef = useRef(false);
   
   const [cohort, setCohort] = useState<Cohort | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
