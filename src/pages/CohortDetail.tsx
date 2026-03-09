@@ -190,7 +190,10 @@ export default function CohortDetail() {
       );
       if (res.ok) {
         const data = await res.json();
-        setSessions((data.sessions || []) as Session[]);
+        // Only set public sessions if enrolled content hasn't loaded yet
+        if (!enrolledContentLoadedRef.current) {
+          setSessions((data.sessions || []) as Session[]);
+        }
       }
     } catch (e) {
       console.error('Failed to fetch public sessions:', e);
