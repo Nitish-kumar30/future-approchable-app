@@ -339,7 +339,6 @@ export default function CohortDetail() {
         title: 'Successfully enrolled!',
         description: `You're now part of ${cohort?.name}`,
       });
-      fetchSessions();
     }
   };
 
