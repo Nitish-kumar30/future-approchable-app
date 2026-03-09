@@ -129,11 +129,38 @@ export default function OnDemandCourseDetail() {
     const courseData = courseRes.data;
     setCourse(courseData);
 
-    const sessionsRes = await supabase.from('sessions').select('id, title, description, recording_url, presentation_url, session_order').eq('course_id', courseData.id).order('session_order', { ascending: true });
+    // Fetch public session metadata via edge function (no sensitive URLs)
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-public-sessions?course_id=${courseData.id}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const publicSessions = (data.sessions || []) as Session[];
+        setSessions(publicSessions);
+        if (publicSessions.length > 0) setActiveSessionId(publicSessions[0].id);
+      }
+    } catch (e) {
+      console.error('Failed to fetch public sessions:', e);
+    }
+    setIsLoading(false);
+  };
+
+  // Fetch full session data (with sensitive URLs) once user is authenticated
+  const fetchEnrolledSessionData = useCallback(async () => {
+    if (!user || !course) return;
+
+    const sessionsRes = await supabase.from('sessions').select('id, title, description, recording_url, presentation_url, session_order').eq('course_id', course.id).order('session_order', { ascending: true });
 
     if (sessionsRes.data) {
       setSessions(sessionsRes.data);
-      if (sessionsRes.data.length > 0) setActiveSessionId(sessionsRes.data[0].id);
+      if (sessionsRes.data.length > 0 && !activeSessionId) setActiveSessionId(sessionsRes.data[0].id);
 
       const sessionIds = sessionsRes.data.map(s => s.id);
       if (sessionIds.length > 0) {
@@ -161,8 +188,7 @@ export default function OnDemandCourseDetail() {
         }
       }
     }
-    setIsLoading(false);
-  };
+  }, [user, course, activeSessionId]);
 
   const handleSessionCompleted = useCallback(async (sessionId: string) => {
     if (!user || completedSessionIds.has(sessionId)) return;

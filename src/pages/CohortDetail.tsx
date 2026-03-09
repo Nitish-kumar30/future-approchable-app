@@ -177,14 +177,22 @@ export default function CohortDetail() {
   };
 
   const fetchSessions = async () => {
-    const { data: sessionsData } = await supabase
-      .from('sessions')
-      .select('id, title, description, session_date, session_order')
-      .eq('cohort_id', id)
-      .order('session_order', { ascending: true });
-
-    if (sessionsData) {
-      setSessions(sessionsData as Session[]);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-public-sessions?cohort_id=${id}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setSessions((data.sessions || []) as Session[]);
+      }
+    } catch (e) {
+      console.error('Failed to fetch public sessions:', e);
     }
   };
 
