@@ -1,82 +1,58 @@
 
 
-## Plan: Fix Sensitive URL Exposure
+# Fix: Session Completion Trigger -- Still Using Buggy LIMIT 1
 
-### Problem
-RLS on `sessions` allows public SELECT when the parent course/cohort is published, exposing `recording_url` and `presentation_url`. The `cohorts` table exposes `meeting_link` and `group_link` publicly when `is_published = true`. While the UI hides these from non-enrolled users, anyone can query the API directly.
+## Root Cause
 
-### Strategy
-Since Postgres RLS is row-level (not column-level), we cannot restrict specific columns. The fix is to **tighten the RLS policies** and create **edge functions** to serve public-safe metadata.
+The previously approved fix was **never actually applied**. Both Test and Live databases still have the old `check_session_completion` function that uses `LIMIT 1` to pick a single session for a quiz. When a quiz is shared across multiple cohorts, this picks an arbitrary session -- often one belonging to a different cohort than the user is enrolled in -- so `session_progress` gets created for the wrong session and the leaderboard shows 0 completed sessions.
 
----
+Additionally, there are **two duplicate triggers** (`check_session_completion_trigger` and `on_quiz_submission_check_completion`) both firing the same function on every quiz submission, which is redundant.
 
-### 1. Database Migration: Tighten Sessions RLS
+## What Will Change
 
-Replace the current sessions SELECT policy with one that removes public access:
+A single database migration that:
+
+1. **Replaces** the `check_session_completion` function with the enrollment-scoped version that loops through all sessions linked to a quiz, filtered to only sessions in cohorts/courses the user is enrolled in
+2. **Drops** the duplicate trigger `on_quiz_submission_check_completion` (keeping only `check_session_completion_trigger`)
+
+## After Publishing
+
+You will need to run a **backfill query** on the Live database (via Cloud View, Run SQL with Live selected) to fix existing incorrect `session_progress` records:
 
 ```sql
-DROP POLICY "Sessions viewable for published courses or enrolled users" ON sessions;
-
--- Public can only see non-sensitive session metadata via edge function
--- Direct table access requires enrollment or admin
-CREATE POLICY "Sessions viewable by enrolled users or admins"
-ON sessions FOR SELECT USING (
-  is_admin()
-  OR (cohort_id IS NOT NULL AND is_enrolled_in_cohort(auth.uid(), cohort_id))
-  OR (course_id IS NOT NULL AND is_enrolled_in_course(auth.uid(), course_id))
+-- Step 1: Delete session_progress where user is NOT enrolled
+DELETE FROM session_progress sp
+WHERE NOT EXISTS (
+  SELECT 1 FROM sessions s
+  JOIN enrollments e ON e.user_id = sp.user_id
+  WHERE s.id = sp.session_id
+    AND (
+      (s.cohort_id IS NOT NULL AND e.cohort_id = s.cohort_id)
+      OR (s.course_id IS NOT NULL AND e.course_id = s.course_id)
+    )
 );
+
+-- Step 2: Re-insert correct progress
+INSERT INTO session_progress (user_id, session_id, is_completed, completed_at)
+SELECT DISTINCT
+  qs.user_id, sq.session_id, true, MAX(qs.submitted_at)
+FROM quiz_submissions qs
+JOIN session_quizzes sq ON sq.quiz_id = qs.quiz_id
+JOIN sessions s ON s.id = sq.session_id
+JOIN enrollments e ON e.user_id = qs.user_id
+  AND (
+    (s.cohort_id IS NOT NULL AND e.cohort_id = s.cohort_id)
+    OR (s.course_id IS NOT NULL AND e.course_id = s.course_id)
+  )
+GROUP BY qs.user_id, sq.session_id
+HAVING COUNT(DISTINCT qs.quiz_id) >= (
+  SELECT COUNT(*) FROM session_quizzes sq2 WHERE sq2.session_id = sq.session_id
+)
+ON CONFLICT (user_id, session_id) DO UPDATE SET
+  is_completed = true,
+  completed_at = COALESCE(session_progress.completed_at, EXCLUDED.completed_at),
+  updated_at = now();
 ```
 
-### 2. Edge Function: `get-public-sessions`
-
-New edge function (no JWT required) that returns only safe session fields for published courses/cohorts. Uses service role to query, but strips sensitive columns.
-
-- Input: `course_id` or `cohort_id` query param
-- Validates the course/cohort is published
-- Returns: `id, title, description, session_date, session_order` only
-- No `recording_url`, `presentation_url`, or `is_content_unlocked`
-
-### 3. Edge Function: `get-cohort-detail`
-
-New edge function that returns cohort data. For non-enrolled users, strips `meeting_link` and `group_link`. For enrolled users (verified via JWT), returns all fields.
-
-- Input: `cohort_id` query param, optional auth token
-- Returns full data if enrolled, safe data if not
-
-### 4. Frontend Changes
-
-**`src/pages/CourseDetail.tsx`**:
-- `fetchSessions()` (non-enrolled path): Call `get-public-sessions?course_id=X` edge function instead of querying sessions table directly
-
-**`src/pages/CohortDetail.tsx`**:
-- `fetchCohort()`: Call `get-cohort-detail?cohort_id=X` edge function instead of `select('*')` on cohorts
-- `fetchSessions()` (non-enrolled path): Call `get-public-sessions?cohort_id=X`
-
-**`src/pages/OnDemandCourseDetail.tsx`**:
-- `fetchCourseData()`: Split session fetch — use `get-public-sessions` initially, then fetch full data from sessions table only after user is confirmed enrolled (or for on-demand, after auth check)
-
-**`src/pages/Courses.tsx` and `src/pages/LiveCourses.tsx`**:
-- No changes needed — these only query the `courses` table which doesn't have sensitive URLs
-
-### 5. Config: Disable JWT for new edge functions
-
-Add to `supabase/config.toml`:
-```toml
-[functions.get-public-sessions]
-verify_jwt = false
-
-[functions.get-cohort-detail]
-verify_jwt = false
-```
-
-### Summary of Files Changed
-| File | Change |
-|------|--------|
-| DB migration | Tighten sessions SELECT RLS |
-| `supabase/functions/get-public-sessions/index.ts` | New edge function |
-| `supabase/functions/get-cohort-detail/index.ts` | New edge function |
-| `supabase/config.toml` | Disable JWT for new functions |
-| `src/pages/CourseDetail.tsx` | Use edge function for public sessions |
-| `src/pages/CohortDetail.tsx` | Use edge functions for public cohort + sessions |
-| `src/pages/OnDemandCourseDetail.tsx` | Use edge function for public sessions |
+No frontend code changes needed.
 
