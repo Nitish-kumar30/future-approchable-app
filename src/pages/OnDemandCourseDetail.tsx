@@ -128,6 +128,8 @@ export default function OnDemandCourseDetail() {
     }
   };
 
+  const enrolledContentLoadedRef2 = useRef(false);
+
   const fetchCourseData = async () => {
     // First fetch the course by slug
     const courseRes = await supabase.from('courses').select('id, name, description, mentor_name, duration, image_url').eq('slug', slug!).single();
@@ -151,8 +153,11 @@ export default function OnDemandCourseDetail() {
       if (res.ok) {
         const data = await res.json();
         const publicSessions = (data.sessions || []) as Session[];
-        setSessions(publicSessions);
-        if (publicSessions.length > 0 && !activeSessionId) setActiveSessionId(publicSessions[0].id);
+        // Only set public sessions if enrolled content hasn't loaded yet
+        if (!enrolledContentLoadedRef2.current) {
+          setSessions(publicSessions);
+          if (publicSessions.length > 0 && !activeSessionId) setActiveSessionId(publicSessions[0].id);
+        }
       }
     } catch (e) {
       console.error('Failed to fetch public sessions:', e);
