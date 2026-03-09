@@ -100,6 +100,13 @@ export default function OnDemandCourseDetail() {
     if (slug) fetchCourseData();
   }, [slug]);
 
+  // Fetch full session data (with URLs) when user authenticates
+  useEffect(() => {
+    if (user && course) {
+      fetchEnrolledSessionData();
+    }
+  }, [user, course]);
+
   // Fetch existing progress when user logs in
   useEffect(() => {
     if (user && sessions.length > 0) {
