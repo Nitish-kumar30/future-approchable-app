@@ -117,6 +117,7 @@ export default function CohortDetail() {
 
   useEffect(() => {
     if (id) {
+      enrolledContentLoadedRef.current = false;
       fetchCohort();
       fetchSessions(); // Always fetch public sessions as baseline
       fetchEnrollmentCount();

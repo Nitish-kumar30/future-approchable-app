@@ -189,6 +189,7 @@ export default function OnDemandCourseDetail() {
     const sessionsRes = await supabase.from('sessions').select('id, title, description, recording_url, presentation_url, session_order').eq('course_id', course.id).order('session_order', { ascending: true });
 
     if (sessionsRes.data) {
+      enrolledContentLoadedRef2.current = true;
       setSessions(sessionsRes.data);
       if (sessionsRes.data.length > 0 && !activeSessionId) setActiveSessionId(sessionsRes.data[0].id);
 
