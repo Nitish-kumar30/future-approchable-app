@@ -254,8 +254,10 @@ export default function OnDemandCourseDetail() {
 
     if (!data) {
       await supabase.from('enrollments').insert({ user_id: user.id, course_id: course.id });
+      // Re-fetch full session data now that user is enrolled
+      fetchEnrolledSessionData();
     }
-  }, [user, course]);
+  }, [user, course, fetchEnrolledSessionData]);
 
   const handleNextSession = useCallback(() => {
     const currentIdx = sessions.findIndex(s => s.id === activeSessionId);
