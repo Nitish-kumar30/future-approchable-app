@@ -117,7 +117,10 @@ export default function CohortDetail() {
   useEffect(() => {
     if (id) {
       fetchCohort();
-      fetchSessions();
+      // Only fetch public sessions if not logged in; enrolled content will be fetched separately
+      if (!user) {
+        fetchSessions();
+      }
       fetchEnrollmentCount();
       if (user) {
         checkEnrollment();
