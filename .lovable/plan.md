@@ -1,58 +1,51 @@
 
 
-# Fix: Session Completion Trigger -- Still Using Buggy LIMIT 1
+## Interactive Prompting Guide — Revised Plan (Modal + Gamified)
 
-## Root Cause
+### Overview
+Add a "Prompting Guide" button next to "Add Prompt" in the Prompt Library header. It opens a large modal with tabbed categories and a step-by-step wizard. Each step includes a **gamified "Improve This Prompt" challenge** where users type their own improved version of a bad prompt, then flip to reveal the suggested good prompt.
 
-The previously approved fix was **never actually applied**. Both Test and Live databases still have the old `check_session_completion` function that uses `LIMIT 1` to pick a single session for a quiz. When a quiz is shared across multiple cohorts, this picks an arbitrary session -- often one belonging to a different cohort than the user is enrolled in -- so `session_progress` gets created for the wrong session and the leaderboard shows 0 completed sessions.
+### Gamification: "Improve This Prompt" Challenge
+Each wizard step shows:
+1. The **bad prompt** prominently
+2. A text area: "How would you improve this prompt?"
+3. A **"Reveal Answer"** button that triggers a flip-card animation, showing the good prompt on the back
+4. After reveal, a **"Why it's better"** explanation appears below
+5. Users can compare their attempt side-by-side with the suggested good prompt
 
-Additionally, there are **two duplicate triggers** (`check_session_completion_trigger` and `on_quiz_submission_check_completion`) both firing the same function on every quiz submission, which is redundant.
+This encourages active learning — users think before seeing the answer.
 
-## What Will Change
+### Content Categories (from guide)
+1. **General Tips** — 6 steps (Be Clear, Use Examples, Encourage Thinking, Iterative Refinement, Leverage Knowledge, Role-Playing)
+2. **Content Creation** — 3 steps (Specify Audience, Define Tone, Define Structure)
+3. **Research & Analysis** — 3 steps (Document Summary, Data Analysis, Specify Format)
+4. **Brainstorming** — 2 steps (Generate Ideas, Structured Formats)
+5. **Troubleshooting** — 3 tips (Acknowledge Uncertainty, Break Down Tasks, Include Context)
+6. **Full Examples** — 2 comprehensive examples (Marketing Strategy, Financial Report)
 
-A single database migration that:
+### Files to Create
 
-1. **Replaces** the `check_session_completion` function with the enrollment-scoped version that loops through all sessions linked to a quiz, filtered to only sessions in cohorts/courses the user is enrolled in
-2. **Drops** the duplicate trigger `on_quiz_submission_check_completion` (keeping only `check_session_completion_trigger`)
+1. **`src/data/promptingGuide.ts`** — Static typed data: categories → steps → `{ title, explanation, badPrompt, goodPrompt, whyBetter }`
 
-## After Publishing
+2. **`src/components/prompts/PromptFlipCard.tsx`** — Flip card component:
+   - Front: bad prompt displayed + textarea for user's attempt
+   - "Reveal Answer" button triggers CSS 3D flip animation
+   - Back: good prompt with green styling
+   - After flip, user's attempt shown alongside for comparison
 
-You will need to run a **backfill query** on the Live database (via Cloud View, Run SQL with Live selected) to fix existing incorrect `session_progress` records:
+3. **`src/components/prompts/PromptingGuideModal.tsx`** — Modal (`Dialog` at `sm:max-w-4xl`):
+   - Category tabs across top (using `Tabs`)
+   - Within each tab: wizard with `Progress` bar, step title, explanation text
+   - `PromptFlipCard` for the bad/good comparison
+   - "Why it's better" collapsible section (appears after reveal)
+   - Next/Back navigation buttons
+   - Step counter (e.g. "Step 2 of 6")
 
-```sql
--- Step 1: Delete session_progress where user is NOT enrolled
-DELETE FROM session_progress sp
-WHERE NOT EXISTS (
-  SELECT 1 FROM sessions s
-  JOIN enrollments e ON e.user_id = sp.user_id
-  WHERE s.id = sp.session_id
-    AND (
-      (s.cohort_id IS NOT NULL AND e.cohort_id = s.cohort_id)
-      OR (s.course_id IS NOT NULL AND e.course_id = s.course_id)
-    )
-);
+4. **`src/pages/PromptLibrary.tsx`** — Add "Prompting Guide" button with `BookOpen` icon next to "Add Prompt". Boolean state to control modal open/close.
 
--- Step 2: Re-insert correct progress
-INSERT INTO session_progress (user_id, session_id, is_completed, completed_at)
-SELECT DISTINCT
-  qs.user_id, sq.session_id, true, MAX(qs.submitted_at)
-FROM quiz_submissions qs
-JOIN session_quizzes sq ON sq.quiz_id = qs.quiz_id
-JOIN sessions s ON s.id = sq.session_id
-JOIN enrollments e ON e.user_id = qs.user_id
-  AND (
-    (s.cohort_id IS NOT NULL AND e.cohort_id = s.cohort_id)
-    OR (s.course_id IS NOT NULL AND e.course_id = s.course_id)
-  )
-GROUP BY qs.user_id, sq.session_id
-HAVING COUNT(DISTINCT qs.quiz_id) >= (
-  SELECT COUNT(*) FROM session_quizzes sq2 WHERE sq2.session_id = sq.session_id
-)
-ON CONFLICT (user_id, session_id) DO UPDATE SET
-  is_completed = true,
-  completed_at = COALESCE(session_progress.completed_at, EXCLUDED.completed_at),
-  updated_at = now();
-```
-
-No frontend code changes needed.
+### Technical Details
+- Flip animation via CSS `transform: rotateY(180deg)` with `perspective` and `backface-visibility: hidden`
+- All content is static TypeScript (no DB migration)
+- Uses existing components: `Dialog`, `Tabs`, `Progress`, `Card`, `Button`, `Textarea`, `Badge`
+- Responsive: flip card stacks vertically on mobile
 
