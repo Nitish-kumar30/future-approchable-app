@@ -11,6 +11,7 @@ interface PromptFlipCardProps {
   badPrompt: string;
   goodPrompt: string;
   whyBetter: string;
+  additionalTips?: string[];
 }
 
 export default function PromptFlipCard({ badPrompt, goodPrompt, whyBetter }: PromptFlipCardProps) {
