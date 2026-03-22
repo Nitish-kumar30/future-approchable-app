@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Copy, Check, Plus, Pencil, Trash2, Save, ChevronDown, BookOpen, User } from 'lucide-react';
+import { Loader2, Copy, Check, Plus, Pencil, Trash2, Save, ChevronDown, BookOpen, User, GraduationCap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -16,6 +16,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import PromptingGuideModal from '@/components/prompts/PromptingGuideModal';
 
 interface Prompt {
   id: string;
@@ -99,6 +100,7 @@ export default function PromptLibrary() {
   const [content, setContent] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -165,9 +167,14 @@ export default function PromptLibrary() {
             <h1 className="text-3xl font-display font-bold text-foreground">Prompt Library</h1>
             <p className="text-muted-foreground">Browse shared prompts and manage your own collection</p>
           </div>
-          <Button onClick={openNewDialog} className="gap-2 shrink-0">
-            <Plus className="h-4 w-4" /> Add Prompt
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" onClick={() => setGuideOpen(true)} className="gap-2">
+              <GraduationCap className="h-4 w-4" /> Prompting Guide
+            </Button>
+            <Button onClick={openNewDialog} className="gap-2">
+              <Plus className="h-4 w-4" /> Add Prompt
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -250,6 +257,7 @@ export default function PromptLibrary() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <PromptingGuideModal open={guideOpen} onOpenChange={setGuideOpen} />
     </MainLayout>
   );
 }
