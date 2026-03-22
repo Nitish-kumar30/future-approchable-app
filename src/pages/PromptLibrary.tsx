@@ -167,9 +167,14 @@ export default function PromptLibrary() {
             <h1 className="text-3xl font-display font-bold text-foreground">Prompt Library</h1>
             <p className="text-muted-foreground">Browse shared prompts and manage your own collection</p>
           </div>
-          <Button onClick={openNewDialog} className="gap-2 shrink-0">
-            <Plus className="h-4 w-4" /> Add Prompt
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" onClick={() => setGuideOpen(true)} className="gap-2">
+              <GraduationCap className="h-4 w-4" /> Prompting Guide
+            </Button>
+            <Button onClick={openNewDialog} className="gap-2">
+              <Plus className="h-4 w-4" /> Add Prompt
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
