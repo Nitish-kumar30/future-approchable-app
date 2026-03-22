@@ -53,7 +53,7 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none overflow-y-auto">
+      <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none overflow-y-auto p-4 sm:p-6 gap-2">
         <DialogHeader>
           <DialogTitle className="text-xl font-display">Prompting Guide</DialogTitle>
         </DialogHeader>
@@ -68,7 +68,7 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
           </TabsList>
 
           {promptingGuideData.map(cat => (
-            <TabsContent key={cat.id} value={cat.id} className="space-y-6 mt-4">
+            <TabsContent key={cat.id} value={cat.id} className="space-y-4 mt-2">
               {/* Progress */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -85,7 +85,7 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
 
               {/* Step Content */}
               {cat.id === activeCategory && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
                     <h3 className="text-lg font-semibold text-foreground">{step.title}</h3>
                     <p className="text-sm text-muted-foreground mt-1">{step.explanation}</p>
@@ -100,7 +100,7 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
                   />
 
                   {/* Navigation */}
-                  <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center justify-between pt-1">
                     <Button
                       variant="outline"
                       onClick={() => goTo(-1)}
@@ -109,13 +109,21 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
                     >
                       <ChevronLeft className="h-4 w-4" /> Back
                     </Button>
-                    <Button
-                      onClick={() => goTo(1)}
-                      disabled={currentStep === totalSteps - 1 && promptingGuideData.findIndex(c => c.id === activeCategory) === promptingGuideData.length - 1}
-                      className="gap-1"
-                    >
-                      Next <ChevronRight className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        onClick={() => onOpenChange(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => goTo(1)}
+                        disabled={currentStep === totalSteps - 1 && promptingGuideData.findIndex(c => c.id === activeCategory) === promptingGuideData.length - 1}
+                        className="gap-1"
+                      >
+                        Next <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
