@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Check, RotateCcw, Sparkles } from 'lucide-react';
+import { Lightbulb, Copy, Check, RotateCcw, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -11,9 +11,10 @@ interface PromptFlipCardProps {
   badPrompt: string;
   goodPrompt: string;
   whyBetter: string;
+  additionalTips?: string[];
 }
 
-export default function PromptFlipCard({ badPrompt, goodPrompt, whyBetter }: PromptFlipCardProps) {
+export default function PromptFlipCard({ badPrompt, goodPrompt, whyBetter, additionalTips }: PromptFlipCardProps) {
   const [userAttempt, setUserAttempt] = useState('');
   const [isFlipped, setIsFlipped] = useState(false);
   const [copiedGood, setCopiedGood] = useState(false);
@@ -49,6 +50,21 @@ export default function PromptFlipCard({ badPrompt, goodPrompt, whyBetter }: Pro
           </pre>
         </CardContent>
       </Card>
+
+      {/* Additional Tips */}
+      {additionalTips && additionalTips.length > 0 && (
+        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <Lightbulb className="h-4 w-4 text-primary" />
+            Tips
+          </div>
+          <ul className="space-y-1 text-sm text-muted-foreground list-disc list-inside">
+            {additionalTips.map((tip, i) => (
+              <li key={i}>{tip}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* User Input / Flip Area */}
       <div className="relative" style={{ perspective: '1200px' }}>
