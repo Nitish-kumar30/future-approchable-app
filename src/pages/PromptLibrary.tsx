@@ -16,6 +16,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import PromptingGuideModal from '@/components/prompts/PromptingGuideModal';
 
 interface Prompt {
   id: string;
