@@ -110,8 +110,16 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
                       <ChevronLeft className="h-4 w-4" /> Back
                     </Button>
                     <Button
+                      variant="outline"
+                      onClick={() => goTo(-1)}
+                      disabled={currentStep === 0 && promptingGuideData.findIndex(c => c.id === activeCategory) === 0}
+                      className="gap-1"
+                    >
+                      <ChevronLeft className="h-4 w-4" /> Back
+                    </Button>
+                    <Button
                       onClick={() => goTo(1)}
-                      disabled={currentStep === totalSteps - 1}
+                      disabled={currentStep === totalSteps - 1 && promptingGuideData.findIndex(c => c.id === activeCategory) === promptingGuideData.length - 1}
                       className="gap-1"
                     >
                       Next <ChevronRight className="h-4 w-4" />
