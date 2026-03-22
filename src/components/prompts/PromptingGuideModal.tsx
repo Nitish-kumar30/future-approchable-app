@@ -53,7 +53,7 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none overflow-y-auto">
+      <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none overflow-y-auto p-4 sm:p-6 gap-2">
         <DialogHeader>
           <DialogTitle className="text-xl font-display">Prompting Guide</DialogTitle>
         </DialogHeader>
