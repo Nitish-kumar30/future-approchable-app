@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Copy, Check, Plus, Pencil, Trash2, Save, ChevronDown, BookOpen, User } from 'lucide-react';
+import { Loader2, Copy, Check, Plus, Pencil, Trash2, Save, ChevronDown, BookOpen, User, GraduationCap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import {
