@@ -100,6 +100,7 @@ export default function PromptLibrary() {
   const [content, setContent] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
