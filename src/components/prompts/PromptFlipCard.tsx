@@ -14,7 +14,7 @@ interface PromptFlipCardProps {
   additionalTips?: string[];
 }
 
-export default function PromptFlipCard({ badPrompt, goodPrompt, whyBetter }: PromptFlipCardProps) {
+export default function PromptFlipCard({ badPrompt, goodPrompt, whyBetter, additionalTips }: PromptFlipCardProps) {
   const [userAttempt, setUserAttempt] = useState('');
   const [isFlipped, setIsFlipped] = useState(false);
   const [copiedGood, setCopiedGood] = useState(false);
