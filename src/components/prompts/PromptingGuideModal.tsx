@@ -27,10 +27,28 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
   const step = category.steps[currentStep];
 
   const goTo = (delta: number) => {
-    setStepIndices(prev => ({
-      ...prev,
-      [activeCategory]: Math.max(0, Math.min(totalSteps - 1, (prev[activeCategory] ?? 0) + delta)),
-    }));
+    const newStep = (stepIndices[activeCategory] ?? 0) + delta;
+    if (newStep >= totalSteps) {
+      // Move to next category
+      const currentIndex = promptingGuideData.findIndex(c => c.id === activeCategory);
+      if (currentIndex < promptingGuideData.length - 1) {
+        const nextCat = promptingGuideData[currentIndex + 1];
+        setActiveCategory(nextCat.id);
+        setStepIndices(prev => ({ ...prev, [nextCat.id]: 0 }));
+      }
+      return;
+    }
+    if (newStep < 0) {
+      // Move to previous category's last step
+      const currentIndex = promptingGuideData.findIndex(c => c.id === activeCategory);
+      if (currentIndex > 0) {
+        const prevCat = promptingGuideData[currentIndex - 1];
+        setActiveCategory(prevCat.id);
+        setStepIndices(prev => ({ ...prev, [prevCat.id]: prevCat.steps.length - 1 }));
+      }
+      return;
+    }
+    setStepIndices(prev => ({ ...prev, [activeCategory]: newStep }));
   };
 
   return (
@@ -86,14 +104,14 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
                     <Button
                       variant="outline"
                       onClick={() => goTo(-1)}
-                      disabled={currentStep === 0}
+                      disabled={currentStep === 0 && promptingGuideData.findIndex(c => c.id === activeCategory) === 0}
                       className="gap-1"
                     >
                       <ChevronLeft className="h-4 w-4" /> Back
                     </Button>
                     <Button
                       onClick={() => goTo(1)}
-                      disabled={currentStep === totalSteps - 1}
+                      disabled={currentStep === totalSteps - 1 && promptingGuideData.findIndex(c => c.id === activeCategory) === promptingGuideData.length - 1}
                       className="gap-1"
                     >
                       Next <ChevronRight className="h-4 w-4" />
