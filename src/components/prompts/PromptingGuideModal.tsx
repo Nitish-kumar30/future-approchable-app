@@ -78,6 +78,7 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
                     badPrompt={step.badPrompt}
                     goodPrompt={step.goodPrompt}
                     whyBetter={step.whyBetter}
+                    additionalTips={step.additionalTips}
                   />
 
                   {/* Navigation */}
