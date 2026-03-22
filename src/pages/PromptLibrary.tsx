@@ -257,6 +257,7 @@ export default function PromptLibrary() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <PromptingGuideModal open={guideOpen} onOpenChange={setGuideOpen} />
     </MainLayout>
   );
 }
