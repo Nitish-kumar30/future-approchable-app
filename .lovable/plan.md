@@ -1,51 +1,30 @@
 
 
-## Interactive Prompting Guide — Revised Plan (Modal + Gamified)
+## Update Prompting Guide Data to Match Source Document
 
-### Overview
-Add a "Prompting Guide" button next to "Add Prompt" in the Prompt Library header. It opens a large modal with tabbed categories and a step-by-step wizard. Each step includes a **gamified "Improve This Prompt" challenge** where users type their own improved version of a bad prompt, then flip to reveal the suggested good prompt.
+### Problem
+1. The current `promptingGuide.ts` uses invented examples instead of the exact ones from the uploaded MD file
+2. The `GuideStep` interface is missing an `additionalTips` field that exists in the source (e.g., "Be clear and specific" has tips like "Clearly state your task or question at the beginning")
 
-### Gamification: "Improve This Prompt" Challenge
-Each wizard step shows:
-1. The **bad prompt** prominently
-2. A text area: "How would you improve this prompt?"
-3. A **"Reveal Answer"** button that triggers a flip-card animation, showing the good prompt on the back
-4. After reveal, a **"Why it's better"** explanation appears below
-5. Users can compare their attempt side-by-side with the suggested good prompt
+### Changes
 
-This encourages active learning — users think before seeing the answer.
+**1. `src/data/promptingGuide.ts`** — Full rewrite of content:
+- Add `additionalTips: string[]` to the `GuideStep` interface
+- Replace all bad/good prompts, explanations, and "why it's better" text with the exact content from the MD file:
+  - **General Tips**: 6 steps with exact examples (presentation help, professional email, team productivity, tone refinement, eco-friendly marketing, fabric supplier negotiation)
+  - **Content Creation**: 3 steps (cybersecurity blog, ergonomic chair description, Q2 presentation)
+  - **Document Summary & Q&A**: 1 step (Tech Industry Trends report) with additional tips about using document names, asking for citations, specifying summary type
+  - **Data Analysis**: 1 step (Sales Data 2023 spreadsheet) with additional tips about specifying format
+  - **Brainstorming**: 2 steps (remote team activities, project management comparison table)
+  - **Troubleshooting**: 3 tips (acknowledge uncertainty, break down tasks, include context) — these are short advisory tips from the MD
+  - **Full Examples**: 2 comprehensive examples (eco-friendly smartphone accessories marketing strategy, Q2 financial report CFO analysis) — exact text from MD
 
-### Content Categories (from guide)
-1. **General Tips** — 6 steps (Be Clear, Use Examples, Encourage Thinking, Iterative Refinement, Leverage Knowledge, Role-Playing)
-2. **Content Creation** — 3 steps (Specify Audience, Define Tone, Define Structure)
-3. **Research & Analysis** — 3 steps (Document Summary, Data Analysis, Specify Format)
-4. **Brainstorming** — 2 steps (Generate Ideas, Structured Formats)
-5. **Troubleshooting** — 3 tips (Acknowledge Uncertainty, Break Down Tasks, Include Context)
-6. **Full Examples** — 2 comprehensive examples (Marketing Strategy, Financial Report)
+**2. `src/components/prompts/PromptFlipCard.tsx`** — Add display for additional tips:
+- Accept optional `additionalTips: string[]` prop
+- Render as a small bullet list below the step explanation (before the flip card area)
 
-### Files to Create
+**3. `src/components/prompts/PromptingGuideModal.tsx`** — Pass `additionalTips` through to the UI:
+- Display tips below the explanation text, styled as a subtle callout or bullet list
 
-1. **`src/data/promptingGuide.ts`** — Static typed data: categories → steps → `{ title, explanation, badPrompt, goodPrompt, whyBetter }`
-
-2. **`src/components/prompts/PromptFlipCard.tsx`** — Flip card component:
-   - Front: bad prompt displayed + textarea for user's attempt
-   - "Reveal Answer" button triggers CSS 3D flip animation
-   - Back: good prompt with green styling
-   - After flip, user's attempt shown alongside for comparison
-
-3. **`src/components/prompts/PromptingGuideModal.tsx`** — Modal (`Dialog` at `sm:max-w-4xl`):
-   - Category tabs across top (using `Tabs`)
-   - Within each tab: wizard with `Progress` bar, step title, explanation text
-   - `PromptFlipCard` for the bad/good comparison
-   - "Why it's better" collapsible section (appears after reveal)
-   - Next/Back navigation buttons
-   - Step counter (e.g. "Step 2 of 6")
-
-4. **`src/pages/PromptLibrary.tsx`** — Add "Prompting Guide" button with `BookOpen` icon next to "Add Prompt". Boolean state to control modal open/close.
-
-### Technical Details
-- Flip animation via CSS `transform: rotateY(180deg)` with `perspective` and `backface-visibility: hidden`
-- All content is static TypeScript (no DB migration)
-- Uses existing components: `Dialog`, `Tabs`, `Progress`, `Card`, `Button`, `Textarea`, `Badge`
-- Responsive: flip card stacks vertically on mobile
+### No database changes needed — all static content.
 
