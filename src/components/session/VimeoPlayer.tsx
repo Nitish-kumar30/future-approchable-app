@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Player from '@vimeo/player';
 import { CheckCircle2, PlayCircle, BookOpen, ClipboardList, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import CohortUpsellCard from '@/components/session/CohortUpsellCard';
 
 interface NextSession {
   id: string;
@@ -18,6 +19,7 @@ interface VimeoPlayerProps {
   autoPlay?: boolean;
   onAutoPlayConsumed?: () => void;
   onPlay?: () => void;
+  showUpsellOverlay?: boolean;
 }
 
 const typeIcons: Record<string, typeof PlayCircle> = {
