@@ -24,6 +24,7 @@ import {
   FileText
 } from 'lucide-react';
 import siteIcon from '@/assets/icon.png';
+import PromoBanner from './PromoBanner';
 import Footer from './Footer';
 
 interface MainLayoutProps {
