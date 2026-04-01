@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { COHORT_FORM_URL } from '@/lib/constants';
+import { COHORT_FORM_URL, COHORT_CONFIG } from '@/lib/constants';
 import { Sparkles, Users, CalendarDays } from 'lucide-react';
 
 interface CohortUpsellCardProps {
@@ -26,10 +26,10 @@ const variantContent = {
 
 export default function CohortUpsellCard({ variant }: CohortUpsellCardProps) {
   const { icon: Icon, heading, subtext } = variantContent[variant];
+  const c = COHORT_CONFIG;
 
   return (
     <div className="relative rounded-xl border-2 border-indigo-500/30 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 p-5 space-y-4 overflow-hidden">
-      {/* Decorative glow */}
       <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
 
       <div className="flex items-start gap-3">
@@ -45,14 +45,14 @@ export default function CohortUpsellCard({ variant }: CohortUpsellCardProps) {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-xs">
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <CalendarDays className="h-3.5 w-3.5" />
-          <span>Apr 23, 2026</span>
+          <span>{c.date}</span>
         </div>
         <span className="hidden sm:inline text-muted-foreground">·</span>
-        <span className="text-muted-foreground">₹2,999 (India) / $99 (International)</span>
+        <span className="text-muted-foreground">{c.priceIndia} (India) / {c.priceInternational} (International)</span>
       </div>
 
       <p className="text-xs text-muted-foreground italic">
-        Our Mar 19 cohort filled all 20 seats · Alumni from Adobe, Microsoft, Deloitte
+        Our {c.previousCohortDate} cohort filled all {c.totalSeats} seats · {c.socialProof}
       </p>
 
       <a href={COHORT_FORM_URL} target="_blank" rel="noopener noreferrer">
