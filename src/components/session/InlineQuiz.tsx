@@ -109,6 +109,7 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
   const handleRetake = () => {
     setAnswers({});
     setShowResults(false);
+    setShowUpsell(false);
     setIsExpanded(true);
   };
 
