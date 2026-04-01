@@ -54,5 +54,6 @@ export default function PublicHeader({ hideAuth = false }: { hideAuth?: boolean 
         )}
       </div>
     </header>
+    </>
   );
 }
