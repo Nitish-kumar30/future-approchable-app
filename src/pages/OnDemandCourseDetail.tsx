@@ -468,6 +468,7 @@ export default function OnDemandCourseDetail() {
                         autoPlay={autoPlayNext}
                         onAutoPlayConsumed={() => setAutoPlayNext(false)}
                         onPlay={handleAutoEnroll}
+                        showUpsellOverlay={activeSession.session_order === 3}
                       />
                     );
                   }
