@@ -15,7 +15,7 @@ import {
   RotateCcw,
   ClipboardList,
 } from 'lucide-react';
-
+import CohortUpsellCard from '@/components/session/CohortUpsellCard';
 
 interface Question {
   id: string;
