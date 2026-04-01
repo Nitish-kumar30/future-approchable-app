@@ -15,7 +15,7 @@ import {
   RotateCcw,
   ClipboardList,
 } from 'lucide-react';
-
+import CohortUpsellCard from '@/components/session/CohortUpsellCard';
 
 interface Question {
   id: string;
@@ -41,6 +41,7 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
   const [latestScore, setLatestScore] = useState<number | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showUpsell, setShowUpsell] = useState(false);
 
   useEffect(() => {
     if (user && quizId) {
@@ -98,6 +99,7 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
       const result = data[0];
       setLatestScore(result.score);
       setShowResults(true);
+      setShowUpsell(true);
       toast({ title: 'Quiz submitted!', description: `You scored ${result.score}%` });
 
       onCompleted?.();
@@ -107,6 +109,7 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
   const handleRetake = () => {
     setAnswers({});
     setShowResults(false);
+    setShowUpsell(false);
     setIsExpanded(true);
   };
 
@@ -131,22 +134,27 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
   // Results view
   if (showResults && latestScore !== null) {
     return (
-      <Card className={`${latestScore >= 70 ? 'border-green-500/50 bg-green-500/5' : 'border-yellow-500/50 bg-yellow-500/5'}`}>
-        <CardContent className="flex items-center justify-between py-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${latestScore >= 70 ? 'bg-green-500/20' : 'bg-yellow-500/20'}`}>
-              <Trophy className={`h-5 w-5 ${latestScore >= 70 ? 'text-green-600' : 'text-yellow-600'}`} />
+      <div className="space-y-3">
+        <Card className={`${latestScore >= 70 ? 'border-green-500/50 bg-green-500/5' : 'border-yellow-500/50 bg-yellow-500/5'}`}>
+          <CardContent className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${latestScore >= 70 ? 'bg-green-500/20' : 'bg-yellow-500/20'}`}>
+                <Trophy className={`h-5 w-5 ${latestScore >= 70 ? 'text-green-600' : 'text-yellow-600'}`} />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">{quizTitle}</p>
+                <p className="text-xl font-bold">{latestScore}%</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">{quizTitle}</p>
-              <p className="text-xl font-bold">{latestScore}%</p>
-            </div>
-          </div>
-          <Button variant="outline" size="sm" onClick={handleRetake} className="gap-2">
-            <RotateCcw className="h-3 w-3" /> Retake
-          </Button>
-        </CardContent>
-      </Card>
+            <Button variant="outline" size="sm" onClick={handleRetake} className="gap-2">
+              <RotateCcw className="h-3 w-3" /> Retake
+            </Button>
+          </CardContent>
+        </Card>
+        {showUpsell && (
+          <CohortUpsellCard variant={latestScore >= 70 ? 'quiz-high' : 'quiz-low'} />
+        )}
+      </div>
     );
   }
 
