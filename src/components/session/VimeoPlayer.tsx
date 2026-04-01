@@ -38,7 +38,7 @@ const typeLabels: Record<string, string> = {
   link: 'Resource',
 };
 
-export default function VimeoPlayer({ videoUrl, title, nextSession, onCompleted, onNextSession, autoPlay, onAutoPlayConsumed, onPlay }: VimeoPlayerProps) {
+export default function VimeoPlayer({ videoUrl, title, nextSession, onCompleted, onNextSession, autoPlay, onAutoPlayConsumed, onPlay, showUpsellOverlay }: VimeoPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
   const completedFiredRef = useRef(false);
@@ -46,6 +46,8 @@ export default function VimeoPlayer({ videoUrl, title, nextSession, onCompleted,
   const [showOverlay, setShowOverlay] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [upsellVisible, setUpsellVisible] = useState(!!showUpsellOverlay);
+  const upsellDismissedRef = useRef(false);
 
   // Extract Vimeo video ID
   const vimeoMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
