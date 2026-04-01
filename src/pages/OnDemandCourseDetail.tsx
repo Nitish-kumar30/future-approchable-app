@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import PublicHeader from '@/components/layout/PublicHeader';
 import VimeoPlayer from '@/components/session/VimeoPlayer';
 import InlineQuiz from '@/components/session/InlineQuiz';
-import CohortUpsellCard from '@/components/session/CohortUpsellCard';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -468,6 +468,7 @@ export default function OnDemandCourseDetail() {
                         autoPlay={autoPlayNext}
                         onAutoPlayConsumed={() => setAutoPlayNext(false)}
                         onPlay={handleAutoEnroll}
+                        showUpsellOverlay={activeSession.session_order === 3}
                       />
                     );
                   }
@@ -554,10 +555,6 @@ export default function OnDemandCourseDetail() {
                   </div>
                 )}
 
-                {/* Mid-course upsell nudge — TODO: restore condition: completedSessionIds.size >= 2 && completedSessionIds.size <= 3 && completedSessionIds.has(activeSession.id) && completionPercent < 100 */}
-                {user && (
-                  <CohortUpsellCard variant="mid-course" />
-                )}
               </div>
             ) : (
               <div className="text-center py-16 text-muted-foreground">
