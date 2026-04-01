@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import PublicHeader from '@/components/layout/PublicHeader';
 import VimeoPlayer from '@/components/session/VimeoPlayer';
 import InlineQuiz from '@/components/session/InlineQuiz';
-import CohortUpsellCard from '@/components/session/CohortUpsellCard';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
