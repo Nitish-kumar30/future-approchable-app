@@ -99,6 +99,7 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
       const result = data[0];
       setLatestScore(result.score);
       setShowResults(true);
+      setShowUpsell(true);
       toast({ title: 'Quiz submitted!', description: `You scored ${result.score}%` });
 
       onCompleted?.();
