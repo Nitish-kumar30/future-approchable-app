@@ -29,34 +29,34 @@ export default function CohortUpsellCard({ variant }: CohortUpsellCardProps) {
   const c = COHORT_CONFIG;
 
   return (
-    <div className="relative rounded-xl border-2 border-indigo-500/30 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 p-5 space-y-4 overflow-hidden">
+    <div className="relative rounded-xl border-2 border-indigo-500/30 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 p-4 space-y-3 overflow-hidden">
       <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
 
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shrink-0">
-          <Icon className="h-4.5 w-4.5 text-white" />
+      <div className="flex items-start gap-2.5">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shrink-0">
+          <Icon className="h-4 w-4 text-white" />
         </div>
         <div>
-          <h4 className="font-semibold text-sm leading-snug">{heading}</h4>
-          <p className="text-xs text-muted-foreground mt-0.5">{subtext}</p>
+          <h4 className="font-semibold text-xs leading-snug">{heading}</h4>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{subtext}</p>
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-xs">
-        <div className="flex items-center gap-1.5 text-muted-foreground">
-          <CalendarDays className="h-3.5 w-3.5" />
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <CalendarDays className="h-3 w-3" />
           <span>{c.date}</span>
         </div>
-        <span className="hidden sm:inline text-muted-foreground">·</span>
-        <span className="text-muted-foreground">{c.priceIndia} (India) / {c.priceInternational} (International)</span>
+        <span className="text-muted-foreground">·</span>
+        <span className="text-muted-foreground">{c.priceIndia} (India) / {c.priceInternational} (Intl)</span>
       </div>
 
-      <p className="text-xs text-muted-foreground italic">
+      <p className="text-[11px] text-muted-foreground italic leading-snug">
         Our {c.previousCohortDate} cohort filled all {c.totalSeats} seats · {c.socialProof}
       </p>
 
       <a href={COHORT_FORM_URL} target="_blank" rel="noopener noreferrer">
-        <Button size="sm" className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 gap-1">
+        <Button size="sm" className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 gap-1 h-7 text-xs">
           Reserve Your Seat →
         </Button>
       </a>
