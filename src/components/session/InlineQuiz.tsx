@@ -41,6 +41,7 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
   const [latestScore, setLatestScore] = useState<number | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showUpsell, setShowUpsell] = useState(false);
 
   useEffect(() => {
     if (user && quizId) {
