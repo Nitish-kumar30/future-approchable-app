@@ -3,13 +3,16 @@ import { Button } from '@/components/ui/button';
 import { LogIn, UserPlus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import logo from '@/assets/icon.png';
+import PromoBanner from './PromoBanner';
 
 export default function PublicHeader({ hideAuth = false }: { hideAuth?: boolean }) {
   const location = useLocation();
   const { user } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-sm">
+    <>
+      <PromoBanner />
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-sm">
       <div className="container flex h-16 items-center justify-between">
         {/* Logo & Tagline */}
         <Link to="/" className="flex items-center space-x-3">
