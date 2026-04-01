@@ -165,6 +165,25 @@ export default function VimeoPlayer({ videoUrl, title, nextSession, onCompleted,
       {/* Vimeo player container */}
       <div ref={containerRef} className="w-full h-full" />
 
+      {/* Mid-course upsell overlay */}
+      {upsellVisible && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-20">
+          <div className="max-w-sm w-full px-4">
+            <CohortUpsellCard variant="mid-course" />
+            <div className="flex justify-center mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setUpsellVisible(false); upsellDismissedRef.current = true; }}
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white gap-1"
+              >
+                <X className="h-3.5 w-3.5" /> Continue Watching
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* End-of-video overlay */}
       {showOverlay && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-10">

@@ -554,10 +554,6 @@ export default function OnDemandCourseDetail() {
                   </div>
                 )}
 
-                {/* Mid-course upsell nudge — TODO: restore condition: completedSessionIds.size >= 2 && completedSessionIds.size <= 3 && completedSessionIds.has(activeSession.id) && completionPercent < 100 */}
-                {user && (
-                  <CohortUpsellCard variant="mid-course" />
-                )}
               </div>
             ) : (
               <div className="text-center py-16 text-muted-foreground">
