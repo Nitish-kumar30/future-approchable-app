@@ -49,6 +49,15 @@ export default function VimeoPlayer({ videoUrl, title, nextSession, onCompleted,
   const [upsellVisible, setUpsellVisible] = useState(!!showUpsellOverlay);
   const upsellDismissedRef = useRef(false);
 
+  // Sync upsell visibility when prop changes (e.g. navigating to session 3)
+  useEffect(() => {
+    if (showUpsellOverlay && !upsellDismissedRef.current) {
+      setUpsellVisible(true);
+    } else if (!showUpsellOverlay) {
+      setUpsellVisible(false);
+    }
+  }, [showUpsellOverlay]);
+
   // Extract Vimeo video ID
   const vimeoMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
   const vimeoId = vimeoMatch ? vimeoMatch[1] : null;
