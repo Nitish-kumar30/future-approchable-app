@@ -157,7 +157,7 @@ serve(async (req) => {
 
     // Trigger n8n webhook
     try {
-      const webhookUrl = "https://n8n.shya.me/webhook/010f16db-723c-4b23-b4ce-6501307b02c9";
+      const webhookUrl = "https://n8n.shya.me/webhook-test/010f16db-723c-4b23-b4ce-6501307b02c9";
       const response = await fetch(webhookUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
