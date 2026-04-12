@@ -156,18 +156,13 @@ serve(async (req) => {
       });
     }
 
-    // Trigger n8n webhook
-    try {
-      const webhookUrl = "https://n8n.shya.me/webhook-test/010f16db-723c-4b23-b4ce-6501307b02c9";
-      const response = await fetch(webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Name: name, Email: email, Cohort: cohort }),
-      });
-      await response.text();
-    } catch (err) {
-      console.error("Webhook trigger failed:", err);
-    }
+    // Trigger n8n webhook (fire-and-forget, don't block response)
+    const webhookUrl = "https://n8n.shya.me/webhook-test/010f16db-723c-4b23-b4ce-6501307b02c9";
+    fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ Name: name, Email: email, Cohort: cohort }),
+    }).then(r => r.text()).catch(err => console.error("Webhook trigger failed:", err));
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
