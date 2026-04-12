@@ -5,6 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const ALLOWED_ORIGINS = [
   "https://approachable.lovable.app",
   "https://id-preview--f23e6c6f-1b0f-4f1f-b278-b82852cb6004.lovable.app",
+  "https://learn.approachable.dev",
 ];
 
 function isAllowedOrigin(origin: string): boolean {
