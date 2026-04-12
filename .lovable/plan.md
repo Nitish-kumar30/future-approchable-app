@@ -1,33 +1,28 @@
 
 
-## Mid-Course Upsell as Video Overlay
+## Fix: Make n8n webhook call non-blocking
 
-### What Changes
-Instead of showing the `CohortUpsellCard` below the session content, show it as a dismissible overlay on top of the Vimeo video player when the 3rd session loads. The overlay appears before the video plays, and dismisses when the user clicks "Got it" or starts playback.
+### Problem
+The edge function awaits the n8n webhook response before sending the success response back to the client. If n8n takes a few seconds to respond, the submit button appears stuck.
 
-### How It Works
-1. The parent (`OnDemandCourseDetail`) determines if the current session is the 3rd session (by `session_order`) and passes a `showUpsellOverlay` prop to `VimeoPlayer`
-2. `VimeoPlayer` renders the `CohortUpsellCard` as an overlay (similar to the existing end-of-video overlay) with a semi-transparent backdrop
-3. The overlay auto-dismisses when the user clicks "Dismiss" or when the video starts playing (works with autoplay too — the overlay disappears on the `play` event)
-4. Remove the current inline `<CohortUpsellCard>` from below the session content in `OnDemandCourseDetail`
+### Solution
+Fire the webhook without awaiting it. The DB insert is the critical path — once that succeeds, return immediately. The webhook runs in the background.
 
-### Files to Change
+### Change
+**File:** `supabase/functions/trigger-registration-webhook/index.ts` (lines 159-170)
 
-**`src/components/session/VimeoPlayer.tsx`**
-- Add prop `showUpsellOverlay?: boolean`
-- Add state `upsellVisible` initialized from prop
-- Render `<CohortUpsellCard variant="mid-course" />` as an overlay (reusing the same `absolute inset-0 bg-black/80 backdrop-blur-sm z-10` pattern as the end-of-video overlay)
-- Add a "Dismiss" or "×" button on the overlay
-- Auto-dismiss on `play` event (already tracked via `playFiredRef`)
+Replace the awaited webhook call with a fire-and-forget pattern:
 
-**`src/pages/OnDemandCourseDetail.tsx`**
-- Compute whether active session is the 3rd session: `const isThirdSession = activeSession?.session_order === 3`
-- Pass `showUpsellOverlay={isThirdSession && user}` to `<VimeoPlayer>`
-- Remove the current inline `<CohortUpsellCard variant="mid-course" />` below session content
+```typescript
+// Trigger n8n webhook (fire-and-forget, don't block response)
+fetch(webhookUrl, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ Name: name, Email: email, Cohort: cohort }),
+}).then(r => r.text()).catch(err => console.error("Webhook trigger failed:", err));
+```
 
-### Behavior
-- Overlay appears immediately when session 3 loads (even with autoplay — video plays behind the blurred overlay)
-- User dismisses via "Continue Watching" button or clicking ×
-- If video starts playing (autoplay), overlay still shows until manually dismissed — ensures the user sees it
-- Only shown once per page load for session 3; not re-shown if user navigates away and back (tracked via a ref)
+Remove the `try/catch` block wrapping the webhook and the `await` keywords. The function returns success right after DB insert, and the webhook fires in the background.
+
+Then redeploy the `trigger-registration-webhook` edge function.
 
