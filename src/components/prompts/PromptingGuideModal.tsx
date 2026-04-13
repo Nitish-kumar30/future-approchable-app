@@ -3,10 +3,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { promptingGuideData } from '@/data/promptingGuide';
 import PromptFlipCard from './PromptFlipCard';
 
@@ -25,24 +23,21 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
   const currentStep = stepIndices[activeCategory] ?? 0;
   const totalSteps = category.steps.length;
   const step = category.steps[currentStep];
+  const catIndex = promptingGuideData.findIndex(c => c.id === activeCategory);
 
   const goTo = (delta: number) => {
-    const newStep = (stepIndices[activeCategory] ?? 0) + delta;
+    const newStep = currentStep + delta;
     if (newStep >= totalSteps) {
-      // Move to next category
-      const currentIndex = promptingGuideData.findIndex(c => c.id === activeCategory);
-      if (currentIndex < promptingGuideData.length - 1) {
-        const nextCat = promptingGuideData[currentIndex + 1];
+      if (catIndex < promptingGuideData.length - 1) {
+        const nextCat = promptingGuideData[catIndex + 1];
         setActiveCategory(nextCat.id);
         setStepIndices(prev => ({ ...prev, [nextCat.id]: 0 }));
       }
       return;
     }
     if (newStep < 0) {
-      // Move to previous category's last step
-      const currentIndex = promptingGuideData.findIndex(c => c.id === activeCategory);
-      if (currentIndex > 0) {
-        const prevCat = promptingGuideData[currentIndex - 1];
+      if (catIndex > 0) {
+        const prevCat = promptingGuideData[catIndex - 1];
         setActiveCategory(prevCat.id);
         setStepIndices(prev => ({ ...prev, [prevCat.id]: prevCat.steps.length - 1 }));
       }
@@ -53,12 +48,12 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none overflow-y-auto p-4 sm:p-6 gap-2">
+      <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none p-4 sm:p-6 flex flex-col gap-2">
         <DialogHeader>
           <DialogTitle className="text-xl font-display">Prompting Guide</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeCategory} onValueChange={val => setActiveCategory(val)}>
+        <Tabs value={activeCategory} onValueChange={val => setActiveCategory(val)} className="flex flex-col flex-1 min-h-0">
           <TabsList className="flex flex-wrap h-auto gap-1">
             {promptingGuideData.map(cat => (
               <TabsTrigger key={cat.id} value={cat.id} className="text-xs sm:text-sm">
@@ -68,13 +63,11 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
           </TabsList>
 
           {promptingGuideData.map(cat => (
-            <TabsContent key={cat.id} value={cat.id} className="space-y-4 mt-2">
+            <TabsContent key={cat.id} value={cat.id} className="flex flex-col flex-1 min-h-0 mt-2">
               {/* Progress */}
-              <div className="space-y-2">
+              <div className="space-y-2 mb-3">
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>
-                    Step {(stepIndices[cat.id] ?? 0) + 1} of {cat.steps.length}
-                  </span>
+                  <span>Step {(stepIndices[cat.id] ?? 0) + 1} of {cat.steps.length}</span>
                   <Badge variant="secondary">{cat.label}</Badge>
                 </div>
                 <Progress
@@ -83,49 +76,22 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
                 />
               </div>
 
-              {/* Step Content */}
+              {/* Content — only render active */}
               {cat.id === activeCategory && (
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground">{step.title}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{step.explanation}</p>
-                  </div>
-
-                  <PromptFlipCard
-                    key={`${cat.id}-${currentStep}`}
-                    badPrompt={step.badPrompt}
-                    goodPrompt={step.goodPrompt}
-                    whyBetter={step.whyBetter}
-                    additionalTips={step.additionalTips}
-                  />
-
-                  {/* Navigation */}
-                  <div className="flex items-center justify-between pt-1">
-                    <Button
-                      variant="outline"
-                      onClick={() => goTo(-1)}
-                      disabled={currentStep === 0 && promptingGuideData.findIndex(c => c.id === activeCategory) === 0}
-                      className="gap-1"
-                    >
-                      <ChevronLeft className="h-4 w-4" /> Back
-                    </Button>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        onClick={() => onOpenChange(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={() => goTo(1)}
-                        disabled={currentStep === totalSteps - 1 && promptingGuideData.findIndex(c => c.id === activeCategory) === promptingGuideData.length - 1}
-                        className="gap-1"
-                      >
-                        Next <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                <PromptFlipCard
+                  key={`${cat.id}-${currentStep}`}
+                  badPrompt={step.badPrompt}
+                  goodPrompt={step.goodPrompt}
+                  whyBetter={step.whyBetter}
+                  additionalTips={step.additionalTips}
+                  stepTitle={step.title}
+                  stepExplanation={step.explanation}
+                  onBack={() => goTo(-1)}
+                  onNext={() => goTo(1)}
+                  onCancel={() => onOpenChange(false)}
+                  backDisabled={currentStep === 0 && catIndex === 0}
+                  nextDisabled={currentStep === totalSteps - 1 && catIndex === promptingGuideData.length - 1}
+                />
               )}
             </TabsContent>
           ))}
