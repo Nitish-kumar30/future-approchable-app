@@ -42,7 +42,7 @@ export default function PromptFlipCard({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Step header */}
       <div className="mb-3">
         <h3 className="text-lg font-semibold text-foreground">{stepTitle}</h3>
