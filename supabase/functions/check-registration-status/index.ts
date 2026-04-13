@@ -82,7 +82,8 @@ Deno.serve(async (req) => {
     }
 
     // Extract prefix like "Cohort 5" from "Cohort 5 - AI Fundamentals - Apr 23, 2026"
-    const cohortPrefix = cohort.name.split(" - ")[0].trim();
+    const match = cohort.name.match(/^(Cohort\s+\d+)/i);
+    const cohortPrefix = match ? match[1] : cohort.name.split(" - ")[0].trim();
 
     // Check cohort_registrations for approved record with partial match
     const { data: registration } = await supabaseAdmin
