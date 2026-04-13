@@ -1,29 +1,27 @@
 
 
-## Fix: Allow Public Access to Cohorts Listing View
+## Fix: Cohort Registration Status Check Prefix Matching
 
 ### Problem
-The `cohorts_public` view was created with `security_invoker = on`, so it runs queries with the caller's permissions. Since the base `cohorts` table RLS now requires enrollment or admin, non-enrolled users see nothing.
+The `check-registration-status` edge function extracts a prefix from the cohort name by splitting on ` - `, resulting in `Cohort 5: AI Fundamentals`. It then tries to match this against `cohort_registrations.cohort` using `ilike`.
+
+However, the actual registration record for `ranbeer@gmail.com` has `cohort = 'Cohort 5: AI Funda...'` (truncated/different format), so the pattern `Cohort 5: AI Fundamentals%` doesn't match, and the function returns `approved: false`, triggering the payment modal.
 
 ### Solution
-Recreate the view with `security_invoker = off` (the default). This makes the view execute as its owner, bypassing RLS on the base table. This is safe because the view only exposes non-sensitive columns.
+Change the prefix extraction to use a regex that captures only `Cohort N` (e.g., `Cohort 5`), making the match resilient to different cohort name formats between the registration form and the database.
 
 ### Changes
 
-**Database migration:**
-```sql
-DROP VIEW IF EXISTS public.cohorts_public;
-
-CREATE VIEW public.cohorts_public
-WITH (security_barrier = true) AS
-SELECT id, name, description, mentor_name, mentor_info,
-       start_date, end_date, max_seats, session_time,
-       is_published, enrollment_disabled, created_at, updated_at
-FROM public.cohorts
-WHERE is_published = true;
-
-GRANT SELECT ON public.cohorts_public TO anon, authenticated;
+**`supabase/functions/check-registration-status/index.ts`** (line ~85):
+Replace:
+```typescript
+const cohortPrefix = cohort.name.split(" - ")[0].trim();
+```
+With:
+```typescript
+const match = cohort.name.match(/^(Cohort\s+\d+)/i);
+const cohortPrefix = match ? match[1] : cohort.name.split(" - ")[0].trim();
 ```
 
-No frontend changes needed — `Cohorts.tsx` already queries `cohorts_public`.
+This extracts just `Cohort 5` from any format like `Cohort 5: AI Fundamentals - Apr 23, 2026` or `Cohort 5 - April 23rd`, ensuring a reliable partial match against registration records.
 
