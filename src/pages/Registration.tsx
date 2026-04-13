@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -137,6 +138,7 @@ function ThankYouScreen() {
 
 export default function Registration() {
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<RegistrationForm>({
     resolver: zodResolver(registrationSchema),
@@ -156,6 +158,7 @@ export default function Registration() {
   });
 
   const onSubmit = async (data: RegistrationForm) => {
+    setIsSubmitting(true);
     try {
       const { data: result, error } = await supabase.functions.invoke('trigger-registration-webhook', {
         body: {
@@ -190,6 +193,8 @@ export default function Registration() {
         variant: 'destructive'
       });
       console.error('Registration error:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -421,8 +426,9 @@ export default function Registration() {
                   } />
                 
 
-                <Button type="submit" className="w-full" size="lg">
-                  Submit Registration
+                <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isSubmitting ? 'Submitting...' : 'Submit Registration'}
                 </Button>
               </form>
             </Form>
