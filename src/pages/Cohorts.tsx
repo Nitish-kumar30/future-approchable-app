@@ -111,9 +111,9 @@ export default function Cohorts() {
       .order('start_date', { ascending: false });
 
     if (!error && data) {
-      setCohorts(data);
-      // Fetch enrollment counts for all cohorts
-      fetchEnrollmentCounts(data.map(c => c.id));
+      const cohortData = data as unknown as Cohort[];
+      setCohorts(cohortData);
+      fetchEnrollmentCounts(cohortData.map(c => c.id));
     }
     setIsLoading(false);
   };
