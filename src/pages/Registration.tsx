@@ -426,8 +426,9 @@ export default function Registration() {
                   } />
                 
 
-                <Button type="submit" className="w-full" size="lg">
-                  Submit Registration
+                <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isSubmitting ? 'Submitting...' : 'Submit Registration'}
                 </Button>
               </form>
             </Form>
