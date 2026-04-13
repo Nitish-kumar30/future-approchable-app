@@ -106,9 +106,8 @@ export default function Cohorts() {
 
   const fetchCohorts = async () => {
     const { data, error } = await supabase
-      .from('cohorts')
+      .from('cohorts_public' as any)
       .select('id, name, description, mentor_name, start_date, end_date, max_seats, session_time, enrollment_disabled')
-      .eq('is_published', true)
       .order('start_date', { ascending: false });
 
     if (!error && data) {
