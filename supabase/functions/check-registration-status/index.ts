@@ -91,6 +91,7 @@ Deno.serve(async (req) => {
       .eq("email", userEmail)
       .eq("status", "approved")
       .ilike("cohort", `${cohortPrefix}%`)
+      .limit(1)
       .maybeSingle();
 
     return new Response(
