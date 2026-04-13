@@ -201,6 +201,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "enrollments_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "enrollments_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
@@ -246,6 +253,13 @@ export type Database = {
             columns: ["cohort_id"]
             isOneToOne: false
             referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts_public"
             referencedColumns: ["id"]
           },
           {
@@ -602,6 +616,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sessions_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sessions_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
@@ -633,7 +654,54 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      cohorts_public: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          enrollment_disabled: boolean | null
+          id: string | null
+          is_published: boolean | null
+          max_seats: number | null
+          mentor_info: string | null
+          mentor_name: string | null
+          name: string | null
+          session_time: string | null
+          start_date: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          enrollment_disabled?: boolean | null
+          id?: string | null
+          is_published?: boolean | null
+          max_seats?: number | null
+          mentor_info?: string | null
+          mentor_name?: string | null
+          name?: string | null
+          session_time?: string | null
+          start_date?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          enrollment_disabled?: boolean | null
+          id?: string | null
+          is_published?: boolean | null
+          max_seats?: number | null
+          mentor_info?: string | null
+          mentor_name?: string | null
+          name?: string | null
+          session_time?: string | null
+          start_date?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       generate_slug: { Args: { input_text: string }; Returns: string }
