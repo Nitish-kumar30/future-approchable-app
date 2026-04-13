@@ -68,7 +68,7 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
           {/* Progress */}
           <div className="space-y-1">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Step {currentStep + 1} of {totalSteps}</span>
+              <span>Guide {currentStep + 1} of {totalSteps}</span>
               <Badge variant="secondary">{category.label}</Badge>
             </div>
             <Progress value={(currentStep + 1) / totalSteps * 100} className="h-2" />
