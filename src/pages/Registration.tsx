@@ -158,6 +158,7 @@ export default function Registration() {
   });
 
   const onSubmit = async (data: RegistrationForm) => {
+    setIsSubmitting(true);
     try {
       const { data: result, error } = await supabase.functions.invoke('trigger-registration-webhook', {
         body: {
@@ -192,6 +193,8 @@ export default function Registration() {
         variant: 'destructive'
       });
       console.error('Registration error:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
