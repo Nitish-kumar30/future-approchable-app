@@ -18,9 +18,7 @@ import { toast } from '@/hooks/use-toast';
 import { CheckCircle2, PartyPopper } from 'lucide-react';
 
 const COHORT_OPTIONS = [
-'AI Fundamentals Cohort 1',
-'Vibe Coding Cohort 2',
-'No-code AI Agents Cohort 1'];
+'Cohort 5 - April 23rd - 7:30PM IST/10AM US Eastern'];
 
 
 const INTEREST_OPTIONS = [
