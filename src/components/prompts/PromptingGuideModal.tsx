@@ -63,7 +63,7 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
           </TabsList>
 
           {promptingGuideData.map(cat => (
-            <TabsContent key={cat.id} value={cat.id} className="flex flex-col flex-1 min-h-0 mt-2">
+            <TabsContent key={cat.id} value={cat.id} className="flex flex-col flex-1 min-h-0 mt-2 overflow-hidden">
               {/* Progress */}
               <div className="space-y-2 mb-3">
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
