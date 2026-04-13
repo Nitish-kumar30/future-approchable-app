@@ -42,17 +42,17 @@ export default function PromptFlipCard({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+    <div className="space-y-4">
       {/* Step header */}
-      <div className="mb-3">
+      <div>
         <h3 className="text-lg font-semibold text-foreground">{stepTitle}</h3>
         <p className="text-sm text-muted-foreground mt-1">{stepExplanation}</p>
       </div>
 
       {/* Two-column grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0 overflow-y-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Left column: Bad Prompt + Tips */}
-        <div className="space-y-4 md:sticky md:top-0 md:self-start">
+        <div className="space-y-4">
           <Card className="border-destructive/30 bg-destructive/5">
             <CardContent className="p-4 space-y-2">
               <Badge variant="outline" className="border-destructive/50 text-destructive">
@@ -152,8 +152,8 @@ export default function PromptFlipCard({
         </div>
       </div>
 
-      {/* Navigation bar — pinned bottom */}
-      <div className="flex items-center justify-between pt-4 mt-auto border-t border-border">
+      {/* Navigation bar */}
+      <div className="flex items-center justify-between pt-4 border-t border-border sticky bottom-0 bg-background pb-2">
         <Button variant="outline" onClick={onBack} disabled={backDisabled} className="gap-1">
           <ChevronLeft className="h-4 w-4" /> Back
         </Button>
