@@ -849,6 +849,25 @@ export default function CohortDetail() {
         entityName={cohort.name}
       />
     )}
+
+    <Dialog open={showPaymentGateDialog} onOpenChange={setShowPaymentGateDialog}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Enrollment Requires Payment</DialogTitle>
+          <DialogDescription>
+            Your enrollment is subject to the commitment fee. If you've already paid, please allow 24-48 hours for your registration to be approved.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={() => setShowPaymentGateDialog(false)}>
+            Close
+          </Button>
+          <Button asChild>
+            <Link to="/registration">Register Now</Link>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
