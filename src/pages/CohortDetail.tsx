@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import confetti from 'canvas-confetti';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import { Markdown } from '@/components/ui/markdown';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { SessionQuizList, SessionQuiz, QuizSubmission } from '@/components/session/SessionQuizList';
 import { formatCohortDateRange, formatShortDate } from '@/lib/formatCohortDate';
 import { 
@@ -114,6 +115,7 @@ export default function CohortDetail() {
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
   const [leaderboardFetched, setLeaderboardFetched] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [showPaymentGateDialog, setShowPaymentGateDialog] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -317,6 +319,25 @@ export default function CohortDetail() {
     }
 
     setIsEnrolling(true);
+
+    // Check registration approval before enrolling
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error: fnError } = await supabase.functions.invoke('check-registration-status', {
+        body: { cohort_id: id },
+      });
+
+      if (fnError || !data?.approved) {
+        setIsEnrolling(false);
+        setShowPaymentGateDialog(true);
+        return;
+      }
+    } catch {
+      setIsEnrolling(false);
+      setShowPaymentGateDialog(true);
+      return;
+    }
+
     const { error } = await supabase
       .from('enrollments')
       .insert({
