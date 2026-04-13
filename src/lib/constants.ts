@@ -1,4 +1,6 @@
-export const COHORT_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScKsweqhNvfnHdRpB-8AEK_riK9FI45ziPfSYk8yHXFpaWp-g/viewform?usp=dialog';
+export const COHORT_FORM_URL = typeof window !== 'undefined' && window.location.hostname.includes('approachable')
+  ? 'https://learn.approachable.dev/registration'
+  : '/registration';
 
 export const COHORT_CONFIG = {
   date: 'Apr 23, 2026',
