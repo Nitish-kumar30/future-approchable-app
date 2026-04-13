@@ -15,5 +15,8 @@ verify_jwt = false
 [functions.get-public-sessions]
 verify_jwt = false
 
+[functions.check-registration-status]
+verify_jwt = false
+
 [functions.get-cohort-detail]
 verify_jwt = false
