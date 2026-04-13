@@ -412,11 +412,9 @@ export default function Registration() {
                         <FormLabel className="cursor-pointer font-medium">
                           I agree to the Commitment fee (non-refundable) *
                         </FormLabel>
-                        <p className="text-sm text-muted-foreground pt-1">Course fee: Rs0/$0. Commitment fee: nominal.
-
-                      </p>
+                        <p className="text-sm text-muted-foreground pt-1">​</p>
                         <p className="text-sm text-muted-foreground">
-                          In previous free cohorts, many registered but didn't show up. To ensure a serious, engaged learning experience for everyone, we now require a small commitment fee to reserve your seat.
+                          In previous cohorts, many registered but didn't show up. To ensure a serious, engaged learning experience for everyone, we now require a commitment fee to reserve your seat.
                         </p>
                       </div>
                       <FormMessage />
