@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.get-cohort-detail]
 verify_jwt = false
+
+[functions.get-unenrolled-users]
+verify_jwt = false
