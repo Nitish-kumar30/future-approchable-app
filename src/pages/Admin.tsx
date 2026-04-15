@@ -620,8 +620,58 @@ export default function Admin() {
       return courses.find(c => c.id === session.course_id)?.name || 'Unknown Course';
     }
     return '-';
-  };
+   };
 
+    const fetchUnenrolledUsers = async () => {
+      setUnenrolledLoading(true);
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        if (!token) return;
+
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-unenrolled-users`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+          }
+        );
+        const result = await response.json();
+        if (response.ok) {
+          setUnenrolledUsers(result.users || []);
+        } else {
+          toast({ title: 'Failed to fetch unenrolled users', description: result.error, variant: 'destructive' });
+        }
+      } catch (err) {
+        toast({ title: 'Error fetching unenrolled users', variant: 'destructive' });
+      } finally {
+        setUnenrolledLoading(false);
+      }
+    };
+
+    const copyUnenrolledEmails = () => {
+      const emails = unenrolledUsers.map(u => u.email).join(', ');
+      navigator.clipboard.writeText(emails);
+      toast({ title: `${unenrolledUsers.length} emails copied to clipboard` });
+    };
+
+    const downloadUnenrolledCSV = () => {
+      const header = 'Name,Email,Signed Up';
+      const rows = unenrolledUsers.map(u =>
+        `"${(u.full_name || '').replace(/"/g, '""')}","${u.email}","${new Date(u.created_at).toLocaleDateString()}"`
+      );
+      const csv = [header, ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'unenrolled_users.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    };
 
 
    // Fetch enrollments when filter changes
