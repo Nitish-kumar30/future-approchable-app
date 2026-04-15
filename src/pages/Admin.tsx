@@ -618,7 +618,10 @@ export default function Admin() {
     return '-';
   };
 
- 
+    // Unenrolled users state
+    const [unenrolledUsers, setUnenrolledUsers] = useState<{ user_id: string; email: string; full_name: string | null; created_at: string }[]>([]);
+    const [unenrolledLoading, setUnenrolledLoading] = useState(false);
+
    // Fetch enrollments when filter changes
    const fetchEnrollments = async (filter: string) => {
      if (!filter) {
