@@ -181,6 +181,10 @@ export default function Admin() {
     const [editPromptTitle, setEditPromptTitle] = useState('');
     const [editPromptContent, setEditPromptContent] = useState('');
 
+    // Unenrolled users state
+    const [unenrolledUsers, setUnenrolledUsers] = useState<{ user_id: string; email: string; full_name: string | null; created_at: string }[]>([]);
+    const [unenrolledLoading, setUnenrolledLoading] = useState(false);
+
   useEffect(() => {
     if (isAdmin) {
       fetchAllData();
