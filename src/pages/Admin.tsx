@@ -885,32 +885,35 @@ export default function Admin() {
         </div>
 
          <Tabs defaultValue="cohorts" className="space-y-6">
-           <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-grid">
-             <TabsTrigger value="cohorts" className="gap-2">
-               <Users className="h-4 w-4" /> Cohorts
-             </TabsTrigger>
-             <TabsTrigger value="courses" className="gap-2">
-               <BookOpen className="h-4 w-4" /> Courses
-             </TabsTrigger>
-             <TabsTrigger value="sessions" className="gap-2">
-               <GraduationCap className="h-4 w-4" /> Sessions
-             </TabsTrigger>
-             <TabsTrigger value="quizzes" className="gap-2">
-               <ClipboardList className="h-4 w-4" /> Quizzes
-             </TabsTrigger>
-             <TabsTrigger value="enrollments" className="gap-2">
-               <Users className="h-4 w-4" /> Enrollments
-             </TabsTrigger>
-              <TabsTrigger value="leaderboard" className="gap-2">
-                <Trophy className="h-4 w-4" /> Leaderboard
+           <TabsList className="grid w-full grid-cols-9 lg:w-auto lg:inline-grid">
+              <TabsTrigger value="cohorts" className="gap-2">
+                <Users className="h-4 w-4" /> Cohorts
               </TabsTrigger>
-              <TabsTrigger value="feedback" className="gap-2">
-               <MessageSquare className="h-4 w-4" /> Feedback
+              <TabsTrigger value="courses" className="gap-2">
+                <BookOpen className="h-4 w-4" /> Courses
+              </TabsTrigger>
+              <TabsTrigger value="sessions" className="gap-2">
+                <GraduationCap className="h-4 w-4" /> Sessions
+              </TabsTrigger>
+              <TabsTrigger value="quizzes" className="gap-2">
+                <ClipboardList className="h-4 w-4" /> Quizzes
+              </TabsTrigger>
+              <TabsTrigger value="enrollments" className="gap-2">
+                <Users className="h-4 w-4" /> Enrollments
+              </TabsTrigger>
+               <TabsTrigger value="leaderboard" className="gap-2">
+                 <Trophy className="h-4 w-4" /> Leaderboard
                </TabsTrigger>
-               <TabsTrigger value="prompts" className="gap-2">
-                 <FileText className="h-4 w-4" /> Prompts
-               </TabsTrigger>
-            </TabsList>
+               <TabsTrigger value="feedback" className="gap-2">
+                <MessageSquare className="h-4 w-4" /> Feedback
+                </TabsTrigger>
+                <TabsTrigger value="prompts" className="gap-2">
+                  <FileText className="h-4 w-4" /> Prompts
+                </TabsTrigger>
+                <TabsTrigger value="unenrolled" className="gap-2" onClick={() => { if (unenrolledUsers.length === 0) fetchUnenrolledUsers(); }}>
+                  <UserMinus className="h-4 w-4" /> Unenrolled
+                </TabsTrigger>
+             </TabsList>
 
           {/* Cohorts Tab */}
           <TabsContent value="cohorts">
