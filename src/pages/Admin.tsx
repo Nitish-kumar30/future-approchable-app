@@ -1674,6 +1674,59 @@ export default function Admin() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Unenrolled Users Tab */}
+          <TabsContent value="unenrolled">
+            <Card className="card-elevated">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Unenrolled Users</CardTitle>
+                  <CardDescription>Users who signed up but are not enrolled in any cohort</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={fetchUnenrolledUsers} disabled={unenrolledLoading}>
+                    {unenrolledLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Refresh
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={copyUnenrolledEmails} disabled={unenrolledUsers.length === 0}>
+                    <Copy className="mr-2 h-4 w-4" /> Copy Emails
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={downloadUnenrolledCSV} disabled={unenrolledUsers.length === 0}>
+                    <Download className="mr-2 h-4 w-4" /> Download CSV
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {unenrolledLoading ? (
+                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                ) : unenrolledUsers.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No unenrolled users found.</p>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-4">{unenrolledUsers.length} user{unenrolledUsers.length !== 1 ? 's' : ''} not enrolled in any cohort</p>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Signed Up</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {unenrolledUsers.map((user) => (
+                          <TableRow key={user.user_id}>
+                            <TableCell className="font-medium">{user.full_name || '-'}</TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* Forms */}
