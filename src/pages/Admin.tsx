@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy, Filter, Trophy, MessageSquare, Star, FileText } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy, Filter, Trophy, MessageSquare, Star, FileText, UserMinus, Download } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
  import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CohortForm } from '@/components/admin/CohortForm';
@@ -180,6 +180,10 @@ export default function Admin() {
     const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
     const [editPromptTitle, setEditPromptTitle] = useState('');
     const [editPromptContent, setEditPromptContent] = useState('');
+
+    // Unenrolled users state
+    const [unenrolledUsers, setUnenrolledUsers] = useState<{ user_id: string; email: string; full_name: string | null; created_at: string }[]>([]);
+    const [unenrolledLoading, setUnenrolledLoading] = useState(false);
 
   useEffect(() => {
     if (isAdmin) {
@@ -616,9 +620,60 @@ export default function Admin() {
       return courses.find(c => c.id === session.course_id)?.name || 'Unknown Course';
     }
     return '-';
-  };
+   };
 
- 
+    const fetchUnenrolledUsers = async () => {
+      setUnenrolledLoading(true);
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        if (!token) return;
+
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-unenrolled-users`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+          }
+        );
+        const result = await response.json();
+        if (response.ok) {
+          setUnenrolledUsers(result.users || []);
+        } else {
+          toast({ title: 'Failed to fetch unenrolled users', description: result.error, variant: 'destructive' });
+        }
+      } catch (err) {
+        toast({ title: 'Error fetching unenrolled users', variant: 'destructive' });
+      } finally {
+        setUnenrolledLoading(false);
+      }
+    };
+
+    const copyUnenrolledEmails = () => {
+      const emails = unenrolledUsers.map(u => u.email).join(', ');
+      navigator.clipboard.writeText(emails);
+      toast({ title: `${unenrolledUsers.length} emails copied to clipboard` });
+    };
+
+    const downloadUnenrolledCSV = () => {
+      const header = 'Name,Email,Signed Up';
+      const rows = unenrolledUsers.map(u =>
+        `"${(u.full_name || '').replace(/"/g, '""')}","${u.email}","${new Date(u.created_at).toLocaleDateString()}"`
+      );
+      const csv = [header, ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'unenrolled_users.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+
    // Fetch enrollments when filter changes
    const fetchEnrollments = async (filter: string) => {
      if (!filter) {
@@ -830,32 +885,35 @@ export default function Admin() {
         </div>
 
          <Tabs defaultValue="cohorts" className="space-y-6">
-           <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-grid">
-             <TabsTrigger value="cohorts" className="gap-2">
-               <Users className="h-4 w-4" /> Cohorts
-             </TabsTrigger>
-             <TabsTrigger value="courses" className="gap-2">
-               <BookOpen className="h-4 w-4" /> Courses
-             </TabsTrigger>
-             <TabsTrigger value="sessions" className="gap-2">
-               <GraduationCap className="h-4 w-4" /> Sessions
-             </TabsTrigger>
-             <TabsTrigger value="quizzes" className="gap-2">
-               <ClipboardList className="h-4 w-4" /> Quizzes
-             </TabsTrigger>
-             <TabsTrigger value="enrollments" className="gap-2">
-               <Users className="h-4 w-4" /> Enrollments
-             </TabsTrigger>
-              <TabsTrigger value="leaderboard" className="gap-2">
-                <Trophy className="h-4 w-4" /> Leaderboard
+           <TabsList className="grid w-full grid-cols-9 lg:w-auto lg:inline-grid">
+              <TabsTrigger value="cohorts" className="gap-2">
+                <Users className="h-4 w-4" /> Cohorts
               </TabsTrigger>
-              <TabsTrigger value="feedback" className="gap-2">
-               <MessageSquare className="h-4 w-4" /> Feedback
+              <TabsTrigger value="courses" className="gap-2">
+                <BookOpen className="h-4 w-4" /> Courses
+              </TabsTrigger>
+              <TabsTrigger value="sessions" className="gap-2">
+                <GraduationCap className="h-4 w-4" /> Sessions
+              </TabsTrigger>
+              <TabsTrigger value="quizzes" className="gap-2">
+                <ClipboardList className="h-4 w-4" /> Quizzes
+              </TabsTrigger>
+              <TabsTrigger value="enrollments" className="gap-2">
+                <Users className="h-4 w-4" /> Enrollments
+              </TabsTrigger>
+               <TabsTrigger value="leaderboard" className="gap-2">
+                 <Trophy className="h-4 w-4" /> Leaderboard
                </TabsTrigger>
-               <TabsTrigger value="prompts" className="gap-2">
-                 <FileText className="h-4 w-4" /> Prompts
-               </TabsTrigger>
-            </TabsList>
+               <TabsTrigger value="feedback" className="gap-2">
+                <MessageSquare className="h-4 w-4" /> Feedback
+                </TabsTrigger>
+                <TabsTrigger value="prompts" className="gap-2">
+                  <FileText className="h-4 w-4" /> Prompts
+                </TabsTrigger>
+                <TabsTrigger value="unenrolled" className="gap-2" onClick={() => { if (unenrolledUsers.length === 0) fetchUnenrolledUsers(); }}>
+                  <UserMinus className="h-4 w-4" /> Unenrolled
+                </TabsTrigger>
+             </TabsList>
 
           {/* Cohorts Tab */}
           <TabsContent value="cohorts">
@@ -1612,6 +1670,59 @@ export default function Admin() {
                       ))}
                     </TableBody>
                   </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Unenrolled Users Tab */}
+          <TabsContent value="unenrolled">
+            <Card className="card-elevated">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Unenrolled Users</CardTitle>
+                  <CardDescription>Users who signed up but are not enrolled in any cohort</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={fetchUnenrolledUsers} disabled={unenrolledLoading}>
+                    {unenrolledLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Refresh
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={copyUnenrolledEmails} disabled={unenrolledUsers.length === 0}>
+                    <Copy className="mr-2 h-4 w-4" /> Copy Emails
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={downloadUnenrolledCSV} disabled={unenrolledUsers.length === 0}>
+                    <Download className="mr-2 h-4 w-4" /> Download CSV
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {unenrolledLoading ? (
+                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                ) : unenrolledUsers.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No unenrolled users found.</p>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-4">{unenrolledUsers.length} user{unenrolledUsers.length !== 1 ? 's' : ''} not enrolled in any cohort</p>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Signed Up</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {unenrolledUsers.map((user) => (
+                          <TableRow key={user.user_id}>
+                            <TableCell className="font-medium">{user.full_name || '-'}</TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </>
                 )}
               </CardContent>
             </Card>
