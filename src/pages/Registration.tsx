@@ -19,7 +19,7 @@ import { CheckCircle2, PartyPopper } from "lucide-react";
 
 const COHORT_OPTIONS = ["Cohort 5 - April 23rd - 7:30PM IST/10AM US Eastern"];
 
-const INTEREST_OPTIONS = ["AI Fundamentals", "Vibe Coding", "No-code AI Agents", "Prompt Engineering", "Other"];
+const INTEREST_OPTIONS = ["AI Fundamentals", "Vibe Coding", "No-code AI Agents", "Prompt Engineering", "Capstone Office Hours (Hands-on Support)", "Other"];
 
 const registrationSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -141,7 +141,7 @@ export default function Registration() {
       email: "",
       whatsapp_number: "",
       cohort: "",
-      interests: [],
+      interests: ["Capstone Office Hours (Hands-on Support)"],
       company: "",
       other_interest: "",
       role: "",
