@@ -644,6 +644,45 @@ export default function Admin() {
     return '-';
    };
 
+    const fetchRegistrations = async (cohortFilter = 'all') => {
+      setRegistrationsLoading(true);
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-registrations`);
+        if (cohortFilter && cohortFilter !== 'all') url.searchParams.set('cohort', cohortFilter);
+        const response = await fetch(url.toString(), {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        const result = await response.json();
+        if (response.ok) {
+          setRegistrations(result.registrations || []);
+          if (result.cohorts) setRegistrationCohorts(result.cohorts);
+        } else {
+          toast({ title: 'Failed to fetch registrations', description: result.error, variant: 'destructive' });
+        }
+      } catch {
+        toast({ title: 'Error fetching registrations', variant: 'destructive' });
+      } finally {
+        setRegistrationsLoading(false);
+      }
+    };
+
+    const downloadRegistrationsCSV = () => {
+      const header = 'Name,Email,Phone,Company,Role,Cohort,Interests,Other Interest,Reason,Additional Info,Status,Registered';
+      const rows = registrations.map(r =>
+        `"${(r.name || '').replace(/"/g, '""')}","${r.email}","${r.whatsapp_number}","${(r.company || '').replace(/"/g, '""')}","${(r.role || '').replace(/"/g, '""')}","${(r.cohort || '').replace(/"/g, '""')}","${(r.interests || []).join('; ')}","${(r.other_interest || '').replace(/"/g, '""')}","${(r.reason || '').replace(/"/g, '""')}","${(r.additional_info || '').replace(/"/g, '""')}","${r.status}","${new Date(r.created_at).toLocaleDateString()}"`
+      );
+      const csv = [header, ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `registrations${registrationCohortFilter !== 'all' ? '_filtered' : ''}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
     const fetchUnenrolledUsers = async () => {
       setUnenrolledLoading(true);
       try {
