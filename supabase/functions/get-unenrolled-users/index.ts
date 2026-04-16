@@ -56,7 +56,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get all user IDs that have a cohort enrollment
+    // Get all registrations from cohort_registrations
+    const { data: registrations, error: regError } = await supabaseAdmin
+      .from("cohort_registrations")
+      .select("name, email, whatsapp_number, cohort, status, created_at")
+      .order("created_at", { ascending: false });
+
+    if (regError) {
+      console.error("Error fetching registrations:", regError.message);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch registrations" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!registrations || registrations.length === 0) {
+      return new Response(
+        JSON.stringify({ users: [] }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get all enrolled user emails by looking up auth.users for enrolled user_ids
     const { data: enrolledRows, error: enrolledError } = await supabaseAdmin
       .from("enrollments")
       .select("user_id")
@@ -70,57 +91,32 @@ Deno.serve(async (req) => {
       );
     }
 
-    const enrolledUserIds = new Set((enrolledRows || []).map((e) => e.user_id));
-
-    // List all users from auth
-    const allUsers: Array<{ id: string; email: string; created_at: string }> = [];
-    let page = 1;
-    const perPage = 1000;
-    while (true) {
-      const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-        page,
-        perPage,
-      });
-      if (listError) {
-        console.error("Error listing users:", listError.message);
-        break;
+    // Get emails of enrolled users
+    const enrolledEmails = new Set<string>();
+    if (enrolledRows && enrolledRows.length > 0) {
+      const enrolledUserIds = [...new Set(enrolledRows.map((e) => e.user_id))];
+      // Batch lookup emails from auth
+      for (const uid of enrolledUserIds) {
+        const { data: userData } = await supabaseAdmin.auth.admin.getUserById(uid);
+        if (userData?.user?.email) {
+          enrolledEmails.add(userData.user.email.toLowerCase());
+        }
       }
-      if (!listData?.users || listData.users.length === 0) break;
-      for (const u of listData.users) {
-        allUsers.push({ id: u.id, email: u.email || "", created_at: u.created_at });
-      }
-      if (listData.users.length < perPage) break;
-      page++;
     }
 
-    // Filter to unenrolled
-    const unenrolledUserIds = allUsers.filter((u) => !enrolledUserIds.has(u.id));
+    // Filter registrations to only those NOT enrolled
+    const unenrolled = registrations.filter(
+      (r) => !enrolledEmails.has(r.email.toLowerCase())
+    );
 
-    if (unenrolledUserIds.length === 0) {
-      return new Response(
-        JSON.stringify({ users: [] }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Get profiles for names
-    const ids = unenrolledUserIds.map((u) => u.id);
-    const { data: profiles } = await supabaseAdmin
-      .from("profiles")
-      .select("user_id, full_name")
-      .in("user_id", ids);
-
-    const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name]));
-
-    const users = unenrolledUserIds.map((u) => ({
-      user_id: u.id,
-      email: u.email,
-      full_name: profileMap.get(u.id) || null,
-      created_at: u.created_at,
+    const users = unenrolled.map((r) => ({
+      name: r.name,
+      email: r.email,
+      whatsapp_number: r.whatsapp_number,
+      cohort: r.cohort,
+      status: r.status,
+      created_at: r.created_at,
     }));
-
-    // Sort by signup date descending
-    users.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return new Response(
       JSON.stringify({ users }),

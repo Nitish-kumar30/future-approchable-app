@@ -182,7 +182,7 @@ export default function Admin() {
     const [editPromptContent, setEditPromptContent] = useState('');
 
     // Unenrolled users state
-    const [unenrolledUsers, setUnenrolledUsers] = useState<{ user_id: string; email: string; full_name: string | null; created_at: string }[]>([]);
+    const [unenrolledUsers, setUnenrolledUsers] = useState<{ name: string; email: string; whatsapp_number: string; cohort: string; status: string; created_at: string }[]>([]);
     const [unenrolledLoading, setUnenrolledLoading] = useState(false);
 
   useEffect(() => {
@@ -658,10 +658,16 @@ export default function Admin() {
       toast({ title: `${unenrolledUsers.length} emails copied to clipboard` });
     };
 
+    const copyUnenrolledPhones = () => {
+      const phones = unenrolledUsers.map(u => u.whatsapp_number).join(', ');
+      navigator.clipboard.writeText(phones);
+      toast({ title: `${unenrolledUsers.length} phone numbers copied to clipboard` });
+    };
+
     const downloadUnenrolledCSV = () => {
-      const header = 'Name,Email,Signed Up';
+      const header = 'Name,Email,Phone,Cohort,Status,Registered';
       const rows = unenrolledUsers.map(u =>
-        `"${(u.full_name || '').replace(/"/g, '""')}","${u.email}","${new Date(u.created_at).toLocaleDateString()}"`
+        `"${(u.name || '').replace(/"/g, '""')}","${u.email}","${u.whatsapp_number}","${u.cohort}","${u.status}","${new Date(u.created_at).toLocaleDateString()}"`
       );
       const csv = [header, ...rows].join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });
@@ -1680,16 +1686,19 @@ export default function Admin() {
             <Card className="card-elevated">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>Unenrolled Users</CardTitle>
-                  <CardDescription>Users who signed up but are not enrolled in any cohort</CardDescription>
+                  <CardTitle>Unenrolled Registrations</CardTitle>
+                  <CardDescription>Users who registered interest but are not enrolled in any cohort</CardDescription>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Button variant="outline" size="sm" onClick={fetchUnenrolledUsers} disabled={unenrolledLoading}>
                     {unenrolledLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Refresh
                   </Button>
                   <Button variant="outline" size="sm" onClick={copyUnenrolledEmails} disabled={unenrolledUsers.length === 0}>
                     <Copy className="mr-2 h-4 w-4" /> Copy Emails
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={copyUnenrolledPhones} disabled={unenrolledUsers.length === 0}>
+                    <Copy className="mr-2 h-4 w-4" /> Copy Phones
                   </Button>
                   <Button variant="outline" size="sm" onClick={downloadUnenrolledCSV} disabled={unenrolledUsers.length === 0}>
                     <Download className="mr-2 h-4 w-4" /> Download CSV
@@ -1703,20 +1712,26 @@ export default function Admin() {
                   <p className="text-center py-8 text-muted-foreground">No unenrolled users found.</p>
                 ) : (
                   <>
-                    <p className="text-sm text-muted-foreground mb-4">{unenrolledUsers.length} user{unenrolledUsers.length !== 1 ? 's' : ''} not enrolled in any cohort</p>
+                    <p className="text-sm text-muted-foreground mb-4">{unenrolledUsers.length} registration{unenrolledUsers.length !== 1 ? 's' : ''} not enrolled in any cohort</p>
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>Name</TableHead>
                           <TableHead>Email</TableHead>
-                          <TableHead>Signed Up</TableHead>
+                          <TableHead>Phone</TableHead>
+                          <TableHead>Cohort</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Registered</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {unenrolledUsers.map((user) => (
-                          <TableRow key={user.user_id}>
-                            <TableCell className="font-medium">{user.full_name || '-'}</TableCell>
+                        {unenrolledUsers.map((user, idx) => (
+                          <TableRow key={`${user.email}-${idx}`}>
+                            <TableCell className="font-medium">{user.name}</TableCell>
                             <TableCell>{user.email}</TableCell>
+                            <TableCell>{user.whatsapp_number}</TableCell>
+                            <TableCell>{user.cohort}</TableCell>
+                            <TableCell><Badge variant="outline">{user.status}</Badge></TableCell>
                             <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                           </TableRow>
                         ))}
