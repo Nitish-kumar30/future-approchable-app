@@ -198,6 +198,7 @@ export default function Admin() {
       other_interest: string | null;
       reason: string;
       additional_info: string | null;
+      capstone_office_hours: boolean;
       status: string;
       created_at: string;
     }
@@ -669,9 +670,9 @@ export default function Admin() {
     };
 
     const downloadRegistrationsCSV = () => {
-      const header = 'Name,Email,Phone,Company,Role,Cohort,Interests,Other Interest,Reason,Additional Info,Status,Registered';
+      const header = 'Name,Email,Phone,Company,Role,Cohort,Capstone Office Hours,Interests,Other Interest,Reason,Additional Info,Status,Registered';
       const rows = registrations.map(r =>
-        `"${(r.name || '').replace(/"/g, '""')}","${r.email}","${r.whatsapp_number}","${(r.company || '').replace(/"/g, '""')}","${(r.role || '').replace(/"/g, '""')}","${(r.cohort || '').replace(/"/g, '""')}","${(r.interests || []).join('; ')}","${(r.other_interest || '').replace(/"/g, '""')}","${(r.reason || '').replace(/"/g, '""')}","${(r.additional_info || '').replace(/"/g, '""')}","${r.status}","${new Date(r.created_at).toLocaleDateString()}"`
+        `"${(r.name || '').replace(/"/g, '""')}","${r.email}","${r.whatsapp_number}","${(r.company || '').replace(/"/g, '""')}","${(r.role || '').replace(/"/g, '""')}","${(r.cohort || '').replace(/"/g, '""')}","${r.capstone_office_hours ? 'Yes' : 'No'}","${(r.interests || []).join('; ')}","${(r.other_interest || '').replace(/"/g, '""')}","${(r.reason || '').replace(/"/g, '""')}","${(r.additional_info || '').replace(/"/g, '""')}","${r.status}","${new Date(r.created_at).toLocaleDateString()}"`
       );
       const csv = [header, ...rows].join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });
@@ -1857,6 +1858,7 @@ export default function Admin() {
                               <span className="text-sm text-muted-foreground">{reg.email}</span>
                               <span className="text-sm text-muted-foreground">{reg.whatsapp_number}</span>
                               <Badge variant="outline">{reg.status}</Badge>
+                              {reg.capstone_office_hours && <Badge variant="secondary">Capstone</Badge>}
                             </div>
                             <span className="text-xs text-muted-foreground">{new Date(reg.created_at).toLocaleDateString()}</span>
                           </div>
@@ -1867,6 +1869,7 @@ export default function Admin() {
                                 <div><span className="font-medium text-muted-foreground">Role:</span> {reg.role}</div>
                                 <div><span className="font-medium text-muted-foreground">Cohort:</span> {reg.cohort}</div>
                                 <div><span className="font-medium text-muted-foreground">Status:</span> {reg.status}</div>
+                                <div><span className="font-medium text-muted-foreground">Capstone Office Hours:</span> {reg.capstone_office_hours ? 'Yes' : 'No'}</div>
                               </div>
                               <div>
                                 <span className="font-medium text-muted-foreground">Interests:</span>{' '}

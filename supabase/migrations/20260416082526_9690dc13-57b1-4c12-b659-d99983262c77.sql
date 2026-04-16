@@ -1,0 +1,1 @@
+ALTER TABLE public.cohort_registrations ADD COLUMN capstone_office_hours boolean NOT NULL DEFAULT true;
