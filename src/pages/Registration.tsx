@@ -19,7 +19,7 @@ import { CheckCircle2, PartyPopper } from "lucide-react";
 
 const COHORT_OPTIONS = ["Cohort 5 - April 23rd - 7:30PM IST/10AM US Eastern"];
 
-const INTEREST_OPTIONS = ["AI Fundamentals", "Vibe Coding", "No-code AI Agents", "Prompt Engineering", "Capstone Office Hours (Hands-on Support)", "Other"];
+const INTEREST_OPTIONS = ["AI Fundamentals", "Vibe Coding", "No-code AI Agents", "Prompt Engineering", "Other"];
 
 const registrationSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -27,6 +27,7 @@ const registrationSchema = z.object({
   whatsapp_number: z.string().min(5, "WhatsApp number is required"),
   cohort: z.string().min(1, "Please select a cohort"),
   interests: z.array(z.string()).min(1, "Select at least one interest"),
+  capstone_office_hours: z.boolean().default(true),
   company: z.string().min(1, "Company name is required"),
   other_interest: z.string().optional(),
   role: z.string().min(1, "Role is required"),
@@ -141,7 +142,8 @@ export default function Registration() {
       email: "",
       whatsapp_number: "",
       cohort: "",
-      interests: ["Capstone Office Hours (Hands-on Support)"],
+      interests: [],
+      capstone_office_hours: true,
       company: "",
       other_interest: "",
       role: "",
@@ -161,6 +163,7 @@ export default function Registration() {
           whatsapp_number: data.whatsapp_number,
           cohort: data.cohort,
           interests: data.interests,
+          capstone_office_hours: data.capstone_office_hours,
           other_interest: data.other_interest || null,
           company: data.company,
           role: data.role,
@@ -277,6 +280,27 @@ export default function Registration() {
                         </SelectContent>
                       </Select>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Capstone Office Hours */}
+                <FormField
+                  control={form.control}
+                  name="capstone_office_hours"
+                  render={({ field }) => (
+                    <FormItem className="flex items-start space-x-3 space-y-0 rounded-md border border-border p-4">
+                      <FormControl>
+                        <Checkbox checked={field.value === true} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="cursor-pointer font-medium">
+                          Capstone Office Hours (Hands-on Support)
+                        </FormLabel>
+                        <p className="text-sm text-muted-foreground">
+                          Get dedicated hands-on support during office hours to help you complete your capstone project.
+                        </p>
+                      </div>
                     </FormItem>
                   )}
                 />
