@@ -298,7 +298,7 @@ export default function Registration() {
                           Capstone Office Hours (Hands-on Support)
                         </FormLabel>
                         <p className="text-sm text-muted-foreground">
-                          Get dedicated hands-on support during office hours to help you complete your capstone project.
+                          Get hands-on support during office hours to help you complete your capstone project.
                         </p>
                       </div>
                     </FormItem>
