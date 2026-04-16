@@ -952,7 +952,7 @@ export default function Admin() {
         </div>
 
          <Tabs defaultValue="cohorts" className="space-y-6">
-           <TabsList className="grid w-full grid-cols-9 lg:w-auto lg:inline-grid">
+           <TabsList className="grid w-full grid-cols-10 lg:w-auto lg:inline-grid">
               <TabsTrigger value="cohorts" className="gap-2">
                 <Users className="h-4 w-4" /> Cohorts
               </TabsTrigger>
