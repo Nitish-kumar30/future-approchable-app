@@ -27,6 +27,7 @@ const registrationSchema = z.object({
   whatsapp_number: z.string().min(5, "WhatsApp number is required"),
   cohort: z.string().min(1, "Please select a cohort"),
   interests: z.array(z.string()).min(1, "Select at least one interest"),
+  capstone_office_hours: z.boolean().default(true),
   company: z.string().min(1, "Company name is required"),
   other_interest: z.string().optional(),
   role: z.string().min(1, "Role is required"),
