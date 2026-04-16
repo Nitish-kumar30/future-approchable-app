@@ -142,6 +142,7 @@ serve(async (req) => {
       cohort,
       interests: interests || [],
       other_interest: other_interest || null,
+      capstone_office_hours: capstone_office_hours ?? true,
       company: company.trim(),
       role: role.trim(),
       reason: reason.trim(),
