@@ -1806,6 +1806,93 @@ export default function Admin() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Registrations Tab */}
+          <TabsContent value="registrations">
+            <Card className="card-elevated">
+              <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
+                <div>
+                  <CardTitle>All Registrations</CardTitle>
+                  <CardDescription>View all cohort registration submissions with full details</CardDescription>
+                </div>
+                <div className="flex gap-2 flex-wrap items-center">
+                  <Select value={registrationCohortFilter} onValueChange={(val) => { setRegistrationCohortFilter(val); fetchRegistrations(val); }}>
+                    <SelectTrigger className="w-[220px]">
+                      <Filter className="mr-2 h-4 w-4" />
+                      <SelectValue placeholder="Filter by cohort" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Cohorts</SelectItem>
+                      {registrationCohorts.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="sm" onClick={() => fetchRegistrations(registrationCohortFilter)} disabled={registrationsLoading}>
+                    {registrationsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Refresh
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={downloadRegistrationsCSV} disabled={registrations.length === 0}>
+                    <Download className="mr-2 h-4 w-4" /> Download CSV
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {registrationsLoading ? (
+                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                ) : registrations.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No registrations found.</p>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-4">{registrations.length} registration{registrations.length !== 1 ? 's' : ''}</p>
+                    <div className="space-y-3">
+                      {registrations.map((reg) => (
+                        <Card key={reg.id} className="border">
+                          <div
+                            className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                            onClick={() => setExpandedRegistration(expandedRegistration === reg.id ? null : reg.id)}
+                          >
+                            <div className="flex items-center gap-4 flex-wrap">
+                              <span className="font-medium">{reg.name}</span>
+                              <span className="text-sm text-muted-foreground">{reg.email}</span>
+                              <span className="text-sm text-muted-foreground">{reg.whatsapp_number}</span>
+                              <Badge variant="outline">{reg.status}</Badge>
+                            </div>
+                            <span className="text-xs text-muted-foreground">{new Date(reg.created_at).toLocaleDateString()}</span>
+                          </div>
+                          {expandedRegistration === reg.id && (
+                            <div className="border-t p-4 space-y-3 text-sm bg-muted/30">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div><span className="font-medium text-muted-foreground">Company:</span> {reg.company}</div>
+                                <div><span className="font-medium text-muted-foreground">Role:</span> {reg.role}</div>
+                                <div><span className="font-medium text-muted-foreground">Cohort:</span> {reg.cohort}</div>
+                                <div><span className="font-medium text-muted-foreground">Status:</span> {reg.status}</div>
+                              </div>
+                              <div>
+                                <span className="font-medium text-muted-foreground">Interests:</span>{' '}
+                                {(reg.interests || []).join(', ')}
+                                {reg.other_interest && ` (Other: ${reg.other_interest})`}
+                              </div>
+                              <div>
+                                <span className="font-medium text-muted-foreground">Why they want to join:</span>
+                                <p className="mt-1 whitespace-pre-wrap">{reg.reason}</p>
+                              </div>
+                              {reg.additional_info && (
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Additional info:</span>
+                                  <p className="mt-1 whitespace-pre-wrap">{reg.additional_info}</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* Forms */}
