@@ -198,6 +198,7 @@ export default function Admin() {
       other_interest: string | null;
       reason: string;
       additional_info: string | null;
+      capstone_office_hours: boolean;
       status: string;
       created_at: string;
     }
