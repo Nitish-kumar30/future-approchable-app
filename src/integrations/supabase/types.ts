@@ -17,6 +17,7 @@ export type Database = {
       cohort_registrations: {
         Row: {
           additional_info: string | null
+          capstone_office_hours: boolean
           cohort: string
           company: string
           created_at: string
@@ -33,6 +34,7 @@ export type Database = {
         }
         Insert: {
           additional_info?: string | null
+          capstone_office_hours?: boolean
           cohort: string
           company: string
           created_at?: string
@@ -49,6 +51,7 @@ export type Database = {
         }
         Update: {
           additional_info?: string | null
+          capstone_office_hours?: boolean
           cohort?: string
           company?: string
           created_at?: string
