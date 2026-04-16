@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
 
     let query = supabaseAdmin
       .from("cohort_registrations")
-      .select("id, name, email, whatsapp_number, cohort, company, role, interests, other_interest, reason, additional_info, status, created_at")
+      .select("id, name, email, whatsapp_number, cohort, company, role, interests, other_interest, reason, additional_info, capstone_office_hours, status, created_at")
       .order("created_at", { ascending: false });
 
     if (cohortFilter && cohortFilter !== "all") {
