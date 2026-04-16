@@ -185,6 +185,28 @@ export default function Admin() {
     const [unenrolledUsers, setUnenrolledUsers] = useState<{ name: string; email: string; whatsapp_number: string; cohort: string; status: string; created_at: string }[]>([]);
     const [unenrolledLoading, setUnenrolledLoading] = useState(false);
 
+    // Registrations state
+    interface Registration {
+      id: string;
+      name: string;
+      email: string;
+      whatsapp_number: string;
+      cohort: string;
+      company: string;
+      role: string;
+      interests: string[];
+      other_interest: string | null;
+      reason: string;
+      additional_info: string | null;
+      status: string;
+      created_at: string;
+    }
+    const [registrations, setRegistrations] = useState<Registration[]>([]);
+    const [registrationCohorts, setRegistrationCohorts] = useState<string[]>([]);
+    const [registrationCohortFilter, setRegistrationCohortFilter] = useState('all');
+    const [registrationsLoading, setRegistrationsLoading] = useState(false);
+    const [expandedRegistration, setExpandedRegistration] = useState<string | null>(null);
+
   useEffect(() => {
     if (isAdmin) {
       fetchAllData();
