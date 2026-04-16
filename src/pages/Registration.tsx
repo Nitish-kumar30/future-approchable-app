@@ -311,7 +311,7 @@ export default function Registration() {
                   name="interests"
                   render={() => (
                     <FormItem>
-                      <FormLabel>What do you want to learn? *</FormLabel>
+                      <FormLabel>What do you want to learn? (select all that apply) *</FormLabel>
                       <div className="space-y-3 pt-1">
                         {INTEREST_OPTIONS.map((interest) => (
                           <FormField
