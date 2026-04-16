@@ -141,7 +141,7 @@ export default function Registration() {
       email: "",
       whatsapp_number: "",
       cohort: "",
-      interests: [],
+      interests: ["Capstone Office Hours (Hands-on Support)"],
       company: "",
       other_interest: "",
       role: "",
