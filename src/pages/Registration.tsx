@@ -283,6 +283,27 @@ export default function Registration() {
                   )}
                 />
 
+                {/* Capstone Office Hours */}
+                <FormField
+                  control={form.control}
+                  name="capstone_office_hours"
+                  render={({ field }) => (
+                    <FormItem className="flex items-start space-x-3 space-y-0 rounded-md border border-border p-4">
+                      <FormControl>
+                        <Checkbox checked={field.value === true} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="cursor-pointer font-medium">
+                          Capstone Office Hours (Hands-on Support)
+                        </FormLabel>
+                        <p className="text-sm text-muted-foreground">
+                          Get dedicated hands-on support during office hours to help you complete your capstone project.
+                        </p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
                 {/* Interests */}
                 <FormField
                   control={form.control}
