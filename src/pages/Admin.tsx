@@ -185,6 +185,28 @@ export default function Admin() {
     const [unenrolledUsers, setUnenrolledUsers] = useState<{ name: string; email: string; whatsapp_number: string; cohort: string; status: string; created_at: string }[]>([]);
     const [unenrolledLoading, setUnenrolledLoading] = useState(false);
 
+    // Registrations state
+    interface Registration {
+      id: string;
+      name: string;
+      email: string;
+      whatsapp_number: string;
+      cohort: string;
+      company: string;
+      role: string;
+      interests: string[];
+      other_interest: string | null;
+      reason: string;
+      additional_info: string | null;
+      status: string;
+      created_at: string;
+    }
+    const [registrations, setRegistrations] = useState<Registration[]>([]);
+    const [registrationCohorts, setRegistrationCohorts] = useState<string[]>([]);
+    const [registrationCohortFilter, setRegistrationCohortFilter] = useState('all');
+    const [registrationsLoading, setRegistrationsLoading] = useState(false);
+    const [expandedRegistration, setExpandedRegistration] = useState<string | null>(null);
+
   useEffect(() => {
     if (isAdmin) {
       fetchAllData();
@@ -622,6 +644,45 @@ export default function Admin() {
     return '-';
    };
 
+    const fetchRegistrations = async (cohortFilter = 'all') => {
+      setRegistrationsLoading(true);
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-registrations`);
+        if (cohortFilter && cohortFilter !== 'all') url.searchParams.set('cohort', cohortFilter);
+        const response = await fetch(url.toString(), {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        const result = await response.json();
+        if (response.ok) {
+          setRegistrations(result.registrations || []);
+          if (result.cohorts) setRegistrationCohorts(result.cohorts);
+        } else {
+          toast({ title: 'Failed to fetch registrations', description: result.error, variant: 'destructive' });
+        }
+      } catch {
+        toast({ title: 'Error fetching registrations', variant: 'destructive' });
+      } finally {
+        setRegistrationsLoading(false);
+      }
+    };
+
+    const downloadRegistrationsCSV = () => {
+      const header = 'Name,Email,Phone,Company,Role,Cohort,Interests,Other Interest,Reason,Additional Info,Status,Registered';
+      const rows = registrations.map(r =>
+        `"${(r.name || '').replace(/"/g, '""')}","${r.email}","${r.whatsapp_number}","${(r.company || '').replace(/"/g, '""')}","${(r.role || '').replace(/"/g, '""')}","${(r.cohort || '').replace(/"/g, '""')}","${(r.interests || []).join('; ')}","${(r.other_interest || '').replace(/"/g, '""')}","${(r.reason || '').replace(/"/g, '""')}","${(r.additional_info || '').replace(/"/g, '""')}","${r.status}","${new Date(r.created_at).toLocaleDateString()}"`
+      );
+      const csv = [header, ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `registrations${registrationCohortFilter !== 'all' ? '_filtered' : ''}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
     const fetchUnenrolledUsers = async () => {
       setUnenrolledLoading(true);
       try {
@@ -891,7 +952,7 @@ export default function Admin() {
         </div>
 
          <Tabs defaultValue="cohorts" className="space-y-6">
-           <TabsList className="grid w-full grid-cols-9 lg:w-auto lg:inline-grid">
+           <TabsList className="grid w-full grid-cols-10 lg:w-auto lg:inline-grid">
               <TabsTrigger value="cohorts" className="gap-2">
                 <Users className="h-4 w-4" /> Cohorts
               </TabsTrigger>
@@ -918,6 +979,9 @@ export default function Admin() {
                 </TabsTrigger>
                 <TabsTrigger value="unenrolled" className="gap-2" onClick={() => { if (unenrolledUsers.length === 0) fetchUnenrolledUsers(); }}>
                   <UserMinus className="h-4 w-4" /> Unenrolled
+                </TabsTrigger>
+                <TabsTrigger value="registrations" className="gap-2" onClick={() => { if (registrations.length === 0) fetchRegistrations(); }}>
+                  <ClipboardList className="h-4 w-4" /> Registrations
                 </TabsTrigger>
              </TabsList>
 
@@ -1737,6 +1801,93 @@ export default function Admin() {
                         ))}
                       </TableBody>
                     </Table>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Registrations Tab */}
+          <TabsContent value="registrations">
+            <Card className="card-elevated">
+              <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
+                <div>
+                  <CardTitle>All Registrations</CardTitle>
+                  <CardDescription>View all cohort registration submissions with full details</CardDescription>
+                </div>
+                <div className="flex gap-2 flex-wrap items-center">
+                  <Select value={registrationCohortFilter} onValueChange={(val) => { setRegistrationCohortFilter(val); fetchRegistrations(val); }}>
+                    <SelectTrigger className="w-[220px]">
+                      <Filter className="mr-2 h-4 w-4" />
+                      <SelectValue placeholder="Filter by cohort" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Cohorts</SelectItem>
+                      {registrationCohorts.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="sm" onClick={() => fetchRegistrations(registrationCohortFilter)} disabled={registrationsLoading}>
+                    {registrationsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Refresh
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={downloadRegistrationsCSV} disabled={registrations.length === 0}>
+                    <Download className="mr-2 h-4 w-4" /> Download CSV
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {registrationsLoading ? (
+                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                ) : registrations.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No registrations found.</p>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-4">{registrations.length} registration{registrations.length !== 1 ? 's' : ''}</p>
+                    <div className="space-y-3">
+                      {registrations.map((reg) => (
+                        <Card key={reg.id} className="border">
+                          <div
+                            className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                            onClick={() => setExpandedRegistration(expandedRegistration === reg.id ? null : reg.id)}
+                          >
+                            <div className="flex items-center gap-4 flex-wrap">
+                              <span className="font-medium">{reg.name}</span>
+                              <span className="text-sm text-muted-foreground">{reg.email}</span>
+                              <span className="text-sm text-muted-foreground">{reg.whatsapp_number}</span>
+                              <Badge variant="outline">{reg.status}</Badge>
+                            </div>
+                            <span className="text-xs text-muted-foreground">{new Date(reg.created_at).toLocaleDateString()}</span>
+                          </div>
+                          {expandedRegistration === reg.id && (
+                            <div className="border-t p-4 space-y-3 text-sm bg-muted/30">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div><span className="font-medium text-muted-foreground">Company:</span> {reg.company}</div>
+                                <div><span className="font-medium text-muted-foreground">Role:</span> {reg.role}</div>
+                                <div><span className="font-medium text-muted-foreground">Cohort:</span> {reg.cohort}</div>
+                                <div><span className="font-medium text-muted-foreground">Status:</span> {reg.status}</div>
+                              </div>
+                              <div>
+                                <span className="font-medium text-muted-foreground">Interests:</span>{' '}
+                                {(reg.interests || []).join(', ')}
+                                {reg.other_interest && ` (Other: ${reg.other_interest})`}
+                              </div>
+                              <div>
+                                <span className="font-medium text-muted-foreground">Why they want to join:</span>
+                                <p className="mt-1 whitespace-pre-wrap">{reg.reason}</p>
+                              </div>
+                              {reg.additional_info && (
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Additional info:</span>
+                                  <p className="mt-1 whitespace-pre-wrap">{reg.additional_info}</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
                   </>
                 )}
               </CardContent>
