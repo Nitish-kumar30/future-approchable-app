@@ -1869,6 +1869,7 @@ export default function Admin() {
                                 <div><span className="font-medium text-muted-foreground">Role:</span> {reg.role}</div>
                                 <div><span className="font-medium text-muted-foreground">Cohort:</span> {reg.cohort}</div>
                                 <div><span className="font-medium text-muted-foreground">Status:</span> {reg.status}</div>
+                                <div><span className="font-medium text-muted-foreground">Capstone Office Hours:</span> {reg.capstone_office_hours ? 'Yes' : 'No'}</div>
                               </div>
                               <div>
                                 <span className="font-medium text-muted-foreground">Interests:</span>{' '}
