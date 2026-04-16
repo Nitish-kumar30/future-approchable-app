@@ -163,6 +163,7 @@ export default function Registration() {
           whatsapp_number: data.whatsapp_number,
           cohort: data.cohort,
           interests: data.interests,
+          capstone_office_hours: data.capstone_office_hours,
           other_interest: data.other_interest || null,
           company: data.company,
           role: data.role,
