@@ -980,6 +980,9 @@ export default function Admin() {
                 <TabsTrigger value="unenrolled" className="gap-2" onClick={() => { if (unenrolledUsers.length === 0) fetchUnenrolledUsers(); }}>
                   <UserMinus className="h-4 w-4" /> Unenrolled
                 </TabsTrigger>
+                <TabsTrigger value="registrations" className="gap-2" onClick={() => { if (registrations.length === 0) fetchRegistrations(); }}>
+                  <ClipboardList className="h-4 w-4" /> Registrations
+                </TabsTrigger>
              </TabsList>
 
           {/* Cohorts Tab */}
