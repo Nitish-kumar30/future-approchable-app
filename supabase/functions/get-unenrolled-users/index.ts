@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     // Get all registrations from cohort_registrations
     const { data: registrations, error: regError } = await supabaseAdmin
       .from("cohort_registrations")
-      .select("name, email, whatsapp_number, cohort, status, created_at")
+      .select("id, name, email, whatsapp_number, cohort, status, capstone_office_hours, created_at")
       .order("created_at", { ascending: false });
 
     if (regError) {
