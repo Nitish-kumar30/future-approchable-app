@@ -1817,7 +1817,21 @@ export default function Admin() {
                             <TableCell>{user.email}</TableCell>
                             <TableCell>{user.whatsapp_number}</TableCell>
                             <TableCell>{user.cohort}</TableCell>
-                            <TableCell><Badge variant="outline">{user.status}</Badge></TableCell>
+                            <TableCell>
+                              <Select
+                                value={user.status}
+                                onValueChange={(val) => handleStatusUpdate(user.id, val)}
+                                disabled={statusUpdatingId === user.id}
+                              >
+                                <SelectTrigger className="w-[130px] h-8">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pending">Pending</SelectItem>
+                                  <SelectItem value="approved">Approved</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
                             <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                           </TableRow>
                         ))}
