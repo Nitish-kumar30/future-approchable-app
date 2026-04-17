@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.get-unenrolled-users]
 verify_jwt = false
+
+[functions.update-registration-status]
+verify_jwt = false
