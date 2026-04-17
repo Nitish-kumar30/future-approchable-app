@@ -727,6 +727,26 @@ export default function Admin() {
       toast({ title: `${unenrolledUsers.length} phone numbers copied to clipboard` });
     };
 
+    const handleStatusUpdate = async (registrationId: string, newStatus: string) => {
+      const previous = unenrolledUsers;
+      setUnenrolledUsers(prev => prev.map(u => u.id === registrationId ? { ...u, status: newStatus } : u));
+      setStatusUpdatingId(registrationId);
+      try {
+        const { data, error } = await supabase.functions.invoke('update-registration-status', {
+          body: { id: registrationId, status: newStatus },
+        });
+        if (error || (data && (data as any).error)) {
+          throw new Error(error?.message || (data as any)?.error || 'Update failed');
+        }
+        toast({ title: `Status updated to ${newStatus}` });
+      } catch (err: any) {
+        setUnenrolledUsers(previous);
+        toast({ title: 'Failed to update status', description: err.message, variant: 'destructive' });
+      } finally {
+        setStatusUpdatingId(null);
+      }
+    };
+
     const downloadUnenrolledCSV = () => {
       const header = 'Name,Email,Phone,Cohort,Status,Registered';
       const rows = unenrolledUsers.map(u =>
