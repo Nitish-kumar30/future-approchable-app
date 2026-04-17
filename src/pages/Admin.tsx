@@ -182,8 +182,9 @@ export default function Admin() {
     const [editPromptContent, setEditPromptContent] = useState('');
 
     // Unenrolled users state
-    const [unenrolledUsers, setUnenrolledUsers] = useState<{ name: string; email: string; whatsapp_number: string; cohort: string; status: string; created_at: string }[]>([]);
+    const [unenrolledUsers, setUnenrolledUsers] = useState<{ id: string; name: string; email: string; whatsapp_number: string; cohort: string; status: string; created_at: string }[]>([]);
     const [unenrolledLoading, setUnenrolledLoading] = useState(false);
+    const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
 
     // Registrations state
     interface Registration {
