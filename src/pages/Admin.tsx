@@ -182,8 +182,9 @@ export default function Admin() {
     const [editPromptContent, setEditPromptContent] = useState('');
 
     // Unenrolled users state
-    const [unenrolledUsers, setUnenrolledUsers] = useState<{ name: string; email: string; whatsapp_number: string; cohort: string; status: string; created_at: string }[]>([]);
+    const [unenrolledUsers, setUnenrolledUsers] = useState<{ id: string; name: string; email: string; whatsapp_number: string; cohort: string; status: string; created_at: string }[]>([]);
     const [unenrolledLoading, setUnenrolledLoading] = useState(false);
+    const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
 
     // Registrations state
     interface Registration {
@@ -724,6 +725,26 @@ export default function Admin() {
       const phones = unenrolledUsers.map(u => u.whatsapp_number).join(', ');
       navigator.clipboard.writeText(phones);
       toast({ title: `${unenrolledUsers.length} phone numbers copied to clipboard` });
+    };
+
+    const handleStatusUpdate = async (registrationId: string, newStatus: string) => {
+      const previous = unenrolledUsers;
+      setUnenrolledUsers(prev => prev.map(u => u.id === registrationId ? { ...u, status: newStatus } : u));
+      setStatusUpdatingId(registrationId);
+      try {
+        const { data, error } = await supabase.functions.invoke('update-registration-status', {
+          body: { id: registrationId, status: newStatus },
+        });
+        if (error || (data && (data as any).error)) {
+          throw new Error(error?.message || (data as any)?.error || 'Update failed');
+        }
+        toast({ title: `Status updated to ${newStatus}` });
+      } catch (err: any) {
+        setUnenrolledUsers(previous);
+        toast({ title: 'Failed to update status', description: err.message, variant: 'destructive' });
+      } finally {
+        setStatusUpdatingId(null);
+      }
     };
 
     const downloadUnenrolledCSV = () => {
@@ -1796,7 +1817,21 @@ export default function Admin() {
                             <TableCell>{user.email}</TableCell>
                             <TableCell>{user.whatsapp_number}</TableCell>
                             <TableCell>{user.cohort}</TableCell>
-                            <TableCell><Badge variant="outline">{user.status}</Badge></TableCell>
+                            <TableCell>
+                              <Select
+                                value={user.status}
+                                onValueChange={(val) => handleStatusUpdate(user.id, val)}
+                                disabled={statusUpdatingId === user.id}
+                              >
+                                <SelectTrigger className="w-[130px] h-8">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pending">Pending</SelectItem>
+                                  <SelectItem value="approved">Approved</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
                             <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                           </TableRow>
                         ))}

@@ -6,6 +6,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const ALLOWED_STATUSES = new Set(["pending", "approved"]);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -38,7 +40,6 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub as string;
-
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // Verify admin role
@@ -56,72 +57,54 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get all registrations from cohort_registrations
-    const { data: registrations, error: regError } = await supabaseAdmin
+    let body: { id?: string; status?: string };
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { id, status } = body;
+    if (!id || typeof id !== "string") {
+      return new Response(
+        JSON.stringify({ error: "Missing or invalid 'id'" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (!status || !ALLOWED_STATUSES.has(status)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid 'status'. Must be 'pending' or 'approved'." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: updated, error: updateError } = await supabaseAdmin
       .from("cohort_registrations")
-      .select("id, name, email, whatsapp_number, cohort, status, capstone_office_hours, created_at")
-      .order("created_at", { ascending: false });
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select("id, status")
+      .maybeSingle();
 
-    if (regError) {
-      console.error("Error fetching registrations:", regError.message);
+    if (updateError) {
+      console.error("Error updating registration status:", updateError.message);
       return new Response(
-        JSON.stringify({ error: "Failed to fetch registrations" }),
+        JSON.stringify({ error: "Failed to update status" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!registrations || registrations.length === 0) {
+    if (!updated) {
       return new Response(
-        JSON.stringify({ users: [] }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Registration not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Get all enrolled user emails by looking up auth.users for enrolled user_ids
-    const { data: enrolledRows, error: enrolledError } = await supabaseAdmin
-      .from("enrollments")
-      .select("user_id")
-      .not("cohort_id", "is", null);
-
-    if (enrolledError) {
-      console.error("Error fetching enrollments:", enrolledError.message);
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch enrollments" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Get emails of enrolled users
-    const enrolledEmails = new Set<string>();
-    if (enrolledRows && enrolledRows.length > 0) {
-      const enrolledUserIds = [...new Set(enrolledRows.map((e) => e.user_id))];
-      // Batch lookup emails from auth
-      for (const uid of enrolledUserIds) {
-        const { data: userData } = await supabaseAdmin.auth.admin.getUserById(uid);
-        if (userData?.user?.email) {
-          enrolledEmails.add(userData.user.email.toLowerCase());
-        }
-      }
-    }
-
-    // Filter registrations to only those NOT enrolled
-    const unenrolled = registrations.filter(
-      (r) => !enrolledEmails.has(r.email.toLowerCase())
-    );
-
-    const users = unenrolled.map((r: any) => ({
-      id: r.id,
-      name: r.name,
-      email: r.email,
-      whatsapp_number: r.whatsapp_number,
-      cohort: r.cohort,
-      status: r.status,
-      capstone_office_hours: r.capstone_office_hours,
-      created_at: r.created_at,
-    }));
 
     return new Response(
-      JSON.stringify({ users }),
+      JSON.stringify({ success: true, registration: updated }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
