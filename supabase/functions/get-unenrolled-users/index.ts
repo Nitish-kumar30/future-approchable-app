@@ -109,12 +109,14 @@ Deno.serve(async (req) => {
       (r) => !enrolledEmails.has(r.email.toLowerCase())
     );
 
-    const users = unenrolled.map((r) => ({
+    const users = unenrolled.map((r: any) => ({
+      id: r.id,
       name: r.name,
       email: r.email,
       whatsapp_number: r.whatsapp_number,
       cohort: r.cohort,
       status: r.status,
+      capstone_office_hours: r.capstone_office_hours,
       created_at: r.created_at,
     }));
 
