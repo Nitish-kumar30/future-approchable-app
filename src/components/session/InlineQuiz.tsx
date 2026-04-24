@@ -17,6 +17,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import CohortUpsellCard from '@/components/session/CohortUpsellCard';
+import QuizResponseList from '@/components/session/QuizResponseList';
 
 type QuestionType = 'mcq' | 'mcq_ungraded' | 'subjective';
 
