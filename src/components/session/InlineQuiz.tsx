@@ -202,6 +202,13 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
             </Button>
           </CardContent>
         </Card>
+        {questions.length > 0 && (
+          <QuizResponseList
+            questions={questions}
+            answers={latestAnswers}
+            compact
+          />
+        )}
         {showUpsell && (
           <CohortUpsellCard variant={upsellVariant} />
         )}
