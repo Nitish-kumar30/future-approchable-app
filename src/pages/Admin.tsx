@@ -210,6 +210,30 @@ export default function Admin() {
     const [registrationsLoading, setRegistrationsLoading] = useState(false);
     const [expandedRegistration, setExpandedRegistration] = useState<string | null>(null);
 
+    // Quiz Responses state
+    interface ResponseQuestion {
+      id: string;
+      type?: 'mcq' | 'mcq_ungraded' | 'subjective';
+      question: string;
+      options?: string[];
+      correctAnswer?: number;
+    }
+    interface QuizResponseSubmission {
+      user_id: string;
+      name: string | null;
+      email: string;
+      submitted_at: string;
+      score: number | null;
+      answers: Record<string, number | string>;
+    }
+    const [responsesCohortFilter, setResponsesCohortFilter] = useState<string>('');
+    const [responsesSessionFilter, setResponsesSessionFilter] = useState<string>('');
+    const [responsesQuizFilter, setResponsesQuizFilter] = useState<string>('');
+    const [responsesSessionQuizMap, setResponsesSessionQuizMap] = useState<Record<string, string[]>>({});
+    const [responsesQuiz, setResponsesQuiz] = useState<{ id: string; title: string; questions: ResponseQuestion[] } | null>(null);
+    const [responsesSubmissions, setResponsesSubmissions] = useState<QuizResponseSubmission[]>([]);
+    const [responsesLoading, setResponsesLoading] = useState(false);
+
   useEffect(() => {
     if (isAdmin) {
       fetchAllData();
@@ -935,9 +959,112 @@ export default function Admin() {
      } else {
        setFeedbackEntries([]);
      }
-   }, [feedbackFilter]);
- 
-   const getEnrollmentParentName = (enrollment: EnrollmentWithUser) => {
+    }, [feedbackFilter]);
+
+    // Quiz Responses fetchers
+    const fetchSessionQuizMap = async () => {
+      const { data } = await supabase
+        .from('session_quizzes')
+        .select('session_id, quiz_id, display_order')
+        .order('display_order', { ascending: true });
+      const map: Record<string, string[]> = {};
+      (data || []).forEach((row) => {
+        if (!map[row.session_id]) map[row.session_id] = [];
+        map[row.session_id].push(row.quiz_id);
+      });
+      setResponsesSessionQuizMap(map);
+    };
+
+    useEffect(() => {
+      if (isAdmin) fetchSessionQuizMap();
+    }, [isAdmin]);
+
+    const fetchQuizResponses = async (quizId: string) => {
+      setResponsesLoading(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-quiz-responses?quiz_id=${quizId}`;
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        });
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Failed to fetch responses');
+        }
+        const data = await res.json();
+        setResponsesQuiz(data.quiz);
+        setResponsesSubmissions(data.submissions || []);
+      } catch (error) {
+        console.error('Error fetching quiz responses:', error);
+        toast({ title: 'Error fetching responses', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
+        setResponsesQuiz(null);
+        setResponsesSubmissions([]);
+      } finally {
+        setResponsesLoading(false);
+      }
+    };
+
+    useEffect(() => {
+      if (responsesQuizFilter) {
+        fetchQuizResponses(responsesQuizFilter);
+      } else {
+        setResponsesQuiz(null);
+        setResponsesSubmissions([]);
+      }
+    }, [responsesQuizFilter]);
+
+    useEffect(() => {
+      setResponsesSessionFilter('');
+      setResponsesQuizFilter('');
+    }, [responsesCohortFilter]);
+
+    useEffect(() => {
+      setResponsesQuizFilter('');
+    }, [responsesSessionFilter]);
+
+    const downloadResponsesCSV = () => {
+      if (!responsesQuiz) return;
+      const nonGraded = responsesQuiz.questions.filter(
+        (q) => (q.type ?? 'mcq') === 'mcq_ungraded' || (q.type ?? 'mcq') === 'subjective'
+      );
+      const rows: string[][] = [['Submitted At', 'Name', 'Email', 'Question', 'Question Type', 'Answer']];
+      responsesSubmissions.forEach((sub) => {
+        nonGraded.forEach((q) => {
+          const a = sub.answers?.[q.id];
+          let answerText = '';
+          if (a === undefined || a === null || a === '') {
+            answerText = '(no response)';
+          } else if (q.type === 'subjective') {
+            answerText = String(a);
+          } else {
+            const idx = Number(a);
+            answerText = q.options?.[idx] ?? `Option ${idx + 1}`;
+          }
+          rows.push([
+            new Date(sub.submitted_at).toISOString(),
+            sub.name || '',
+            sub.email,
+            q.question,
+            q.type === 'subjective' ? 'Subjective' : 'Ungraded MCQ',
+            answerText,
+          ]);
+        });
+      });
+      const csv = rows
+        .map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `quiz-responses-${responsesQuiz.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+    };
+
+    const getEnrollmentParentName = (enrollment: EnrollmentWithUser) => {
      if (enrollment.cohort_id) {
        return cohorts.find(c => c.id === enrollment.cohort_id)?.name || 'Unknown Cohort';
      }
@@ -975,7 +1102,7 @@ export default function Admin() {
         </div>
 
          <Tabs defaultValue="cohorts" className="space-y-6">
-           <TabsList className="grid w-full grid-cols-10 lg:w-auto lg:inline-grid">
+           <TabsList className="grid w-full grid-cols-11 lg:w-auto lg:inline-grid">
               <TabsTrigger value="cohorts" className="gap-2">
                 <Users className="h-4 w-4" /> Cohorts
               </TabsTrigger>
@@ -987,6 +1114,9 @@ export default function Admin() {
               </TabsTrigger>
               <TabsTrigger value="quizzes" className="gap-2">
                 <ClipboardList className="h-4 w-4" /> Quizzes
+              </TabsTrigger>
+              <TabsTrigger value="responses" className="gap-2">
+                <MessageSquare className="h-4 w-4" /> Quiz Responses
               </TabsTrigger>
               <TabsTrigger value="enrollments" className="gap-2">
                 <Users className="h-4 w-4" /> Enrollments
@@ -1376,6 +1506,246 @@ export default function Admin() {
                     </TableBody>
                   </Table>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Quiz Responses Tab */}
+          <TabsContent value="responses">
+            <Card className="card-elevated">
+              <CardHeader>
+                <div className="flex flex-row items-start justify-between gap-4">
+                  <div>
+                    <CardTitle>Quiz Responses</CardTitle>
+                    <CardDescription>
+                      Review submitted answers for ungraded MCQ and subjective questions.
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={downloadResponsesCSV}
+                    disabled={!responsesQuiz || responsesSubmissions.length === 0}
+                  >
+                    <Download className="mr-2 h-4 w-4" /> Export CSV
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  // Build selector lists
+                  const cohortOptions = cohorts;
+                  const onDemandCourses = courses.filter((c) => c.is_on_demand);
+
+                  const sessionsForCohort = (() => {
+                    if (!responsesCohortFilter) return [] as Session[];
+                    if (responsesCohortFilter.startsWith('cohort:')) {
+                      const id = responsesCohortFilter.replace('cohort:', '');
+                      return sessions.filter((s) => s.cohort_id === id);
+                    }
+                    if (responsesCohortFilter.startsWith('course:')) {
+                      const id = responsesCohortFilter.replace('course:', '');
+                      return sessions.filter((s) => s.course_id === id);
+                    }
+                    return [];
+                  })().sort((a, b) => (a.session_order ?? 0) - (b.session_order ?? 0));
+
+                  const quizIdsForSession = responsesSessionFilter
+                    ? responsesSessionQuizMap[responsesSessionFilter] || []
+                    : [];
+
+                  const quizzesForSession = quizIdsForSession
+                    .map((qid) => quizzes.find((q) => q.id === qid))
+                    .filter((q): q is Quiz => !!q)
+                    .filter((q) =>
+                      (q.questions || []).some((qq) => {
+                        const t = qq.type ?? 'mcq';
+                        return t === 'mcq_ungraded' || t === 'subjective';
+                      })
+                    );
+
+                  return (
+                    <div className="space-y-6">
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Cohort / Course</label>
+                          <Select value={responsesCohortFilter} onValueChange={setResponsesCohortFilter}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select cohort or course" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {cohortOptions.length > 0 && (
+                                <SelectGroup>
+                                  <SelectLabel>Cohorts</SelectLabel>
+                                  {cohortOptions.map((c) => (
+                                    <SelectItem key={c.id} value={`cohort:${c.id}`}>
+                                      {c.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              )}
+                              {onDemandCourses.length > 0 && (
+                                <SelectGroup>
+                                  <SelectLabel>On-demand courses</SelectLabel>
+                                  {onDemandCourses.map((c) => (
+                                    <SelectItem key={c.id} value={`course:${c.id}`}>
+                                      {c.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Session</label>
+                          <Select
+                            value={responsesSessionFilter}
+                            onValueChange={setResponsesSessionFilter}
+                            disabled={!responsesCohortFilter || sessionsForCohort.length === 0}
+                          >
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={
+                                  !responsesCohortFilter
+                                    ? 'Select cohort first'
+                                    : sessionsForCohort.length === 0
+                                    ? 'No sessions'
+                                    : 'Select session'
+                                }
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {sessionsForCohort.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>
+                                  {s.session_order ? `${s.session_order}. ` : ''}{s.title}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Quiz</label>
+                          <Select
+                            value={responsesQuizFilter}
+                            onValueChange={setResponsesQuizFilter}
+                            disabled={!responsesSessionFilter || quizzesForSession.length === 0}
+                          >
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={
+                                  !responsesSessionFilter
+                                    ? 'Select session first'
+                                    : quizzesForSession.length === 0
+                                    ? 'No non-graded quizzes'
+                                    : 'Select quiz'
+                                }
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {quizzesForSession.map((q) => (
+                                <SelectItem key={q.id} value={q.id}>
+                                  {q.title}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {responsesLoading ? (
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : !responsesQuiz ? (
+                        <p className="text-center py-8 text-muted-foreground text-sm">
+                          Select a cohort, session, and quiz to view responses.
+                        </p>
+                      ) : (
+                        (() => {
+                          const nonGraded = responsesQuiz.questions.filter((q) => {
+                            const t = q.type ?? 'mcq';
+                            return t === 'mcq_ungraded' || t === 'subjective';
+                          });
+
+                          if (nonGraded.length === 0) {
+                            return (
+                              <p className="text-center py-8 text-muted-foreground text-sm">
+                                This quiz has no ungraded MCQ or subjective questions.
+                              </p>
+                            );
+                          }
+
+                          return (
+                            <div className="space-y-6">
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Badge variant="secondary">{responsesSubmissions.length} submission{responsesSubmissions.length !== 1 ? 's' : ''}</Badge>
+                                <span>· {nonGraded.length} non-graded question{nonGraded.length !== 1 ? 's' : ''}</span>
+                              </div>
+
+                              {responsesSubmissions.length === 0 ? (
+                                <p className="text-center py-8 text-muted-foreground text-sm">
+                                  No submissions yet for this quiz.
+                                </p>
+                              ) : (
+                                nonGraded.map((q, qIdx) => {
+                                  const type = q.type ?? 'mcq';
+                                  return (
+                                    <div key={q.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <Badge variant="outline" className="text-xs">Q{qIdx + 1}</Badge>
+                                        <Badge variant="secondary" className="text-xs">
+                                          {type === 'subjective' ? 'Subjective · Not graded' : 'MCQ · Not graded'}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm font-medium">{q.question}</p>
+
+                                      <div className="space-y-2">
+                                        {responsesSubmissions.map((sub) => {
+                                          const a = sub.answers?.[q.id];
+                                          const hasAnswer = a !== undefined && a !== null && a !== '';
+                                          let display: React.ReactNode;
+                                          if (!hasAnswer) {
+                                            display = <span className="italic text-muted-foreground">No response</span>;
+                                          } else if (type === 'subjective') {
+                                            display = (
+                                              <p className="text-sm whitespace-pre-wrap break-words">{String(a)}</p>
+                                            );
+                                          } else {
+                                            const idx = Number(a);
+                                            const opt = q.options?.[idx] ?? `Option ${idx + 1}`;
+                                            display = <p className="text-sm">{opt}</p>;
+                                          }
+                                          return (
+                                            <div
+                                              key={sub.user_id}
+                                              className="rounded-md bg-muted/40 p-3 space-y-1"
+                                            >
+                                              <div className="flex items-center justify-between gap-2 flex-wrap text-xs text-muted-foreground">
+                                                <span className="font-medium text-foreground">
+                                                  {sub.name || 'Unknown'}
+                                                </span>
+                                                <span>{sub.email}</span>
+                                                <span>{new Date(sub.submitted_at).toLocaleString()}</span>
+                                              </div>
+                                              <div>{display}</div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+                          );
+                        })()
+                      )}
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
