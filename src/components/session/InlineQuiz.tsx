@@ -64,7 +64,7 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
       supabase.from('quizzes').select('questions').eq('id', quizId).single(),
       supabase
         .from('quiz_submissions')
-        .select('score')
+        .select('score, answers')
         .eq('quiz_id', quizId)
         .eq('user_id', user!.id)
         .order('submitted_at', { ascending: false })
@@ -77,6 +77,7 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
     }
     if (subRes.data) {
       setLatestScore(subRes.data.score);
+      setLatestAnswers((subRes.data.answers as Record<string, number | string>) ?? {});
       setHasSubmission(true);
       setShowResults(true);
     }
