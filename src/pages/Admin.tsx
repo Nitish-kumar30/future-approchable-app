@@ -1102,7 +1102,7 @@ export default function Admin() {
         </div>
 
          <Tabs defaultValue="cohorts" className="space-y-6">
-           <TabsList className="grid w-full grid-cols-10 lg:w-auto lg:inline-grid">
+           <TabsList className="grid w-full grid-cols-11 lg:w-auto lg:inline-grid">
               <TabsTrigger value="cohorts" className="gap-2">
                 <Users className="h-4 w-4" /> Cohorts
               </TabsTrigger>
@@ -1114,6 +1114,9 @@ export default function Admin() {
               </TabsTrigger>
               <TabsTrigger value="quizzes" className="gap-2">
                 <ClipboardList className="h-4 w-4" /> Quizzes
+              </TabsTrigger>
+              <TabsTrigger value="responses" className="gap-2">
+                <MessageSquare className="h-4 w-4" /> Quiz Responses
               </TabsTrigger>
               <TabsTrigger value="enrollments" className="gap-2">
                 <Users className="h-4 w-4" /> Enrollments
