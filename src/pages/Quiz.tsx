@@ -18,6 +18,7 @@ import {
   Trophy,
   RotateCcw,
 } from 'lucide-react';
+import QuizResponseList from '@/components/session/QuizResponseList';
 
 type QuestionType = 'mcq' | 'mcq_ungraded' | 'subjective';
 
