@@ -959,9 +959,112 @@ export default function Admin() {
      } else {
        setFeedbackEntries([]);
      }
-   }, [feedbackFilter]);
- 
-   const getEnrollmentParentName = (enrollment: EnrollmentWithUser) => {
+    }, [feedbackFilter]);
+
+    // Quiz Responses fetchers
+    const fetchSessionQuizMap = async () => {
+      const { data } = await supabase
+        .from('session_quizzes')
+        .select('session_id, quiz_id, display_order')
+        .order('display_order', { ascending: true });
+      const map: Record<string, string[]> = {};
+      (data || []).forEach((row) => {
+        if (!map[row.session_id]) map[row.session_id] = [];
+        map[row.session_id].push(row.quiz_id);
+      });
+      setResponsesSessionQuizMap(map);
+    };
+
+    useEffect(() => {
+      if (isAdmin) fetchSessionQuizMap();
+    }, [isAdmin]);
+
+    const fetchQuizResponses = async (quizId: string) => {
+      setResponsesLoading(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-quiz-responses?quiz_id=${quizId}`;
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        });
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Failed to fetch responses');
+        }
+        const data = await res.json();
+        setResponsesQuiz(data.quiz);
+        setResponsesSubmissions(data.submissions || []);
+      } catch (error) {
+        console.error('Error fetching quiz responses:', error);
+        toast({ title: 'Error fetching responses', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
+        setResponsesQuiz(null);
+        setResponsesSubmissions([]);
+      } finally {
+        setResponsesLoading(false);
+      }
+    };
+
+    useEffect(() => {
+      if (responsesQuizFilter) {
+        fetchQuizResponses(responsesQuizFilter);
+      } else {
+        setResponsesQuiz(null);
+        setResponsesSubmissions([]);
+      }
+    }, [responsesQuizFilter]);
+
+    useEffect(() => {
+      setResponsesSessionFilter('');
+      setResponsesQuizFilter('');
+    }, [responsesCohortFilter]);
+
+    useEffect(() => {
+      setResponsesQuizFilter('');
+    }, [responsesSessionFilter]);
+
+    const downloadResponsesCSV = () => {
+      if (!responsesQuiz) return;
+      const nonGraded = responsesQuiz.questions.filter(
+        (q) => (q.type ?? 'mcq') === 'mcq_ungraded' || (q.type ?? 'mcq') === 'subjective'
+      );
+      const rows: string[][] = [['Submitted At', 'Name', 'Email', 'Question', 'Question Type', 'Answer']];
+      responsesSubmissions.forEach((sub) => {
+        nonGraded.forEach((q) => {
+          const a = sub.answers?.[q.id];
+          let answerText = '';
+          if (a === undefined || a === null || a === '') {
+            answerText = '(no response)';
+          } else if (q.type === 'subjective') {
+            answerText = String(a);
+          } else {
+            const idx = Number(a);
+            answerText = q.options?.[idx] ?? `Option ${idx + 1}`;
+          }
+          rows.push([
+            new Date(sub.submitted_at).toISOString(),
+            sub.name || '',
+            sub.email,
+            q.question,
+            q.type === 'subjective' ? 'Subjective' : 'Ungraded MCQ',
+            answerText,
+          ]);
+        });
+      });
+      const csv = rows
+        .map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `quiz-responses-${responsesQuiz.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+    };
+
+    const getEnrollmentParentName = (enrollment: EnrollmentWithUser) => {
      if (enrollment.cohort_id) {
        return cohorts.find(c => c.id === enrollment.cohort_id)?.name || 'Unknown Cohort';
      }
