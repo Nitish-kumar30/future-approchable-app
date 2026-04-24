@@ -40,6 +40,7 @@ interface Submission {
   id: string;
   score: number | null;
   submitted_at: string;
+  answers: Record<string, number | string>;
 }
 
 const SUBJECTIVE_MAX = 1000;
