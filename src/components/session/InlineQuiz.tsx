@@ -17,6 +17,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import CohortUpsellCard from '@/components/session/CohortUpsellCard';
+import QuizResponseList from '@/components/session/QuizResponseList';
 
 type QuestionType = 'mcq' | 'mcq_ungraded' | 'subjective';
 
@@ -45,6 +46,7 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [latestScore, setLatestScore] = useState<number | null>(null);
+  const [latestAnswers, setLatestAnswers] = useState<Record<string, number | string>>({});
   const [hasSubmission, setHasSubmission] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -62,7 +64,7 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
       supabase.from('quizzes').select('questions').eq('id', quizId).single(),
       supabase
         .from('quiz_submissions')
-        .select('score')
+        .select('score, answers')
         .eq('quiz_id', quizId)
         .eq('user_id', user!.id)
         .order('submitted_at', { ascending: false })
@@ -75,6 +77,7 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
     }
     if (subRes.data) {
       setLatestScore(subRes.data.score);
+      setLatestAnswers((subRes.data.answers as Record<string, number | string>) ?? {});
       setHasSubmission(true);
       setShowResults(true);
     }
@@ -114,6 +117,7 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
     } else if (data && data.length > 0) {
       const result = data[0];
       setLatestScore(result.score);
+      setLatestAnswers({ ...answers });
       setHasSubmission(true);
       setShowResults(true);
       setShowUpsell(true);
@@ -198,6 +202,13 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
             </Button>
           </CardContent>
         </Card>
+        {questions.length > 0 && (
+          <QuizResponseList
+            questions={questions}
+            answers={latestAnswers}
+            compact
+          />
+        )}
         {showUpsell && (
           <CohortUpsellCard variant={upsellVariant} />
         )}

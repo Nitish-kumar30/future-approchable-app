@@ -18,6 +18,7 @@ import {
   Trophy,
   RotateCcw,
 } from 'lucide-react';
+import QuizResponseList from '@/components/session/QuizResponseList';
 
 type QuestionType = 'mcq' | 'mcq_ungraded' | 'subjective';
 
@@ -40,6 +41,7 @@ interface Submission {
   id: string;
   score: number | null;
   submitted_at: string;
+  answers: Record<string, number | string>;
 }
 
 const SUBJECTIVE_MAX = 1000;
@@ -83,7 +85,7 @@ export default function QuizPage() {
   const fetchLatestSubmission = async () => {
     const { data } = await supabase
       .from('quiz_submissions')
-      .select('id, score, submitted_at')
+      .select('id, score, submitted_at, answers')
       .eq('quiz_id', id)
       .eq('user_id', user?.id)
       .order('submitted_at', { ascending: false })
@@ -91,7 +93,10 @@ export default function QuizPage() {
       .maybeSingle();
 
     if (data) {
-      setLatestSubmission(data);
+      setLatestSubmission({
+        ...data,
+        answers: (data.answers as Record<string, number | string>) ?? {},
+      });
       setShowResults(true);
     }
   };
@@ -139,6 +144,7 @@ export default function QuizPage() {
         id: result.submission_id,
         score: result.score,
         submitted_at: new Date().toISOString(),
+        answers: { ...answers },
       });
       setShowResults(true);
       toast({
@@ -249,6 +255,14 @@ export default function QuizPage() {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {/* Submitted Responses */}
+        {showResults && latestSubmission && (
+          <QuizResponseList
+            questions={quiz.questions}
+            answers={latestSubmission.answers ?? {}}
+          />
         )}
 
         {/* Questions */}
