@@ -5,24 +5,28 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
+import { Textarea } from '@/components/ui/textarea';
+import {
   ArrowLeft,
   CheckCircle2,
   Loader2,
   Trophy,
-  RotateCcw
+  RotateCcw,
 } from 'lucide-react';
+
+type QuestionType = 'mcq' | 'mcq_ungraded' | 'subjective';
 
 interface Question {
   id: string;
+  type?: QuestionType;
   question: string;
-  options: string[];
-  correctAnswer: number;
+  options?: string[];
+  correctAnswer?: number;
 }
 
 interface Quiz {
@@ -34,18 +38,20 @@ interface Quiz {
 
 interface Submission {
   id: string;
-  score: number;
+  score: number | null;
   submitted_at: string;
 }
+
+const SUBJECTIVE_MAX = 1000;
 
 export default function QuizPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const [quiz, setQuiz] = useState<Quiz | null>(null);
-  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [answers, setAnswers] = useState<Record<string, number | string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [latestSubmission, setLatestSubmission] = useState<Submission | null>(null);
@@ -68,7 +74,7 @@ export default function QuizPage() {
     if (!error && data) {
       setQuiz({
         ...data,
-        questions: (data.questions as unknown as Question[]) || []
+        questions: (data.questions as unknown as Question[]) || [],
       });
     }
     setIsLoading(false);
@@ -90,17 +96,19 @@ export default function QuizPage() {
     }
   };
 
-  const handleAnswerChange = (questionId: string, answerIndex: number) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: answerIndex
-    }));
+  const handleAnswerChange = (questionId: string, value: number | string) => {
+    setAnswers(prev => ({ ...prev, [questionId]: value }));
   };
 
   const handleSubmit = async () => {
     if (!quiz || !user) return;
 
-    const unanswered = quiz.questions.filter(q => answers[q.id] === undefined);
+    const unanswered = quiz.questions.filter(q => {
+      const a = answers[q.id];
+      const type = q.type ?? 'mcq';
+      if (type === 'subjective') return typeof a !== 'string' || a.trim().length === 0;
+      return a === undefined || a === null;
+    });
     if (unanswered.length > 0) {
       toast({
         title: 'Please answer all questions',
@@ -112,12 +120,10 @@ export default function QuizPage() {
 
     setIsSubmitting(true);
 
-    // Use secure server-side function for quiz submission and score calculation
-    const { data, error } = await supabase
-      .rpc('submit_quiz_answers', {
-        p_quiz_id: id,
-        p_answers: answers
-      });
+    const { data, error } = await supabase.rpc('submit_quiz_answers', {
+      p_quiz_id: id,
+      p_answers: answers,
+    });
 
     setIsSubmitting(false);
 
@@ -137,7 +143,7 @@ export default function QuizPage() {
       setShowResults(true);
       toast({
         title: 'Quiz submitted!',
-        description: `You scored ${result.score}%`,
+        description: result.score !== null ? `You scored ${result.score}%` : 'Thanks for your responses.',
       });
     }
   };
@@ -170,6 +176,11 @@ export default function QuizPage() {
     );
   }
 
+  const gradedCount = quiz.questions.filter(q => (q.type ?? 'mcq') === 'mcq').length;
+  const hasGraded = gradedCount > 0;
+  const isGradedSubmission = latestSubmission?.score !== null && latestSubmission?.score !== undefined;
+  const passed = isGradedSubmission && (latestSubmission!.score as number) >= 70;
+
   return (
     <MainLayout>
       <div className="max-w-3xl mx-auto space-y-8 animate-fade-in">
@@ -184,21 +195,53 @@ export default function QuizPage() {
             {quiz.title}
           </h1>
           <p className="text-muted-foreground">
-            {quiz.questions.length} questions
+            {quiz.questions.length} question{quiz.questions.length === 1 ? '' : 's'}
+            {hasGraded ? ` · ${gradedCount} graded` : ' · Not graded'}
           </p>
         </div>
 
         {/* Results Banner */}
         {showResults && latestSubmission && (
-          <Card className={`card-elevated ${latestSubmission.score >= 70 ? 'border-success/50 bg-success/5' : 'border-warning/50 bg-warning/5'}`}>
+          <Card
+            className={`card-elevated ${
+              !isGradedSubmission
+                ? 'border-primary/40 bg-primary/5'
+                : passed
+                  ? 'border-success/50 bg-success/5'
+                  : 'border-warning/50 bg-warning/5'
+            }`}
+          >
             <CardContent className="flex items-center justify-between py-6">
               <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${latestSubmission.score >= 70 ? 'bg-success/20' : 'bg-warning/20'}`}>
-                  <Trophy className={`h-6 w-6 ${latestSubmission.score >= 70 ? 'text-success' : 'text-warning'}`} />
+                <div
+                  className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                    !isGradedSubmission
+                      ? 'bg-primary/15'
+                      : passed
+                        ? 'bg-success/20'
+                        : 'bg-warning/20'
+                  }`}
+                >
+                  {isGradedSubmission ? (
+                    <Trophy
+                      className={`h-6 w-6 ${passed ? 'text-success' : 'text-warning'}`}
+                    />
+                  ) : (
+                    <CheckCircle2 className="h-6 w-6 text-primary" />
+                  )}
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Your latest score</p>
-                  <p className="text-3xl font-bold">{latestSubmission.score}%</p>
+                  {isGradedSubmission ? (
+                    <>
+                      <p className="text-sm text-muted-foreground">Your latest score</p>
+                      <p className="text-3xl font-bold">{latestSubmission.score}%</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground">Submitted</p>
+                      <p className="text-lg font-semibold">Thanks for your responses!</p>
+                    </>
+                  )}
                 </div>
               </div>
               <Button variant="outline" onClick={handleRetake} className="gap-2">
@@ -211,42 +254,76 @@ export default function QuizPage() {
         {/* Questions */}
         {!showResults && (
           <div className="space-y-6">
-            {quiz.questions.map((question, index) => (
-              <Card key={question.id} className="card-elevated">
-                <CardHeader>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="outline">Question {index + 1}</Badge>
-                    {answers[question.id] !== undefined && (
-                      <CheckCircle2 className="h-4 w-4 text-success" />
-                    )}
-                  </div>
-                  <CardTitle className="text-lg font-medium">
-                    {question.question}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <RadioGroup
-                    value={answers[question.id]?.toString()}
-                    onValueChange={(value) => handleAnswerChange(question.id, parseInt(value))}
-                  >
-                    {question.options.map((option, optionIndex) => (
-                      <div key={optionIndex} className="flex items-center space-x-3 py-2">
-                        <RadioGroupItem 
-                          value={optionIndex.toString()} 
-                          id={`${question.id}-${optionIndex}`} 
+            {quiz.questions.map((question, index) => {
+              const type = question.type ?? 'mcq';
+              const answered =
+                answers[question.id] !== undefined &&
+                (type !== 'subjective' ||
+                  (typeof answers[question.id] === 'string' &&
+                    (answers[question.id] as string).trim().length > 0));
+
+              return (
+                <Card key={question.id} className="card-elevated">
+                  <CardHeader>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <Badge variant="outline">Question {index + 1}</Badge>
+                      {type !== 'mcq' && (
+                        <Badge variant="secondary" className="text-xs">Not graded</Badge>
+                      )}
+                      {answered && (
+                        <CheckCircle2 className="h-4 w-4 text-success" />
+                      )}
+                    </div>
+                    <CardTitle className="text-lg font-medium">
+                      {question.question}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {type === 'subjective' ? (
+                      <div className="space-y-1">
+                        <Textarea
+                          value={(answers[question.id] as string) ?? ''}
+                          onChange={(e) =>
+                            handleAnswerChange(
+                              question.id,
+                              e.target.value.slice(0, SUBJECTIVE_MAX),
+                            )
+                          }
+                          maxLength={SUBJECTIVE_MAX}
+                          placeholder="Type your answer..."
+                          className="min-h-[120px]"
                         />
-                        <Label 
-                          htmlFor={`${question.id}-${optionIndex}`}
-                          className="text-base cursor-pointer flex-1"
-                        >
-                          {option}
-                        </Label>
+                        <p className="text-xs text-muted-foreground text-right">
+                          {((answers[question.id] as string) ?? '').length}/{SUBJECTIVE_MAX}
+                        </p>
                       </div>
-                    ))}
-                  </RadioGroup>
-                </CardContent>
-              </Card>
-            ))}
+                    ) : (
+                      <RadioGroup
+                        value={answers[question.id]?.toString()}
+                        onValueChange={(value) =>
+                          handleAnswerChange(question.id, parseInt(value))
+                        }
+                      >
+                        {(question.options ?? []).map((option, optionIndex) => (
+                          <div key={optionIndex} className="flex items-center space-x-3 py-2">
+                            <RadioGroupItem
+                              value={optionIndex.toString()}
+                              id={`${question.id}-${optionIndex}`}
+                            />
+                            <Label
+                              htmlFor={`${question.id}-${optionIndex}`}
+                              className="text-base cursor-pointer flex-1"
+                            >
+                              {option}
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
 
             <div className="flex justify-end pt-4">
               <Button size="lg" onClick={handleSubmit} disabled={isSubmitting}>
