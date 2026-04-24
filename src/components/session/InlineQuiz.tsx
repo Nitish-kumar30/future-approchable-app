@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 import {
   CheckCircle2,
   Loader2,
@@ -17,12 +18,17 @@ import {
 } from 'lucide-react';
 import CohortUpsellCard from '@/components/session/CohortUpsellCard';
 
+type QuestionType = 'mcq' | 'mcq_ungraded' | 'subjective';
+
 interface Question {
   id: string;
+  type?: QuestionType;
   question: string;
-  options: string[];
-  correctAnswer: number;
+  options?: string[];
+  correctAnswer?: number;
 }
+
+const SUBJECTIVE_MAX = 1000;
 
 interface InlineQuizProps {
   quizId: string;
@@ -35,10 +41,11 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
   const { toast } = useToast();
 
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [answers, setAnswers] = useState<Record<string, number | string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [latestScore, setLatestScore] = useState<number | null>(null);
+  const [hasSubmission, setHasSubmission] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showUpsell, setShowUpsell] = useState(false);
@@ -68,15 +75,24 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
     }
     if (subRes.data) {
       setLatestScore(subRes.data.score);
+      setHasSubmission(true);
       setShowResults(true);
     }
     setIsLoading(false);
   };
 
+  const gradedCount = questions.filter(q => (q.type ?? 'mcq') === 'mcq').length;
+  const hasGraded = gradedCount > 0;
+
   const handleSubmit = async () => {
     if (!user) return;
 
-    const unanswered = questions.filter(q => answers[q.id] === undefined);
+    const unanswered = questions.filter(q => {
+      const a = answers[q.id];
+      const type = q.type ?? 'mcq';
+      if (type === 'subjective') return typeof a !== 'string' || a.trim().length === 0;
+      return a === undefined || a === null;
+    });
     if (unanswered.length > 0) {
       toast({
         title: 'Please answer all questions',
@@ -98,9 +114,13 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
     } else if (data && data.length > 0) {
       const result = data[0];
       setLatestScore(result.score);
+      setHasSubmission(true);
       setShowResults(true);
       setShowUpsell(true);
-      toast({ title: 'Quiz submitted!', description: `You scored ${result.score}%` });
+      toast({
+        title: 'Quiz submitted!',
+        description: result.score !== null ? `You scored ${result.score}%` : 'Thanks for your responses.',
+      });
 
       onCompleted?.();
     }
@@ -132,18 +152,45 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
   }
 
   // Results view
-  if (showResults && latestScore !== null) {
+  if (showResults && hasSubmission) {
+    const isGraded = latestScore !== null;
+    const passed = isGraded && latestScore >= 70;
+    const accentClass = !isGraded
+      ? 'border-primary/40 bg-primary/5'
+      : passed
+        ? 'border-green-500/50 bg-green-500/5'
+        : 'border-yellow-500/50 bg-yellow-500/5';
+    const iconBg = !isGraded
+      ? 'bg-primary/15'
+      : passed
+        ? 'bg-green-500/20'
+        : 'bg-yellow-500/20';
+    const iconColor = !isGraded
+      ? 'text-primary'
+      : passed
+        ? 'text-green-600'
+        : 'text-yellow-600';
+    const upsellVariant = !isGraded ? 'quiz-high' : passed ? 'quiz-high' : 'quiz-low';
+
     return (
       <div className="space-y-3">
-        <Card className={`${latestScore >= 70 ? 'border-green-500/50 bg-green-500/5' : 'border-yellow-500/50 bg-yellow-500/5'}`}>
+        <Card className={accentClass}>
           <CardContent className="flex items-center justify-between py-4">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${latestScore >= 70 ? 'bg-green-500/20' : 'bg-yellow-500/20'}`}>
-                <Trophy className={`h-5 w-5 ${latestScore >= 70 ? 'text-green-600' : 'text-yellow-600'}`} />
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${iconBg}`}>
+                {isGraded ? (
+                  <Trophy className={`h-5 w-5 ${iconColor}`} />
+                ) : (
+                  <CheckCircle2 className={`h-5 w-5 ${iconColor}`} />
+                )}
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{quizTitle}</p>
-                <p className="text-xl font-bold">{latestScore}%</p>
+                {isGraded ? (
+                  <p className="text-xl font-bold">{latestScore}%</p>
+                ) : (
+                  <p className="text-base font-semibold">Submitted — thanks for your responses!</p>
+                )}
               </div>
             </div>
             <Button variant="outline" size="sm" onClick={handleRetake} className="gap-2">
@@ -152,7 +199,7 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
           </CardContent>
         </Card>
         {showUpsell && (
-          <CohortUpsellCard variant={latestScore >= 70 ? 'quiz-high' : 'quiz-low'} />
+          <CohortUpsellCard variant={upsellVariant} />
         )}
       </div>
     );
@@ -166,33 +213,71 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
           <ClipboardList className="h-4 w-4 text-primary" />
           {quizTitle}
         </CardTitle>
-        <p className="text-xs text-muted-foreground">{questions.length} questions</p>
+        <p className="text-xs text-muted-foreground">
+          {questions.length} question{questions.length === 1 ? '' : 's'}
+          {hasGraded ? ` · ${gradedCount} graded` : ' · Not graded'}
+        </p>
       </CardHeader>
       <CardContent className="space-y-5">
-        {questions.map((question, index) => (
-          <div key={question.id} className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">Q{index + 1}</Badge>
-              {answers[question.id] !== undefined && (
-                <CheckCircle2 className="h-3.5 w-3.5" style={{ color: 'hsl(142 71% 45%)' }} />
+        {questions.map((question, index) => {
+          const type = question.type ?? 'mcq';
+          const answered = answers[question.id] !== undefined &&
+            (type !== 'subjective' || (typeof answers[question.id] === 'string' && (answers[question.id] as string).trim().length > 0));
+
+          return (
+            <div key={question.id} className="space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className="text-xs">Q{index + 1}</Badge>
+                {type !== 'mcq' && (
+                  <Badge variant="secondary" className="text-xs">Not graded</Badge>
+                )}
+                {answered && (
+                  <CheckCircle2 className="h-3.5 w-3.5" style={{ color: 'hsl(142 71% 45%)' }} />
+                )}
+              </div>
+              <p className="text-sm font-medium">{question.question}</p>
+
+              {type === 'subjective' ? (
+                <div className="space-y-1">
+                  <Textarea
+                    value={(answers[question.id] as string) ?? ''}
+                    onChange={(e) =>
+                      setAnswers(prev => ({
+                        ...prev,
+                        [question.id]: e.target.value.slice(0, SUBJECTIVE_MAX),
+                      }))
+                    }
+                    maxLength={SUBJECTIVE_MAX}
+                    placeholder="Type your answer..."
+                    className="min-h-[100px]"
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {((answers[question.id] as string) ?? '').length}/{SUBJECTIVE_MAX}
+                  </p>
+                </div>
+              ) : (
+                <RadioGroup
+                  value={answers[question.id]?.toString()}
+                  onValueChange={(value) =>
+                    setAnswers(prev => ({ ...prev, [question.id]: parseInt(value) }))
+                  }
+                >
+                  {(question.options ?? []).map((option, oi) => (
+                    <div key={oi} className="flex items-center space-x-2 py-1">
+                      <RadioGroupItem value={oi.toString()} id={`${quizId}-${question.id}-${oi}`} />
+                      <Label
+                        htmlFor={`${quizId}-${question.id}-${oi}`}
+                        className="text-sm cursor-pointer flex-1"
+                      >
+                        {option}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
               )}
             </div>
-            <p className="text-sm font-medium">{question.question}</p>
-            <RadioGroup
-              value={answers[question.id]?.toString()}
-              onValueChange={(value) => setAnswers(prev => ({ ...prev, [question.id]: parseInt(value) }))}
-            >
-              {question.options.map((option, oi) => (
-                <div key={oi} className="flex items-center space-x-2 py-1">
-                  <RadioGroupItem value={oi.toString()} id={`${quizId}-${question.id}-${oi}`} />
-                  <Label htmlFor={`${quizId}-${question.id}-${oi}`} className="text-sm cursor-pointer flex-1">
-                    {option}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
-        ))}
+          );
+        })}
 
         <div className="flex justify-end pt-2">
           <Button size="sm" onClick={handleSubmit} disabled={isSubmitting}>

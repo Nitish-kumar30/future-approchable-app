@@ -80,6 +80,7 @@ interface MiniProject {
 
 interface Question {
   id: string;
+  type?: 'mcq' | 'mcq_ungraded' | 'subjective';
   question: string;
   options: string[];
   correctAnswer: number;
