@@ -144,6 +144,7 @@ export default function QuizPage() {
         id: result.submission_id,
         score: result.score,
         submitted_at: new Date().toISOString(),
+        answers: { ...answers },
       });
       setShowResults(true);
       toast({
