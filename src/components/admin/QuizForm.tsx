@@ -13,7 +13,7 @@ type QuestionType = 'mcq' | 'mcq_ungraded' | 'subjective';
 
 interface Question {
   id: string;
-  type: QuestionType;
+  type?: QuestionType;
   question: string;
   options: string[];
   correctAnswer: number;
