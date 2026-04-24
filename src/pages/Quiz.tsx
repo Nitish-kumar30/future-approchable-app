@@ -257,6 +257,14 @@ export default function QuizPage() {
           </Card>
         )}
 
+        {/* Submitted Responses */}
+        {showResults && latestSubmission && (
+          <QuizResponseList
+            questions={quiz.questions}
+            answers={latestSubmission.answers ?? {}}
+          />
+        )}
+
         {/* Questions */}
         {!showResults && (
           <div className="space-y-6">
