@@ -210,6 +210,30 @@ export default function Admin() {
     const [registrationsLoading, setRegistrationsLoading] = useState(false);
     const [expandedRegistration, setExpandedRegistration] = useState<string | null>(null);
 
+    // Quiz Responses state
+    interface ResponseQuestion {
+      id: string;
+      type?: 'mcq' | 'mcq_ungraded' | 'subjective';
+      question: string;
+      options?: string[];
+      correctAnswer?: number;
+    }
+    interface QuizResponseSubmission {
+      user_id: string;
+      name: string | null;
+      email: string;
+      submitted_at: string;
+      score: number | null;
+      answers: Record<string, number | string>;
+    }
+    const [responsesCohortFilter, setResponsesCohortFilter] = useState<string>('');
+    const [responsesSessionFilter, setResponsesSessionFilter] = useState<string>('');
+    const [responsesQuizFilter, setResponsesQuizFilter] = useState<string>('');
+    const [responsesSessionQuizMap, setResponsesSessionQuizMap] = useState<Record<string, string[]>>({});
+    const [responsesQuiz, setResponsesQuiz] = useState<{ id: string; title: string; questions: ResponseQuestion[] } | null>(null);
+    const [responsesSubmissions, setResponsesSubmissions] = useState<QuizResponseSubmission[]>([]);
+    const [responsesLoading, setResponsesLoading] = useState(false);
+
   useEffect(() => {
     if (isAdmin) {
       fetchAllData();
