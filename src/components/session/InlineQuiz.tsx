@@ -46,6 +46,7 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [latestScore, setLatestScore] = useState<number | null>(null);
+  const [latestAnswers, setLatestAnswers] = useState<Record<string, number | string>>({});
   const [hasSubmission, setHasSubmission] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
