@@ -117,6 +117,7 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
     } else if (data && data.length > 0) {
       const result = data[0];
       setLatestScore(result.score);
+      setLatestAnswers({ ...answers });
       setHasSubmission(true);
       setShowResults(true);
       setShowUpsell(true);
