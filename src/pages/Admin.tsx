@@ -1512,7 +1512,7 @@ export default function Admin() {
                     variant="outline"
                     size="sm"
                     onClick={downloadResponsesCSV}
-                    disabled={!responsesQuiz || responsesSubmissions.length === 0}
+                    disabled={!responsesData || responsesData.sessions.length === 0}
                   >
                     <Download className="mr-2 h-4 w-4" /> Export CSV
                   </Button>
@@ -1520,215 +1520,140 @@ export default function Admin() {
               </CardHeader>
               <CardContent>
                 {(() => {
-                  // Build selector lists
                   const cohortOptions = cohorts;
                   const onDemandCourses = courses.filter((c) => c.is_on_demand);
 
-                  const sessionsForCohort = (() => {
-                    if (!responsesCohortFilter) return [] as Session[];
-                    if (responsesCohortFilter.startsWith('cohort:')) {
-                      const id = responsesCohortFilter.replace('cohort:', '');
-                      return sessions.filter((s) => s.cohort_id === id);
-                    }
-                    if (responsesCohortFilter.startsWith('course:')) {
-                      const id = responsesCohortFilter.replace('course:', '');
-                      return sessions.filter((s) => s.course_id === id);
-                    }
-                    return [];
-                  })().sort((a, b) => (a.session_order ?? 0) - (b.session_order ?? 0));
-
-                  const quizIdsForSession = responsesSessionFilter
-                    ? responsesSessionQuizMap[responsesSessionFilter] || []
-                    : [];
-
-                  const quizzesForSession = quizIdsForSession
-                    .map((qid) => quizzes.find((q) => q.id === qid))
-                    .filter((q): q is Quiz => !!q)
-                    .filter((q) =>
-                      (q.questions || []).some((qq) => {
-                        const t = qq.type ?? 'mcq';
-                        return t === 'mcq_ungraded' || t === 'subjective';
-                      })
-                    );
-
                   return (
                     <div className="space-y-6">
-                      <div className="grid gap-4 md:grid-cols-3">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Cohort / Course</label>
-                          <Select value={responsesCohortFilter} onValueChange={setResponsesCohortFilter}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select cohort or course" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {cohortOptions.length > 0 && (
-                                <SelectGroup>
-                                  <SelectLabel>Cohorts</SelectLabel>
-                                  {cohortOptions.map((c) => (
-                                    <SelectItem key={c.id} value={`cohort:${c.id}`}>
-                                      {c.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectGroup>
-                              )}
-                              {onDemandCourses.length > 0 && (
-                                <SelectGroup>
-                                  <SelectLabel>On-demand courses</SelectLabel>
-                                  {onDemandCourses.map((c) => (
-                                    <SelectItem key={c.id} value={`course:${c.id}`}>
-                                      {c.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectGroup>
-                              )}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Session</label>
-                          <Select
-                            value={responsesSessionFilter}
-                            onValueChange={setResponsesSessionFilter}
-                            disabled={!responsesCohortFilter || sessionsForCohort.length === 0}
-                          >
-                            <SelectTrigger>
-                              <SelectValue
-                                placeholder={
-                                  !responsesCohortFilter
-                                    ? 'Select cohort first'
-                                    : sessionsForCohort.length === 0
-                                    ? 'No sessions'
-                                    : 'Select session'
-                                }
-                              />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {sessionsForCohort.map((s) => (
-                                <SelectItem key={s.id} value={s.id}>
-                                  {s.session_order ? `${s.session_order}. ` : ''}{s.title}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Quiz</label>
-                          <Select
-                            value={responsesQuizFilter}
-                            onValueChange={setResponsesQuizFilter}
-                            disabled={!responsesSessionFilter || quizzesForSession.length === 0}
-                          >
-                            <SelectTrigger>
-                              <SelectValue
-                                placeholder={
-                                  !responsesSessionFilter
-                                    ? 'Select session first'
-                                    : quizzesForSession.length === 0
-                                    ? 'No non-graded quizzes'
-                                    : 'Select quiz'
-                                }
-                              />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {quizzesForSession.map((q) => (
-                                <SelectItem key={q.id} value={q.id}>
-                                  {q.title}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      <div className="max-w-md space-y-2">
+                        <label className="text-sm font-medium">Cohort / Course</label>
+                        <Select value={responsesCohortFilter} onValueChange={setResponsesCohortFilter}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select cohort or course" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {cohortOptions.length > 0 && (
+                              <SelectGroup>
+                                <SelectLabel>Cohorts</SelectLabel>
+                                {cohortOptions.map((c) => (
+                                  <SelectItem key={c.id} value={`cohort:${c.id}`}>
+                                    {c.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            )}
+                            {onDemandCourses.length > 0 && (
+                              <SelectGroup>
+                                <SelectLabel>On-demand courses</SelectLabel>
+                                {onDemandCourses.map((c) => (
+                                  <SelectItem key={c.id} value={`course:${c.id}`}>
+                                    {c.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            )}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       {responsesLoading ? (
                         <div className="flex items-center justify-center py-12">
                           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
-                      ) : !responsesQuiz ? (
+                      ) : !responsesCohortFilter ? (
                         <p className="text-center py-8 text-muted-foreground text-sm">
-                          Select a cohort, session, and quiz to view responses.
+                          Select a cohort or course to view responses.
+                        </p>
+                      ) : !responsesData || responsesData.sessions.length === 0 ? (
+                        <p className="text-center py-8 text-muted-foreground text-sm">
+                          No ungraded MCQ or subjective questions found for this cohort.
                         </p>
                       ) : (
-                        (() => {
-                          const nonGraded = responsesQuiz.questions.filter((q) => {
-                            const t = q.type ?? 'mcq';
-                            return t === 'mcq_ungraded' || t === 'subjective';
-                          });
-
-                          if (nonGraded.length === 0) {
-                            return (
-                              <p className="text-center py-8 text-muted-foreground text-sm">
-                                This quiz has no ungraded MCQ or subjective questions.
-                              </p>
-                            );
-                          }
-
-                          return (
-                            <div className="space-y-6">
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Badge variant="secondary">{responsesSubmissions.length} submission{responsesSubmissions.length !== 1 ? 's' : ''}</Badge>
-                                <span>· {nonGraded.length} non-graded question{nonGraded.length !== 1 ? 's' : ''}</span>
+                        <div className="space-y-8">
+                          {responsesData.sessions.map((sess) => (
+                            <div key={sess.id} className="space-y-4">
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-base font-semibold">
+                                  {sess.session_order ? `Session ${sess.session_order}: ` : ''}{sess.title}
+                                </h3>
                               </div>
-
-                              {responsesSubmissions.length === 0 ? (
-                                <p className="text-center py-8 text-muted-foreground text-sm">
-                                  No submissions yet for this quiz.
-                                </p>
-                              ) : (
-                                nonGraded.map((q, qIdx) => {
-                                  const type = q.type ?? 'mcq';
-                                  return (
-                                    <div key={q.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <Badge variant="outline" className="text-xs">Q{qIdx + 1}</Badge>
-                                        <Badge variant="secondary" className="text-xs">
-                                          {type === 'subjective' ? 'Subjective · Not graded' : 'MCQ · Not graded'}
-                                        </Badge>
-                                      </div>
-                                      <p className="text-sm font-medium">{q.question}</p>
-
-                                      <div className="space-y-2">
-                                        {responsesSubmissions.map((sub) => {
-                                          const a = sub.answers?.[q.id];
-                                          const hasAnswer = a !== undefined && a !== null && a !== '';
-                                          let display: React.ReactNode;
-                                          if (!hasAnswer) {
-                                            display = <span className="italic text-muted-foreground">No response</span>;
-                                          } else if (type === 'subjective') {
-                                            display = (
-                                              <p className="text-sm whitespace-pre-wrap break-words">{String(a)}</p>
-                                            );
-                                          } else {
-                                            const idx = Number(a);
-                                            const opt = q.options?.[idx] ?? `Option ${idx + 1}`;
-                                            display = <p className="text-sm">{opt}</p>;
-                                          }
-                                          return (
-                                            <div
-                                              key={sub.user_id}
-                                              className="rounded-md bg-muted/40 p-3 space-y-1"
-                                            >
-                                              <div className="flex items-center justify-between gap-2 flex-wrap text-xs text-muted-foreground">
-                                                <span className="font-medium text-foreground">
-                                                  {sub.name || 'Unknown'}
-                                                </span>
-                                                <span>{sub.email}</span>
-                                                <span>{new Date(sub.submitted_at).toLocaleString()}</span>
-                                              </div>
-                                              <div>{display}</div>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
+                              {sess.quizzes.map((quiz) => {
+                                const subByUser = new Map(quiz.submissions.map((s) => [s.user_id, s]));
+                                return (
+                                  <div key={quiz.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-sm font-medium">{quiz.title}</span>
+                                      <Badge variant="secondary" className="text-xs">
+                                        {quiz.submissions.length} / {responsesData.enrolled.length} submitted
+                                      </Badge>
                                     </div>
-                                  );
-                                })
-                              )}
+                                    <div className="overflow-x-auto">
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow>
+                                            <TableHead className="min-w-[160px]">Name</TableHead>
+                                            {quiz.questions.map((q, i) => (
+                                              <TableHead key={q.id} className="min-w-[200px]" title={q.question}>
+                                                <div className="space-y-1">
+                                                  <div className="font-semibold">Q{i + 1}</div>
+                                                  <div className="text-xs font-normal text-muted-foreground line-clamp-2">
+                                                    {q.question}
+                                                  </div>
+                                                </div>
+                                              </TableHead>
+                                            ))}
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {responsesData.enrolled.map((u) => {
+                                            const sub = subByUser.get(u.user_id);
+                                            return (
+                                              <TableRow key={u.user_id}>
+                                                <TableCell className="align-top">
+                                                  <div className="font-medium text-sm">{u.name || 'Unknown'}</div>
+                                                  <div className="text-xs text-muted-foreground">{u.email}</div>
+                                                </TableCell>
+                                                {!sub ? (
+                                                  <TableCell
+                                                    colSpan={quiz.questions.length}
+                                                    className="text-center italic text-muted-foreground text-sm"
+                                                  >
+                                                    (no submission)
+                                                  </TableCell>
+                                                ) : (
+                                                  quiz.questions.map((q) => {
+                                                    const a = sub.answers?.[q.id];
+                                                    const has = a !== undefined && a !== null && a !== '';
+                                                    let content: React.ReactNode = <span className="text-muted-foreground">—</span>;
+                                                    if (has) {
+                                                      if ((q.type ?? 'mcq') === 'subjective') {
+                                                        content = (
+                                                          <p className="text-sm whitespace-pre-wrap break-words">{String(a)}</p>
+                                                        );
+                                                      } else {
+                                                        const idx = Number(a);
+                                                        content = <p className="text-sm">{q.options?.[idx] ?? `Option ${idx + 1}`}</p>;
+                                                      }
+                                                    }
+                                                    return (
+                                                      <TableCell key={q.id} className="align-top text-sm">
+                                                        {content}
+                                                      </TableCell>
+                                                    );
+                                                  })
+                                                )}
+                                              </TableRow>
+                                            );
+                                          })}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
-                          );
-                        })()
+                          ))}
+                        </div>
                       )}
                     </div>
                   );
