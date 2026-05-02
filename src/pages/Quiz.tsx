@@ -111,7 +111,7 @@ export default function QuizPage() {
     const unanswered = quiz.questions.filter(q => {
       const a = answers[q.id];
       const type = q.type ?? 'mcq';
-      if (type === 'subjective') return typeof a !== 'string' || a.trim().length === 0;
+      if (type === 'subjective') return false; // optional
       return a === undefined || a === null;
     });
     if (unanswered.length > 0) {
