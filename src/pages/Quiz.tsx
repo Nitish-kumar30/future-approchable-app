@@ -111,7 +111,7 @@ export default function QuizPage() {
     const unanswered = quiz.questions.filter(q => {
       const a = answers[q.id];
       const type = q.type ?? 'mcq';
-      if (type === 'subjective') return typeof a !== 'string' || a.trim().length === 0;
+      if (type === 'subjective') return false; // optional
       return a === undefined || a === null;
     });
     if (unanswered.length > 0) {
@@ -281,8 +281,14 @@ export default function QuizPage() {
                   <CardHeader>
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <Badge variant="outline">Question {index + 1}</Badge>
-                      {type !== 'mcq' && (
+                      {type === 'mcq_ungraded' && (
                         <Badge variant="secondary" className="text-xs">Not graded</Badge>
+                      )}
+                      {type === 'subjective' && (
+                        <>
+                          <Badge variant="secondary" className="text-xs">Not graded</Badge>
+                          <Badge variant="outline" className="text-xs">Optional</Badge>
+                        </>
                       )}
                       {answered && (
                         <CheckCircle2 className="h-4 w-4 text-success" />
