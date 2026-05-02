@@ -1,37 +1,72 @@
+# Redesign Quiz Responses Admin Tab
 
+## Goal
+- **Single Cohort filter** (cohorts + on-demand courses) — remove Session and Quiz filters.
+- Show all ungraded MCQ + subjective responses for that cohort, **grouped by Session → Quiz**.
+- Within each quiz, render a **pivoted table**: rows = enrolled learners, columns = ungraded/subjective questions, cells = that learner's answer.
+- Scope strictly to **enrolled participants** of the selected cohort/course.
 
-## Plan: Insert 4 approved registrations (with per-user capstone flag)
+## Pivoted layout (per quiz)
 
-Insert 4 rows into `cohort_registrations` with `status = 'approved'`. Capstone office hours flag varies per user:
+```text
+Session 1 — Intro to LLMs
+  Quiz: Fundamentals
+    | Name    | Q1 | Q2 | Q3 |
+    | Nikhil  | Answer of Q1 | Answer of Q2 | Option B |
+    | Aziz    | —            | Answer of Q2 | Option A |
+    | Riya    | (no submission)            |          |
 
-| Name | Email | Capstone Office Hours |
-|---|---|---|
-| chiranjeevi pothuganti | chiru.p149@gmail.com | **true** |
-| Aziz | m.a.aziz@gmail.com | **true** |
-| Amit Kumar | 11amitvishwas@gmail.com | false |
-| Rohit Mahadev | rama153052@gmail.com | false |
+Session 2 — Prompting
+  Quiz: Prompt Patterns
+    | ...
+```
 
-### Execution
+- Columns: only `mcq_ungraded` + `subjective` questions, in question order. Header shows `Q1`, `Q2`… with the full question text in a tooltip / second header line.
+- Rows: all enrolled learners; learners who never submitted that quiz show "(no submission)" spanned across the row.
+- For `mcq_ungraded`: show the chosen option text. For `subjective`: show the text answer (truncate with hover/expand).
+- Sessions sorted by `session_order`. Quizzes/sessions with no ungraded/subjective questions are hidden.
 
-1. Insert into the **test (preview) database** via the database insert tool.
-2. Provide the exact SQL `INSERT` statement in chat so you can run it manually on the live database.
+## Backend — extend existing `get-quiz-responses`
 
-### Field mapping (from CSV)
+Modify `supabase/functions/get-quiz-responses/index.ts` to support a new cohort/course mode (keep existing `quiz_id` mode for backward compatibility).
 
-- `name`, `email`, `whatsapp_number`, `company`, `role` → from CSV
-- `cohort` → `"Cohort 5 - April 23rd, 7:30PM IST/10 AM US Eastern"` (canonical string)
-- `interests` → array of standard options matched from "What do you want to learn?"; free-text extras (e.g., "Building agents to streamline workflows") go to `other_interest`
-- `reason` → "Why do you want to join a study group?"
-- `additional_info` → "Anything else we should know?" (null when blank)
-- `status` → `'approved'`
-- `capstone_office_hours` → `true` for Aziz & Chiranjeevi, `false` for Amit & Rohit
-- `created_at`, `updated_at` → `now()` (defaults)
+New mode — when called with `?cohort_id=<uuid>` **or** `?course_id=<uuid>`:
+1. Admin auth check (already in place).
+2. Load enrolled `user_id`s from `enrollments` for that cohort/course.
+3. Load `sessions` for that cohort/course (id, title, session_order).
+4. Load `session_quizzes` for those session ids → set of `quiz_id`s.
+5. Load `quizzes` (id, title, questions); keep only those with at least one `mcq_ungraded`/`subjective` question.
+6. Load `quiz_submissions` filtered by those quiz_ids AND enrolled user_ids; keep latest per (user, quiz).
+7. Resolve `profiles.full_name` and `auth.admin.getUserById` emails for the enrolled set (reuse existing helper logic).
+8. Return:
+   ```ts
+   {
+     enrolled: Array<{ user_id, name, email }>,
+     sessions: Array<{
+       id, title, session_order,
+       quizzes: Array<{
+         id, title,
+         questions: Array<{ id, type, question, options? }>, // ungraded only
+         submissions: Array<{ user_id, submitted_at, answers }>
+       }>
+     }>
+   }
+   ```
 
-### Result
+Single round-trip from the client.
 
-After insert, all 4 will appear in Admin → **Registrations** (status: approved) and **Unenrolled** (no enrollment record yet). You'll receive the SQL to replay against your live DB.
+## Frontend changes (`src/pages/Admin.tsx`)
 
-### Files touched
+1. Remove state: `responsesSessionFilter`, `responsesQuizFilter`, `responsesSessionQuizMap`, `responsesQuiz`, `responsesSubmissions`.
+2. Add `responsesData` (typed shape above) and keep `responsesLoading`.
+3. Replace the 3-filter grid with a single Cohort/Course Select (reuse existing grouped Select).
+4. On cohort change: call `get-quiz-responses?cohort_id=…` (or `course_id=…`) once.
+5. Render Session → Quiz → pivoted `<Table>` (learners × ungraded questions). Empty answers show `—`; non-submitters show "(no submission)" across the row.
+6. Update `downloadResponsesCSV` to flatten the new structure as wide per-quiz blocks: `Session, Quiz, Learner, Email, Q1, Q2, …`.
 
-None — pure data insert.
+## Files touched
+- `supabase/functions/get-quiz-responses/index.ts` — add cohort/course mode
+- `src/pages/Admin.tsx` — Quiz Responses tab body, state, fetch, CSV export
 
+## Out of scope
+- No DB migrations, no learner-facing changes.
