@@ -970,30 +970,16 @@ export default function Admin() {
      }
     }, [feedbackFilter]);
 
-    // Quiz Responses fetchers
-    const fetchSessionQuizMap = async () => {
-      const { data } = await supabase
-        .from('session_quizzes')
-        .select('session_id, quiz_id, display_order')
-        .order('display_order', { ascending: true });
-      const map: Record<string, string[]> = {};
-      (data || []).forEach((row) => {
-        if (!map[row.session_id]) map[row.session_id] = [];
-        map[row.session_id].push(row.quiz_id);
-      });
-      setResponsesSessionQuizMap(map);
-    };
-
-    useEffect(() => {
-      if (isAdmin) fetchSessionQuizMap();
-    }, [isAdmin]);
-
-    const fetchQuizResponses = async (quizId: string) => {
+    // Quiz Responses fetcher (single round-trip per cohort/course)
+    const fetchCohortQuizResponses = async (filterValue: string) => {
       setResponsesLoading(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error('Not authenticated');
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-quiz-responses?quiz_id=${quizId}`;
+        const param = filterValue.startsWith('cohort:')
+          ? `cohort_id=${filterValue.replace('cohort:', '')}`
+          : `course_id=${filterValue.replace('course:', '')}`;
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-quiz-responses?${param}`;
         const res = await fetch(url, {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -1005,73 +991,65 @@ export default function Admin() {
           throw new Error(errorData.error || 'Failed to fetch responses');
         }
         const data = await res.json();
-        setResponsesQuiz(data.quiz);
-        setResponsesSubmissions(data.submissions || []);
+        setResponsesData({ enrolled: data.enrolled || [], sessions: data.sessions || [] });
       } catch (error) {
         console.error('Error fetching quiz responses:', error);
         toast({ title: 'Error fetching responses', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
-        setResponsesQuiz(null);
-        setResponsesSubmissions([]);
+        setResponsesData(null);
       } finally {
         setResponsesLoading(false);
       }
     };
 
     useEffect(() => {
-      if (responsesQuizFilter) {
-        fetchQuizResponses(responsesQuizFilter);
+      if (responsesCohortFilter) {
+        fetchCohortQuizResponses(responsesCohortFilter);
       } else {
-        setResponsesQuiz(null);
-        setResponsesSubmissions([]);
+        setResponsesData(null);
       }
-    }, [responsesQuizFilter]);
-
-    useEffect(() => {
-      setResponsesSessionFilter('');
-      setResponsesQuizFilter('');
     }, [responsesCohortFilter]);
 
-    useEffect(() => {
-      setResponsesQuizFilter('');
-    }, [responsesSessionFilter]);
+    const formatAnswerForCSV = (q: ResponseQuestion, a: number | string | undefined) => {
+      if (a === undefined || a === null || a === '') return '';
+      if ((q.type ?? 'mcq') === 'subjective') return String(a);
+      const idx = Number(a);
+      return q.options?.[idx] ?? `Option ${idx + 1}`;
+    };
 
     const downloadResponsesCSV = () => {
-      if (!responsesQuiz) return;
-      const nonGraded = responsesQuiz.questions.filter(
-        (q) => (q.type ?? 'mcq') === 'mcq_ungraded' || (q.type ?? 'mcq') === 'subjective'
-      );
-      const rows: string[][] = [['Submitted At', 'Name', 'Email', 'Question', 'Question Type', 'Answer']];
-      responsesSubmissions.forEach((sub) => {
-        nonGraded.forEach((q) => {
-          const a = sub.answers?.[q.id];
-          let answerText = '';
-          if (a === undefined || a === null || a === '') {
-            answerText = '(no response)';
-          } else if (q.type === 'subjective') {
-            answerText = String(a);
-          } else {
-            const idx = Number(a);
-            answerText = q.options?.[idx] ?? `Option ${idx + 1}`;
-          }
-          rows.push([
-            new Date(sub.submitted_at).toISOString(),
-            sub.name || '',
-            sub.email,
-            q.question,
-            q.type === 'subjective' ? 'Subjective' : 'Ungraded MCQ',
-            answerText,
-          ]);
+      if (!responsesData) return;
+      const lines: string[] = [];
+      const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+      responsesData.sessions.forEach((sess) => {
+        sess.quizzes.forEach((quiz) => {
+          const header = ['Session', 'Quiz', 'Learner', 'Email', ...quiz.questions.map((q, i) => `Q${i + 1}: ${q.question}`)];
+          lines.push(header.map(esc).join(','));
+          const subByUser = new Map(quiz.submissions.map((s) => [s.user_id, s]));
+          responsesData.enrolled.forEach((u) => {
+            const sub = subByUser.get(u.user_id);
+            const row = [
+              `${sess.session_order ?? ''} ${sess.title}`.trim(),
+              quiz.title,
+              u.name || '',
+              u.email,
+              ...quiz.questions.map((q) => {
+                if (!sub) return '(no submission)';
+                return formatAnswerForCSV(q, sub.answers?.[q.id] as number | string | undefined);
+              }),
+            ];
+            lines.push(row.map(esc).join(','));
+          });
+          lines.push('');
         });
       });
-      const csv = rows
-        .map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-        .join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `quiz-responses-${responsesQuiz.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.csv`;
+      const label = responsesCohortFilter.replace(/^(cohort|course):/, '');
+      link.download = `quiz-responses-${label}-${new Date().toISOString().split('T')[0]}.csv`;
       link.click();
     };
+
 
     const getEnrollmentParentName = (enrollment: EnrollmentWithUser) => {
      if (enrollment.cohort_id) {
