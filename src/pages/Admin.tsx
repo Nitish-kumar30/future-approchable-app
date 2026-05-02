@@ -218,20 +218,29 @@ export default function Admin() {
       options?: string[];
       correctAnswer?: number;
     }
-    interface QuizResponseSubmission {
+    interface ResponsesEnrolled {
       user_id: string;
       name: string | null;
       email: string;
-      submitted_at: string;
-      score: number | null;
-      answers: Record<string, number | string>;
+    }
+    interface ResponsesQuizBlock {
+      id: string;
+      title: string;
+      questions: ResponseQuestion[];
+      submissions: Array<{ user_id: string; submitted_at: string; answers: Record<string, number | string> }>;
+    }
+    interface ResponsesSessionBlock {
+      id: string;
+      title: string;
+      session_order: number | null;
+      quizzes: ResponsesQuizBlock[];
+    }
+    interface ResponsesData {
+      enrolled: ResponsesEnrolled[];
+      sessions: ResponsesSessionBlock[];
     }
     const [responsesCohortFilter, setResponsesCohortFilter] = useState<string>('');
-    const [responsesSessionFilter, setResponsesSessionFilter] = useState<string>('');
-    const [responsesQuizFilter, setResponsesQuizFilter] = useState<string>('');
-    const [responsesSessionQuizMap, setResponsesSessionQuizMap] = useState<Record<string, string[]>>({});
-    const [responsesQuiz, setResponsesQuiz] = useState<{ id: string; title: string; questions: ResponseQuestion[] } | null>(null);
-    const [responsesSubmissions, setResponsesSubmissions] = useState<QuizResponseSubmission[]>([]);
+    const [responsesData, setResponsesData] = useState<ResponsesData | null>(null);
     const [responsesLoading, setResponsesLoading] = useState(false);
 
   useEffect(() => {
