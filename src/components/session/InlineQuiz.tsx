@@ -239,8 +239,14 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
             <div key={question.id} className="space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="outline" className="text-xs">Q{index + 1}</Badge>
-                {type !== 'mcq' && (
+                {type === 'mcq_ungraded' && (
                   <Badge variant="secondary" className="text-xs">Not graded</Badge>
+                )}
+                {type === 'subjective' && (
+                  <>
+                    <Badge variant="secondary" className="text-xs">Not graded</Badge>
+                    <Badge variant="outline" className="text-xs">Optional</Badge>
+                  </>
                 )}
                 {answered && (
                   <CheckCircle2 className="h-3.5 w-3.5" style={{ color: 'hsl(142 71% 45%)' }} />
