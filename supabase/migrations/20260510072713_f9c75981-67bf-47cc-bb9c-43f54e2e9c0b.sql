@@ -1,0 +1,1 @@
+ALTER TABLE public.cohort_registrations ADD COLUMN IF NOT EXISTS country text, ADD COLUMN IF NOT EXISTS state text;

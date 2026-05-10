@@ -20,6 +20,7 @@ export type Database = {
           capstone_office_hours: boolean
           cohort: string
           company: string
+          country: string | null
           created_at: string
           email: string
           id: string
@@ -28,6 +29,7 @@ export type Database = {
           other_interest: string | null
           reason: string
           role: string
+          state: string | null
           status: string
           updated_at: string
           whatsapp_number: string
@@ -37,6 +39,7 @@ export type Database = {
           capstone_office_hours?: boolean
           cohort: string
           company: string
+          country?: string | null
           created_at?: string
           email: string
           id?: string
@@ -45,6 +48,7 @@ export type Database = {
           other_interest?: string | null
           reason: string
           role: string
+          state?: string | null
           status?: string
           updated_at?: string
           whatsapp_number: string
@@ -54,6 +58,7 @@ export type Database = {
           capstone_office_hours?: boolean
           cohort?: string
           company?: string
+          country?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -62,6 +67,7 @@ export type Database = {
           other_interest?: string | null
           reason?: string
           role?: string
+          state?: string | null
           status?: string
           updated_at?: string
           whatsapp_number?: string
