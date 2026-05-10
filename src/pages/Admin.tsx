@@ -193,6 +193,8 @@ export default function Admin() {
       name: string;
       email: string;
       whatsapp_number: string;
+      country: string | null;
+      state: string | null;
       cohort: string;
       company: string;
       role: string;
@@ -705,9 +707,9 @@ export default function Admin() {
     };
 
     const downloadRegistrationsCSV = () => {
-      const header = 'Name,Email,Phone,Company,Role,Cohort,Capstone Office Hours,Interests,Other Interest,Reason,Additional Info,Status,Registered';
+      const header = 'Name,Email,Phone,Country,State,Company,Role,Cohort,Capstone Office Hours,Interests,Other Interest,Reason,Additional Info,Status,Registered';
       const rows = registrations.map(r =>
-        `"${(r.name || '').replace(/"/g, '""')}","${r.email}","${r.whatsapp_number}","${(r.company || '').replace(/"/g, '""')}","${(r.role || '').replace(/"/g, '""')}","${(r.cohort || '').replace(/"/g, '""')}","${r.capstone_office_hours ? 'Yes' : 'No'}","${(r.interests || []).join('; ')}","${(r.other_interest || '').replace(/"/g, '""')}","${(r.reason || '').replace(/"/g, '""')}","${(r.additional_info || '').replace(/"/g, '""')}","${r.status}","${new Date(r.created_at).toLocaleDateString()}"`
+        `"${(r.name || '').replace(/"/g, '""')}","${r.email}","${r.whatsapp_number}","${(r.country || '').replace(/"/g, '""')}","${(r.state || '').replace(/"/g, '""')}","${(r.company || '').replace(/"/g, '""')}","${(r.role || '').replace(/"/g, '""')}","${(r.cohort || '').replace(/"/g, '""')}","${r.capstone_office_hours ? 'Yes' : 'No'}","${(r.interests || []).join('; ')}","${(r.other_interest || '').replace(/"/g, '""')}","${(r.reason || '').replace(/"/g, '""')}","${(r.additional_info || '').replace(/"/g, '""')}","${r.status}","${new Date(r.created_at).toLocaleDateString()}"`
       );
       const csv = [header, ...rows].join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });
@@ -2185,6 +2187,10 @@ export default function Admin() {
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div><span className="font-medium text-muted-foreground">Company:</span> {reg.company}</div>
                                 <div><span className="font-medium text-muted-foreground">Role:</span> {reg.role}</div>
+                                <div><span className="font-medium text-muted-foreground">Country:</span> {reg.country || '—'}</div>
+                                {reg.country === 'India' && (
+                                  <div><span className="font-medium text-muted-foreground">State:</span> {reg.state || '—'}</div>
+                                )}
                                 <div><span className="font-medium text-muted-foreground">Cohort:</span> {reg.cohort}</div>
                                 <div><span className="font-medium text-muted-foreground">Status:</span> {reg.status}</div>
                                 <div><span className="font-medium text-muted-foreground">Capstone Office Hours:</span> {reg.capstone_office_hours ? 'Yes' : 'No'}</div>
