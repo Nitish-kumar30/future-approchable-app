@@ -55,6 +55,7 @@ function validateInput(body: Record<string, unknown>): string | null {
     [body.name, 100, "name"],
     [body.email, 255, "email"],
     [body.whatsapp_number, 20, "whatsapp_number"],
+    [body.country, 100, "country"],
     [body.cohort, 100, "cohort"],
     [body.company, 100, "company"],
     [body.role, 100, "role"],
@@ -67,6 +68,12 @@ function validateInput(body: Record<string, unknown>): string | null {
   }
 
   if (!EMAIL_REGEX.test(body.email as string)) return "Invalid email format";
+
+  // State required if India
+  if (body.country === "India") {
+    const stateErr = validateString(body.state, 100, "state");
+    if (stateErr) return stateErr;
+  }
 
   // Optional fields
   if (body.additional_info != null && body.additional_info !== "") {
@@ -127,7 +134,7 @@ serve(async (req) => {
       });
     }
 
-    const { name, email, whatsapp_number, cohort, interests, other_interest, capstone_office_hours, company, role, reason, additional_info } = body;
+    const { name, email, whatsapp_number, country, state, cohort, interests, other_interest, capstone_office_hours, company, role, reason, additional_info } = body;
 
     // Use service role to insert (bypasses RLS)
     const supabase = createClient(
@@ -139,6 +146,8 @@ serve(async (req) => {
       name: name.trim(),
       email: email.trim().toLowerCase(),
       whatsapp_number: whatsapp_number.trim(),
+      country: country.trim(),
+      state: state || null,
       cohort,
       interests: interests || [],
       other_interest: other_interest || null,
@@ -162,7 +171,7 @@ serve(async (req) => {
     fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ Name: name, Email: email, Cohort: cohort, CapstoneOfficeHours: capstone_office_hours ?? true }),
+      body: JSON.stringify({ Name: name, Email: email, Cohort: cohort, Country: country, State: state, CapstoneOfficeHours: capstone_office_hours ?? true }),
     }).then(r => r.text()).catch(err => console.error("Webhook trigger failed:", err));
 
     return new Response(JSON.stringify({ success: true }), {

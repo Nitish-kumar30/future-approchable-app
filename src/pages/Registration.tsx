@@ -16,27 +16,41 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { CheckCircle2, PartyPopper } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { COUNTRIES, INDIA_STATES, PRIORITY_COUNTRIES } from "@/lib/locations";
 
 const COHORT_OPTIONS = ["Cohort 5 - April 23rd - 7:30PM IST/10AM US Eastern"];
 
 const INTEREST_OPTIONS = ["AI Fundamentals", "Vibe Coding", "No-code AI Agents", "Prompt Engineering", "Other"];
 
-const registrationSchema = z.object({
-  name: z.string().min(2, "Name is required"),
-  email: z.string().email("Valid email is required"),
-  whatsapp_number: z.string().min(5, "WhatsApp number is required"),
-  cohort: z.string().min(1, "Please select a cohort"),
-  interests: z.array(z.string()).min(1, "Select at least one interest"),
-  capstone_office_hours: z.boolean().default(true),
-  company: z.string().min(1, "Company name is required"),
-  other_interest: z.string().optional(),
-  role: z.string().min(1, "Role is required"),
-  reason: z.string().min(1, "Please tell us why you want to join"),
-  additional_info: z.string().optional(),
-  fee_acknowledged: z.literal(true, {
-    errorMap: () => ({ message: "You must acknowledge the commitment fee" }),
-  }),
-});
+const registrationSchema = z
+  .object({
+    name: z.string().min(2, "Name is required"),
+    email: z.string().email("Valid email is required"),
+    whatsapp_number: z.string().min(5, "WhatsApp number is required"),
+    country: z.string().min(1, "Please select your country"),
+    state: z.string().optional(),
+    cohort: z.string().min(1, "Please select a cohort"),
+    interests: z.array(z.string()).min(1, "Select at least one interest"),
+    capstone_office_hours: z.boolean().default(true),
+    company: z.string().min(1, "Company name is required"),
+    other_interest: z.string().optional(),
+    role: z.string().min(1, "Role is required"),
+    reason: z.string().min(1, "Please tell us why you want to join"),
+    additional_info: z.string().optional(),
+    fee_acknowledged: z.literal(true, {
+      errorMap: () => ({ message: "You must acknowledge the commitment fee" }),
+    }),
+  })
+  .superRefine((data, ctx) => {
+    if (data.country === "India" && (!data.state || data.state.trim().length === 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["state"],
+        message: "Please select your state",
+      });
+    }
+  });
 
 type RegistrationForm = z.infer<typeof registrationSchema>;
 
@@ -141,6 +155,8 @@ export default function Registration() {
       name: "",
       email: "",
       whatsapp_number: "",
+      country: "",
+      state: "",
       cohort: "",
       interests: [],
       capstone_office_hours: true,
@@ -161,6 +177,8 @@ export default function Registration() {
           name: data.name,
           email: data.email,
           whatsapp_number: data.whatsapp_number,
+          country: data.country,
+          state: data.country === "India" ? data.state : null,
           cohort: data.cohort,
           interests: data.interests,
           capstone_office_hours: data.capstone_office_hours,
@@ -194,6 +212,8 @@ export default function Registration() {
       setIsSubmitting(false);
     }
   };
+
+  const selectedCountry = form.watch("country");
 
   if (submitted) {
     return <ThankYouScreen />;
@@ -257,6 +277,61 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
+
+                {/* Country */}
+                <FormField
+                  control={form.control}
+                  name="country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Country *</FormLabel>
+                      <FormControl>
+                        <SearchableSelect
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select your country"
+                          searchPlaceholder="Search countries..."
+                          groups={[
+                            {
+                              heading: "Popular",
+                              items: PRIORITY_COUNTRIES,
+                            },
+                            {
+                              heading: "All Countries",
+                              items: COUNTRIES.filter((c) => !PRIORITY_COUNTRIES.includes(c)).sort((a, b) =>
+                                a.localeCompare(b)
+                              ),
+                            },
+                          ]}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* State (India only) */}
+                {selectedCountry === "India" && (
+                  <FormField
+                    control={form.control}
+                    name="state"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State *</FormLabel>
+                        <FormControl>
+                          <SearchableSelect
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            placeholder="Select your state"
+                            searchPlaceholder="Search states..."
+                            groups={[{ items: INDIA_STATES }]}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 {/* Cohort */}
                 <FormField
