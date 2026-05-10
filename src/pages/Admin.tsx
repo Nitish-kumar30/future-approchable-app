@@ -2187,6 +2187,10 @@ export default function Admin() {
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div><span className="font-medium text-muted-foreground">Company:</span> {reg.company}</div>
                                 <div><span className="font-medium text-muted-foreground">Role:</span> {reg.role}</div>
+                                <div><span className="font-medium text-muted-foreground">Country:</span> {reg.country || '—'}</div>
+                                {reg.country === 'India' && (
+                                  <div><span className="font-medium text-muted-foreground">State:</span> {reg.state || '—'}</div>
+                                )}
                                 <div><span className="font-medium text-muted-foreground">Cohort:</span> {reg.cohort}</div>
                                 <div><span className="font-medium text-muted-foreground">Status:</span> {reg.status}</div>
                                 <div><span className="font-medium text-muted-foreground">Capstone Office Hours:</span> {reg.capstone_office_hours ? 'Yes' : 'No'}</div>
