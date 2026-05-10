@@ -155,6 +155,8 @@ export default function Registration() {
       name: "",
       email: "",
       whatsapp_number: "",
+      country: "",
+      state: "",
       cohort: "",
       interests: [],
       capstone_office_hours: true,
