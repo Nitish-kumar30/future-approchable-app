@@ -171,7 +171,7 @@ serve(async (req) => {
     fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ Name: name, Email: email, Cohort: cohort, CapstoneOfficeHours: capstone_office_hours ?? true }),
+      body: JSON.stringify({ Name: name, Email: email, Cohort: cohort, Country: country, State: state, CapstoneOfficeHours: capstone_office_hours ?? true }),
     }).then(r => r.text()).catch(err => console.error("Webhook trigger failed:", err));
 
     return new Response(JSON.stringify({ success: true }), {
