@@ -193,6 +193,8 @@ export default function Admin() {
       name: string;
       email: string;
       whatsapp_number: string;
+      country: string | null;
+      state: string | null;
       cohort: string;
       company: string;
       role: string;
