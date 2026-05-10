@@ -55,6 +55,7 @@ function validateInput(body: Record<string, unknown>): string | null {
     [body.name, 100, "name"],
     [body.email, 255, "email"],
     [body.whatsapp_number, 20, "whatsapp_number"],
+    [body.country, 100, "country"],
     [body.cohort, 100, "cohort"],
     [body.company, 100, "company"],
     [body.role, 100, "role"],
@@ -67,6 +68,12 @@ function validateInput(body: Record<string, unknown>): string | null {
   }
 
   if (!EMAIL_REGEX.test(body.email as string)) return "Invalid email format";
+
+  // State required if India
+  if (body.country === "India") {
+    const stateErr = validateString(body.state, 100, "state");
+    if (stateErr) return stateErr;
+  }
 
   // Optional fields
   if (body.additional_info != null && body.additional_info !== "") {
