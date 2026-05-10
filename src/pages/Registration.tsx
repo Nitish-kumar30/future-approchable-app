@@ -177,6 +177,8 @@ export default function Registration() {
           name: data.name,
           email: data.email,
           whatsapp_number: data.whatsapp_number,
+          country: data.country,
+          state: data.country === "India" ? data.state : null,
           cohort: data.cohort,
           interests: data.interests,
           capstone_office_hours: data.capstone_office_hours,
