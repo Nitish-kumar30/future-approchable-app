@@ -278,6 +278,61 @@ export default function Registration() {
                   )}
                 />
 
+                {/* Country */}
+                <FormField
+                  control={form.control}
+                  name="country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Country *</FormLabel>
+                      <FormControl>
+                        <SearchableSelect
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select your country"
+                          searchPlaceholder="Search countries..."
+                          groups={[
+                            {
+                              heading: "Popular",
+                              items: PRIORITY_COUNTRIES,
+                            },
+                            {
+                              heading: "All Countries",
+                              items: COUNTRIES.filter((c) => !PRIORITY_COUNTRIES.includes(c)).sort((a, b) =>
+                                a.localeCompare(b)
+                              ),
+                            },
+                          ]}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* State (India only) */}
+                {selectedCountry === "India" && (
+                  <FormField
+                    control={form.control}
+                    name="state"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State *</FormLabel>
+                        <FormControl>
+                          <SearchableSelect
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            placeholder="Select your state"
+                            searchPlaceholder="Search states..."
+                            groups={[{ items: INDIA_STATES }]}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
                 {/* Cohort */}
                 <FormField
                   control={form.control}
