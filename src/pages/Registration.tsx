@@ -213,6 +213,8 @@ export default function Registration() {
     }
   };
 
+  const selectedCountry = form.watch("country");
+
   if (submitted) {
     return <ThankYouScreen />;
   }
