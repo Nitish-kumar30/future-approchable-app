@@ -134,7 +134,7 @@ serve(async (req) => {
       });
     }
 
-    const { name, email, whatsapp_number, cohort, interests, other_interest, capstone_office_hours, company, role, reason, additional_info } = body;
+    const { name, email, whatsapp_number, country, state, cohort, interests, other_interest, capstone_office_hours, company, role, reason, additional_info } = body;
 
     // Use service role to insert (bypasses RLS)
     const supabase = createClient(
@@ -146,6 +146,8 @@ serve(async (req) => {
       name: name.trim(),
       email: email.trim().toLowerCase(),
       whatsapp_number: whatsapp_number.trim(),
+      country: country.trim(),
+      state: state || null,
       cohort,
       interests: interests || [],
       other_interest: other_interest || null,
