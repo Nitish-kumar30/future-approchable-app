@@ -19,7 +19,7 @@ import { CheckCircle2, PartyPopper } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { COUNTRIES, INDIA_STATES, PRIORITY_COUNTRIES } from "@/lib/locations";
 
-const COHORT_OPTIONS = ["Cohort 5 - April 23rd - 7:30PM IST/10AM US Eastern"];
+const COHORT_OPTIONS = ["Cohort Next"];
 
 const INTEREST_OPTIONS = ["AI Fundamentals", "Vibe Coding", "No-code AI Agents", "Prompt Engineering", "Other"];
 
@@ -299,7 +299,7 @@ export default function Registration() {
                             {
                               heading: "All Countries",
                               items: COUNTRIES.filter((c) => !PRIORITY_COUNTRIES.includes(c)).sort((a, b) =>
-                                a.localeCompare(b)
+                                a.localeCompare(b),
                               ),
                             },
                           ]}
