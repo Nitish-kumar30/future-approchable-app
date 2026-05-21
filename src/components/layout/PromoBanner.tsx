@@ -7,9 +7,9 @@ export default function PromoBanner() {
   return (
     <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 px-4">
       <div className="container flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center">
-        <!--<span className="text-sm font-medium">
+        {/* <span className="text-sm font-medium">
           🔥 Next live cohort with {c.mentorName} — {c.date} · Only {c.totalSeats} seats · {c.priceIndia} (India) / {c.priceInternational} (International)
-        </span>-->
+        </span> */}
 
         <span className="text-sm font-medium">
           🔥 Next live cohort with {c.mentorName} Soon.
