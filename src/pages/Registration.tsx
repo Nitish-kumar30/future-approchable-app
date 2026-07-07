@@ -247,7 +247,6 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
-
                 {/* Email */}
                 <FormField
                   control={form.control}
@@ -262,7 +261,6 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
-
                 {/* WhatsApp */}
                 <FormField
                   control={form.control}
@@ -277,7 +275,6 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
-
                 {/* Country */}
                 <FormField
                   control={form.control}
@@ -309,7 +306,6 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
-
                 {/* State (India only) */}
                 {selectedCountry === "India" && (
                   <FormField
@@ -332,7 +328,6 @@ export default function Registration() {
                     )}
                   />
                 )}
-
                 {/* Cohort */}
                 <FormField
                   control={form.control}
@@ -358,7 +353,7 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
-
+                /*
                 {/* Capstone Office Hours */}
                 <FormField
                   control={form.control}
@@ -379,7 +374,7 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
-
+                */
                 {/* Interests */}
                 <FormField
                   control={form.control}
@@ -430,7 +425,6 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
-
                 {/* Company */}
                 <FormField
                   control={form.control}
@@ -445,7 +439,6 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
-
                 {/* Role */}
                 <FormField
                   control={form.control}
@@ -460,7 +453,6 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
-
                 {/* Reason */}
                 <FormField
                   control={form.control}
@@ -475,7 +467,6 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
-
                 {/* Additional Info */}
                 <FormField
                   control={form.control}
@@ -490,7 +481,6 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
-
                 {/* Fee Acknowledgment */}
                 <FormField
                   control={form.control}
@@ -514,7 +504,6 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
-
                 <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {isSubmitting ? "Submitting..." : "Submit Registration"}
