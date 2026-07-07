@@ -4,11 +4,11 @@ export const COHORT_FORM_URL =
     : "/registration";
 
 export const COHORT_CONFIG = {
-  date: "",
+  date: "July 23rd",
   mentorName: "Ranbeer",
   totalSeats: 20,
-  priceIndia: "-",
-  priceInternational: "-",
+  priceIndia: "Rs 3999",
+  priceInternational: "$ 149",
   previousCohortDate: "Apr 23",
   socialProof: "Alumni from Adobe, Microsoft, Deloitte",
 };
