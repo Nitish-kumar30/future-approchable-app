@@ -12,7 +12,7 @@ export default function PromoBanner() {
         </span> */}
 
         <span className="text-sm font-medium">
-          🔥 Next live cohort with {c.mentorName} Soon.
+          🔥 Next live cohort on &apos;Master the Claude ecosystem&apos; with {c.mentorName} starts July 23rd.
         </span>
           
         <a href={COHORT_FORM_URL} target="_blank" rel="noopener noreferrer">
