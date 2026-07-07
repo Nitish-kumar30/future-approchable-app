@@ -9,7 +9,7 @@ interface CohortUpsellCardProps {
 const variantContent = {
   'mid-course': {
     icon: Sparkles,
-    heading: 'Enjoying this course? Go deeper with live mentorship',
+    heading: 'Enjoying this course? Go deeper with live mentorship on Claude ecosystem',
     subtext: 'Get real-time feedback, group exercises, and direct access to the mentor.',
   },
   'quiz-high': {
