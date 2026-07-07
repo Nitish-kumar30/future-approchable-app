@@ -21,7 +21,7 @@ import { COUNTRIES, INDIA_STATES, PRIORITY_COUNTRIES } from "@/lib/locations";
 
 const COHORT_OPTIONS = ["Cohort 6: Claude AI July 23rd 7:30PM/10AM Eastern"];
 
-const INTEREST_OPTIONS = ["AI Fundamentals", "Vibe Coding", "No-code AI Agents", "Prompt Engineering", "Other"];
+const INTEREST_OPTIONS = ["Claude Overview", "Claude Code", "No-code AI Agents", "Claude Cowork", "Other"];
 
 const registrationSchema = z
   .object({
