@@ -19,7 +19,7 @@ import { CheckCircle2, PartyPopper } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { COUNTRIES, INDIA_STATES, PRIORITY_COUNTRIES } from "@/lib/locations";
 
-const COHORT_OPTIONS = ["Cohort Next"];
+const COHORT_OPTIONS = ["Cohort 6: Claude AI"];
 
 const INTEREST_OPTIONS = ["AI Fundamentals", "Vibe Coding", "No-code AI Agents", "Prompt Engineering", "Other"];
 
