@@ -284,7 +284,7 @@ export default function Registration() {
                   name="country"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Country *</FormLabel>
+                      <FormLabel>Country of Residence*</FormLabel>
                       <FormControl>
                         <SearchableSelect
                           value={field.value}
