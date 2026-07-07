@@ -19,7 +19,7 @@ import { CheckCircle2, PartyPopper } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { COUNTRIES, INDIA_STATES, PRIORITY_COUNTRIES } from "@/lib/locations";
 
-const COHORT_OPTIONS = ["Cohort 6: Claude AI July 23rd 7:30PM/10AM Eastern"];
+const COHORT_OPTIONS = ["Cohort 6: Master the Claude Ecosystem - July 23rd 7:30PM/10AM Eastern"];
 
 const INTEREST_OPTIONS = ["Claude Overview", "Claude Code", "No-code AI Agents", "Claude Cowork", "Other"];
 
