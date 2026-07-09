@@ -7,8 +7,8 @@ export const COHORT_CONFIG = {
   date: "July 23rd",
   mentorName: "Ranbeer",
   totalSeats: 20,
-  priceIndia: "Rs 3999",
-  priceInternational: "$ 149",
+  priceIndia: "Rs 2999",
+  priceInternational: "$ 99",
   previousCohortDate: "Apr 23",
   socialProof: "Alumni from Adobe, Microsoft, Deloitte",
 };
