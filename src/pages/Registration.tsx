@@ -18,6 +18,7 @@ import { toast } from "@/hooks/use-toast";
 import { CheckCircle2, PartyPopper } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { COUNTRIES, INDIA_STATES, PRIORITY_COUNTRIES } from "@/lib/locations";
+import { COHORT_CONFIG } from "@/lib/constants";
 
 const COHORT_OPTIONS = ["Cohort 6: Master the Claude Ecosystem - July 23rd 7:30PM/10AM Eastern"];
 
@@ -187,6 +188,8 @@ export default function Registration() {
           role: data.role,
           reason: data.reason,
           additional_info: data.additional_info || null,
+          price_india: COHORT_CONFIG.priceIndia,
+          price_international: COHORT_CONFIG.priceInternational,
         },
       });
 
