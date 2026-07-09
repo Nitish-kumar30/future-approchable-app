@@ -134,7 +134,7 @@ serve(async (req) => {
       });
     }
 
-    const { name, email, whatsapp_number, country, state, cohort, interests, other_interest, capstone_office_hours, company, role, reason, additional_info } = body;
+    const { name, email, whatsapp_number, country, state, cohort, interests, other_interest, capstone_office_hours, company, role, reason, additional_info, price_india, price_international } = body;
 
     // Use service role to insert (bypasses RLS)
     const supabase = createClient(
@@ -171,7 +171,7 @@ serve(async (req) => {
     fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ Name: name, Email: email, Cohort: cohort, Country: country, State: state, CapstoneOfficeHours: capstone_office_hours ?? true }),
+      body: JSON.stringify({ Name: name, Email: email, Cohort: cohort, Country: country, State: state, CapstoneOfficeHours: capstone_office_hours ?? true, priceInd: price_india, priceIntl: price_international }),
     }).then(r => r.text()).catch(err => console.error("Webhook trigger failed:", err));
 
     return new Response(JSON.stringify({ success: true }), {
