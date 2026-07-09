@@ -188,6 +188,8 @@ export default function Registration() {
           role: data.role,
           reason: data.reason,
           additional_info: data.additional_info || null,
+          price_india: COHORT_CONFIG.priceIndia,
+          price_international: COHORT_CONFIG.priceInternational,
         },
       });
 
