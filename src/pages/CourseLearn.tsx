@@ -141,6 +141,21 @@ export default function CourseLearn() {
   // Throttle progress writes without triggering re-renders of the player.
   const lastSavedSecRef = useRef<Record<string, number>>({});
 
+  // Fullscreen wrapper (contains video + countdown overlay)
+  const playerWrapperRef = useRef<HTMLDivElement | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+  const toggleFullscreen = () => {
+    const el = playerWrapperRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    else el.requestFullscreen?.().catch(() => {});
+  };
+
   // Auto-advance countdown after a video ends.
   const [countdown, setCountdown] = useState<number | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
