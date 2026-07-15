@@ -460,114 +460,54 @@ export default function CourseDetail() {
           </div>
         )}
 
-        {/* Sessions - Always Visible */}
+        {/* Course Content */}
         <div className="space-y-4">
           <h2 className="text-2xl font-semibold">Course Content</h2>
-          {sessions.length === 0 ? (
+          {curriculumSessions.length === 0 ? (
             <Card className="card-elevated border-dashed">
               <CardContent className="py-8 text-center text-muted-foreground">
                 No content available yet.
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {sessions.map((session, index) => {
-                const sessionQuizzesList = getQuizzesForSession(session.id);
-                const sessionMaterials = getMaterialsForSession(session.id);
-                const completed = isSessionCompleted(session.id);
-                
-                return (
-                  <Card key={session.id} className={`card-elevated ${completed ? 'border-success/30 bg-success/5' : ''}`}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              Lesson {index + 1}
-                            </Badge>
-                            {completed && (
-                              <Badge variant="secondary" className="text-xs bg-success/20 text-success border-success/30">
-                                <CheckCircle2 className="h-3 w-3 mr-1" /> Completed
-                              </Badge>
-                            )}
-                          </div>
-                          <CardTitle className="text-lg">{session.title}</CardTitle>
-                        </div>
-                      </div>
-                      {session.description && (
-                        <CardDescription>{session.description}</CardDescription>
-                      )}
-                    </CardHeader>
-                    
-                    {/* Show content only if enrolled */}
-                    {isEnrolled ? (
-                      <CardContent className="space-y-4">
-                        {session.is_content_unlocked ? (
-                          <>
-                            {/* Pre-Reading Materials */}
-                            {sessionMaterials.length > 0 && (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                                  <BookOpen className="h-4 w-4" />
-                                  Pre-Reading Materials
-                                </div>
-                                <div className="pl-6 space-y-1">
-                                  {sessionMaterials.map((material) => (
-                                    <a
-                                      key={material.id}
-                                      href={material.link}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-2 text-sm text-primary hover:underline"
-                                    >
-                                      <ExternalLink className="h-3 w-3" />
-                                      {material.title}
-                                    </a>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {/* Session Actions */}
-                            <div className="flex flex-wrap gap-2">
-                              {session.recording_url && (
-                                <Button variant="secondary" size="sm" asChild>
-                                  <a href={session.recording_url} target="_blank" rel="noopener noreferrer">
-                                    <Video className="mr-2 h-4 w-4" /> Watch Video
-                                  </a>
-                                </Button>
-                              )}
-                              {session.presentation_url && (
-                                <Button variant="secondary" size="sm" asChild>
-                                  <a href={session.presentation_url} target="_blank" rel="noopener noreferrer">
-                                    <FileText className="mr-2 h-4 w-4" /> Resources
-                                  </a>
-                                </Button>
-                              )}
-                            </div>
+            <Card className="card-elevated">
+              <CardContent className="pt-6">
+                <CourseContentAccordion
+                  slug={slug!}
+                  isEnrolled={isEnrolled}
+                  sessions={curriculumSessions}
+                />
+              </CardContent>
+            </Card>
+          )}
 
-                            {/* Quizzes Section */}
-                            {sessionQuizzesList.length > 0 && (
-                              <SessionQuizList
-                                quizzes={sessionQuizzesList}
-                                submissions={quizSubmissions}
-                                sessionTitle={session.title}
-                              />
-                            )}
-                          </>
-                        ) : (
-                          <p className="text-sm text-muted-foreground flex items-center gap-2">
-                            <Lock className="h-4 w-4" /> This session's content will be available soon.
-                          </p>
-                        )}
-                      </CardContent>
-                    ) : (
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground italic">
-                          Enroll to access lesson materials and quizzes
-                        </p>
-                      </CardContent>
-                    )}
+          {isEnrolled && sessions.some((s) => getMaterialsForSession(s.id).length > 0) && (
+            <div className="space-y-3 pt-4">
+              <h3 className="text-lg font-semibold">Pre-Reading Materials</h3>
+              {sessions.map((session) => {
+                const mats = getMaterialsForSession(session.id);
+                if (mats.length === 0) return null;
+                return (
+                  <Card key={session.id} className="card-elevated">
+                    <CardHeader>
+                      <CardTitle className="text-base">{session.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-1">
+                        {mats.map((material) => (
+                          <a
+                            key={material.id}
+                            href={material.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-sm text-primary hover:underline"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            {material.title}
+                          </a>
+                        ))}
+                      </div>
+                    </CardContent>
                   </Card>
                 );
               })}
