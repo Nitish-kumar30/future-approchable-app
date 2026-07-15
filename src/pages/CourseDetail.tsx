@@ -83,6 +83,7 @@ export default function CourseDetail() {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isEnrolling, setIsEnrolling] = useState(false);
+  const [curriculumSessions, setCurriculumSessions] = useState<CurriculumSession[]>([]);
 
   useEffect(() => {
     if (slug) {
