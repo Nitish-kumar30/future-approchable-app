@@ -254,7 +254,9 @@ export default function CourseLearn() {
           }}
           onOpenQuiz={(quizId) => navigate(`/quiz/${quizId}`)}
           overallPct={overallPct}
+          nextSession={nextSession}
         />
+
 
         {/* Main viewer */}
         <main className="min-h-0 overflow-y-auto">
