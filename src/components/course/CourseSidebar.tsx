@@ -1,8 +1,8 @@
-import { CheckCircle2, Circle, Play, Lock, FileQuestion, ChevronDown } from 'lucide-react';
+import { CheckCircle2, Circle, Play, Lock, FileQuestion, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+
 
 export interface CS_Session { id: string; title: string; session_order: number; video_url: string | null; is_content_unlocked: boolean; }
 export interface CS_Chapter { id: string; session_id: string; title: string; chapter_order: number; can_watch: boolean; duration_seconds: number | null; is_preview: boolean; }
@@ -20,7 +20,9 @@ interface Props {
   onSelectSession: (sessionId: string) => void;
   onOpenQuiz: (quizId: string) => void;
   overallPct: number;
+  nextSession?: CS_Session | null;
 }
+
 
 function formatDuration(sec: number | null | undefined): string {
   if (!sec || sec <= 0) return 'Video';
@@ -30,8 +32,9 @@ function formatDuration(sec: number | null | undefined): string {
 
 export default function CourseSidebar({
   sessions, chapters, quizzes, currentSessionId, chapterProgress, quizSubmissions,
-  selected, onSelect, onSelectSession, onOpenQuiz, overallPct,
+  selected, onSelect, onSelectSession, onOpenQuiz, overallPct, nextSession,
 }: Props) {
+
   const currentSession = sessions.find((s) => s.id === currentSessionId) ?? sessions[0];
   const chs = chapters
     .filter((c) => c.session_id === currentSession?.id)
@@ -109,7 +112,24 @@ export default function CourseSidebar({
             badge={quizSubmissions[sq.quiz.id] != null ? 'Done' : undefined}
           />
         ))}
+        {nextSession && (
+          <div className="mt-4 mx-3 mb-2">
+            <button
+              onClick={() => onSelectSession(nextSession.id)}
+              className="w-full text-left rounded-md border p-3 hover:bg-muted/60 transition flex items-center gap-2"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Next</div>
+                <div className="text-sm font-medium leading-snug line-clamp-2">
+                  Session {nextSession.session_order + 1}: {nextSession.title}
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            </button>
+          </div>
+        )}
       </div>
+
 
       {/* Footer: overall course progress */}
       <div className="p-4 border-t space-y-1">

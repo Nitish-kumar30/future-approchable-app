@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -129,6 +129,17 @@ export default function CourseLearn() {
     ? sessions.find((s) => s.id === selected.id) ?? null
     : (currentChapter ? sessions.find((s) => s.id === currentChapter.session_id) ?? null : null);
 
+  const nextSession = useMemo(() => {
+    if (!currentSession) return null;
+    const sorted = [...sessions].sort((a, b) => a.session_order - b.session_order);
+    const idx = sorted.findIndex((s) => s.id === currentSession.id);
+    return idx >= 0 && idx < sorted.length - 1 ? sorted[idx + 1] : null;
+  }, [sessions, currentSession]);
+
+  // Throttle progress writes without triggering re-renders of the player.
+  const lastSavedSecRef = useRef<Record<string, number>>({});
+
+
   const currentIdx = selected ? playable.findIndex((p) => p.kind === selected.kind && p.id === selected.id) : -1;
   const go = (delta: number) => {
     if (currentIdx < 0) return;
@@ -214,7 +225,7 @@ export default function CourseLearn() {
       </header>
 
       {/* Body */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[300px_1fr]">
+      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[300px_1fr] overflow-hidden">
         <CourseSidebar
           sessions={sessions}
           chapters={chapters}
@@ -243,27 +254,37 @@ export default function CourseLearn() {
           }}
           onOpenQuiz={(quizId) => navigate(`/quiz/${quizId}`)}
           overallPct={overallPct}
+          nextSession={nextSession}
         />
 
+
         {/* Main viewer */}
-        <main className="min-h-0 overflow-y-auto">
-          <div className="max-w-5xl mx-auto p-4 space-y-4">
-            <div className="aspect-video bg-black rounded-lg overflow-hidden">
-              {currentChapter?.can_watch && currentChapter.hls_url ? (
-                <HlsPlayer
-                  key={currentChapter.id}
-                  src={currentChapter.hls_url}
-                  onNearEnd={() => markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true)}
-                  onEnded={() => go(1)}
-                  onProgress={(t) => {
-                    const prev = chapterProgress[currentChapter.id]?.watched_seconds ?? 0;
-                    if (Math.floor(t) - prev >= 15) {
-                      markChapterComplete(currentChapter.id, Math.floor(t), chapterProgress[currentChapter.id]?.is_completed ?? false);
-                    }
-                  }}
-                  onError={(msg) => toast({ title: 'Video error', description: msg, variant: 'destructive' })}
-                />
-              ) : selected?.kind === 'session' && currentSession?.video_url ? (
+        <main className="min-h-0 h-full overflow-hidden">
+          <div className="h-full overflow-y-auto">
+            <div className="max-w-5xl mx-auto p-4 space-y-4">
+              <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                {currentChapter?.can_watch && currentChapter.hls_url ? (
+                  <HlsPlayer
+                    key={currentChapter.id}
+                    src={currentChapter.hls_url}
+                    autoPlay
+                    onNearEnd={() => markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true)}
+                    onEnded={() => go(1)}
+                    onProgress={(t) => {
+                      const floor = Math.floor(t);
+                      const prev = lastSavedSecRef.current[currentChapter.id] ?? 0;
+                      if (floor - prev >= 15) {
+                        lastSavedSecRef.current[currentChapter.id] = floor;
+                        // fire-and-forget; do NOT update React state during playback
+                        invokeFn('update-chapter-progress', {
+                          body: { chapter_id: currentChapter.id, watched_seconds: floor, is_completed: false },
+                        });
+                      }
+                    }}
+                    onError={(msg) => toast({ title: 'Video error', description: msg, variant: 'destructive' })}
+                  />
+                ) : selected?.kind === 'session' && currentSession?.video_url ? (
+
                 <iframe src={currentSession.video_url} className="w-full h-full" allow="fullscreen" />
               ) : currentChapter && !currentChapter.can_watch ? (
                 <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
@@ -290,7 +311,10 @@ export default function CourseLearn() {
               )}
             </div>
           </div>
+          </div>
         </main>
+
+
       </div>
 
       <RateCourseDialog
