@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import HlsPlayer from '@/components/video/HlsPlayer';
 import CourseSidebar from '@/components/course/CourseSidebar';
 import RateCourseDialog from '@/components/course/RateCourseDialog';
+import InlineQuiz from '@/components/session/InlineQuiz';
+
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ChevronLeft, ChevronRight, Star, Lock, Loader2, LayoutGrid } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -49,7 +51,7 @@ export default function CourseLearn() {
   const [chapterProgress, setChapterProgress] = useState<Record<string, { is_completed: boolean; watched_seconds: number }>>({});
   const [sessionProgress, setSessionProgress] = useState<Record<string, boolean>>({});
   const [quizSubmissions, setQuizSubmissions] = useState<Record<string, number | null>>({});
-  const [selected, setSelected] = useState<{ kind: 'chapter' | 'session'; id: string } | null>(null);
+  const [selected, setSelected] = useState<{ kind: 'chapter' | 'session' | 'quiz'; id: string } | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [myRating, setMyRating] = useState<number>(0);
   const [myComment, setMyComment] = useState<string>('');
@@ -252,7 +254,12 @@ export default function CourseLearn() {
               if (s?.video_url) setSelected({ kind: 'session', id: sid });
             }
           }}
-          onOpenQuiz={(quizId) => navigate(`/quiz/${quizId}`)}
+          onOpenQuiz={(quizId) => {
+            const sq = sessionQuizzes.find((q) => q.quiz?.id === quizId);
+            if (sq) setCurrentSessionId(sq.session_id);
+            setSelected({ kind: 'quiz', id: quizId });
+          }}
+
           overallPct={overallPct}
           nextSession={nextSession}
         />
@@ -262,57 +269,73 @@ export default function CourseLearn() {
         <main className="min-h-0 h-full overflow-hidden">
           <div className="h-full overflow-y-auto">
             <div className="max-w-5xl mx-auto p-4 space-y-4">
-              <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                {currentChapter?.can_watch && currentChapter.hls_url ? (
-                  <HlsPlayer
-                    key={currentChapter.id}
-                    src={currentChapter.hls_url}
-                    autoPlay
-                    onNearEnd={() => markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true)}
-                    onEnded={() => go(1)}
-                    onProgress={(t) => {
-                      const floor = Math.floor(t);
-                      const prev = lastSavedSecRef.current[currentChapter.id] ?? 0;
-                      if (floor - prev >= 15) {
-                        lastSavedSecRef.current[currentChapter.id] = floor;
-                        // fire-and-forget; do NOT update React state during playback
-                        invokeFn('update-chapter-progress', {
-                          body: { chapter_id: currentChapter.id, watched_seconds: floor, is_completed: false },
-                        });
-                      }
-                    }}
-                    onError={(msg) => toast({ title: 'Video error', description: msg, variant: 'destructive' })}
-                  />
-                ) : selected?.kind === 'session' && currentSession?.video_url ? (
-
-                <iframe src={currentSession.video_url} className="w-full h-full" allow="fullscreen" />
-              ) : currentChapter && !currentChapter.can_watch ? (
-                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
-                  <Lock className="h-8 w-8" />
-                  <p>Enroll to unlock this chapter.</p>
-                </div>
+              {selected?.kind === 'quiz' ? (
+                (() => {
+                  const sq = sessionQuizzes.find((q) => q.quiz?.id === selected.id);
+                  const title = sq?.quiz?.title ?? 'Quiz';
+                  return (
+                    <InlineQuiz
+                      key={selected.id}
+                      quizId={selected.id}
+                      quizTitle={title}
+                      onCompleted={() => load()}
+                    />
+                  );
+                })()
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                  <p>Select a chapter to start watching.</p>
-                </div>
-              )}
-            </div>
+                <>
+                  <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                    {currentChapter?.can_watch && currentChapter.hls_url ? (
+                      <HlsPlayer
+                        key={currentChapter.id}
+                        src={currentChapter.hls_url}
+                        autoPlay
+                        onNearEnd={() => markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true)}
+                        onEnded={() => go(1)}
+                        onProgress={(t) => {
+                          const floor = Math.floor(t);
+                          const prev = lastSavedSecRef.current[currentChapter.id] ?? 0;
+                          if (floor - prev >= 15) {
+                            lastSavedSecRef.current[currentChapter.id] = floor;
+                            invokeFn('update-chapter-progress', {
+                              body: { chapter_id: currentChapter.id, watched_seconds: floor, is_completed: false },
+                            });
+                          }
+                        }}
+                        onError={(msg) => toast({ title: 'Video error', description: msg, variant: 'destructive' })}
+                      />
+                    ) : selected?.kind === 'session' && currentSession?.video_url ? (
+                      <iframe src={currentSession.video_url} className="w-full h-full" allow="fullscreen" />
+                    ) : currentChapter && !currentChapter.can_watch ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
+                        <Lock className="h-8 w-8" />
+                        <p>Enroll to unlock this chapter.</p>
+                      </div>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        <p>Select a chapter to start watching.</p>
+                      </div>
+                    )}
+                  </div>
 
-            <div className="space-y-3">
-              <h1 className="text-xl font-semibold">
-                {currentChapter ? currentChapter.title : currentSession?.title}
-              </h1>
-              {(currentChapter?.description || currentSession?.description) && (
-                <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {currentChapter?.description || currentSession?.description || ''}
-                  </ReactMarkdown>
-                </div>
+                  <div className="space-y-3">
+                    <h1 className="text-xl font-semibold">
+                      {currentChapter ? currentChapter.title : currentSession?.title}
+                    </h1>
+                    {(currentChapter?.description || currentSession?.description) && (
+                      <div className="prose prose-sm max-w-none dark:prose-invert">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {currentChapter?.description || currentSession?.description || ''}
+                        </ReactMarkdown>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
-          </div>
           </div>
         </main>
+
 
 
       </div>

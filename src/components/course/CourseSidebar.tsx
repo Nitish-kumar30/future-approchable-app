@@ -15,8 +15,9 @@ interface Props {
   currentSessionId: string | null;
   chapterProgress: Record<string, { is_completed: boolean }>;
   quizSubmissions: Record<string, number | null>;
-  selected: { kind: 'chapter' | 'session'; id: string } | null;
-  onSelect: (s: { kind: 'chapter' | 'session'; id: string }) => void;
+  selected: { kind: 'chapter' | 'session' | 'quiz'; id: string } | null;
+  onSelect: (s: { kind: 'chapter' | 'session' | 'quiz'; id: string }) => void;
+
   onSelectSession: (sessionId: string) => void;
   onOpenQuiz: (quizId: string) => void;
   overallPct: number;
@@ -104,7 +105,7 @@ export default function CourseSidebar({
         {qs.map((sq) => sq.quiz && (
           <SidebarRow
             key={sq.quiz.id}
-            active={false}
+            active={selected?.kind === 'quiz' && selected.id === sq.quiz.id}
             onClick={() => onOpenQuiz(sq.quiz!.id)}
             icon={<FileQuestion className="h-4 w-4" />}
             title={sq.quiz.title}
@@ -112,6 +113,7 @@ export default function CourseSidebar({
             badge={quizSubmissions[sq.quiz.id] != null ? 'Done' : undefined}
           />
         ))}
+
         {nextSession && (
           <div className="mt-4 mx-3 mb-2">
             <button
