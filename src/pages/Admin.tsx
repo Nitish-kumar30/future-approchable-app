@@ -18,6 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import { CohortForm } from '@/components/admin/CohortForm';
 import { CourseForm } from '@/components/admin/CourseForm';
 import { SessionForm } from '@/components/admin/SessionForm';
+import { ChapterManager } from '@/components/admin/ChapterManager';
 import { QuizForm } from '@/components/admin/QuizForm';
 
 interface Cohort {
@@ -150,6 +151,7 @@ export default function Admin() {
   const [editingCohort, setEditingCohort] = useState<Cohort | null>(null);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
+  const [chaptersSession, setChaptersSession] = useState<Session | null>(null);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
 
   // Session filter state
@@ -1405,6 +1407,7 @@ export default function Admin() {
                             />
                           </TableCell>
                           <TableCell className="text-right space-x-2">
+                            <Button variant="ghost" size="sm" onClick={() => setChaptersSession(session)}>Chapters</Button>
                             <Button variant="ghost" size="sm" onClick={() => handleEditSession(session)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
