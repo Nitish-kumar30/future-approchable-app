@@ -101,25 +101,6 @@ export default function HlsPlayer({
     };
   }, [src, autoPlay]);
 
-  // Promote fullscreen from the <video> to its parent wrapper so overlays
-  // (e.g. auto-advance countdown) rendered as siblings remain visible.
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const onFsChange = () => {
-      const fsEl = document.fullscreenElement as Element | null;
-      if (fsEl === video) {
-        const parent = video.parentElement;
-        if (!parent) return;
-        document.exitFullscreen().then(() => {
-          parent.requestFullscreen?.().catch(() => { /* noop */ });
-        }).catch(() => { /* noop */ });
-      }
-    };
-    document.addEventListener('fullscreenchange', onFsChange);
-    return () => document.removeEventListener('fullscreenchange', onFsChange);
-  }, []);
-
   const handleTimeUpdate = () => {
     const v = videoRef.current;
     if (!v || !v.duration || isNaN(v.duration)) return;
@@ -134,6 +115,8 @@ export default function HlsPlayer({
     <video
       ref={videoRef}
       controls
+      controlsList="nofullscreen"
+      disablePictureInPicture
       playsInline
       poster={poster}
       onTimeUpdate={handleTimeUpdate}

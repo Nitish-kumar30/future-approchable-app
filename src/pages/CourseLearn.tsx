@@ -10,7 +10,7 @@ import RateCourseDialog from '@/components/course/RateCourseDialog';
 import InlineQuiz from '@/components/session/InlineQuiz';
 
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ChevronLeft, ChevronRight, Star, Lock, Loader2, LayoutGrid } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Star, Lock, Loader2, LayoutGrid, Maximize, Minimize } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Course { id: string; slug: string; name: string; description: string | null; }
@@ -140,6 +140,21 @@ export default function CourseLearn() {
 
   // Throttle progress writes without triggering re-renders of the player.
   const lastSavedSecRef = useRef<Record<string, number>>({});
+
+  // Fullscreen wrapper (contains video + countdown overlay)
+  const playerWrapperRef = useRef<HTMLDivElement | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+  const toggleFullscreen = () => {
+    const el = playerWrapperRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    else el.requestFullscreen?.().catch(() => {});
+  };
 
   // Auto-advance countdown after a video ends.
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -330,7 +345,10 @@ export default function CourseLearn() {
                 })()
               ) : (
                 <>
-                  <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                  <div
+                    ref={playerWrapperRef}
+                    className={`relative bg-black rounded-lg overflow-hidden group ${isFullscreen ? 'w-screen h-screen rounded-none' : 'aspect-video'}`}
+                  >
                     {currentChapter?.can_watch && currentChapter.hls_url ? (
                       <HlsPlayer
                         key={currentChapter.id}
@@ -367,6 +385,17 @@ export default function CourseLearn() {
                         <p>Select a chapter to start watching.</p>
                       </div>
                     )}
+
+                    {(currentChapter?.can_watch && currentChapter.hls_url) || (selected?.kind === 'session' && currentSession?.video_url) ? (
+                      <button
+                        type="button"
+                        onClick={toggleFullscreen}
+                        aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                        className="absolute bottom-2 right-2 z-20 h-8 w-8 flex items-center justify-center rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                      >
+                        {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                      </button>
+                    ) : null}
 
                     {countdown !== null && nextItem && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-10">
