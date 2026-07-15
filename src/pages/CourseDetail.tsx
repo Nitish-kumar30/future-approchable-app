@@ -362,8 +362,17 @@ export default function CourseDetail() {
             </div>
             <div className="flex items-center gap-3">
               {isEnrolled ? (
+                <>
+                  <Badge variant="secondary" className="text-base px-4 py-2">
+                    <CheckCircle2 className="h-4 w-4 mr-2" /> Enrolled
+                  </Badge>
+                  <Button size="lg" onClick={() => navigate(`/courses/${slug}/learn`)}>
+                    Continue learning
+                  </Button>
+                </>
+              ) : course.enrollment_disabled ? (
                 <Badge variant="secondary" className="text-base px-4 py-2">
-                  <CheckCircle2 className="h-4 w-4 mr-2" /> Enrolled
+                  Enrollment Closed
                 </Badge>
               ) : course.enrollment_disabled ? (
                 <Badge variant="secondary" className="text-base px-4 py-2">

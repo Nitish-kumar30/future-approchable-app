@@ -14,6 +14,100 @@ export type Database = {
   }
   public: {
     Tables: {
+      chapter_progress: {
+        Row: {
+          chapter_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          is_completed: boolean
+          updated_at: string
+          user_id: string
+          watched_seconds: number
+        }
+        Insert: {
+          chapter_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          updated_at?: string
+          user_id: string
+          watched_seconds?: number
+        }
+        Update: {
+          chapter_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          updated_at?: string
+          user_id?: string
+          watched_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapter_progress_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chapters: {
+        Row: {
+          chapter_order: number
+          created_at: string
+          description: string | null
+          duration_seconds: number | null
+          hls_url: string | null
+          id: string
+          is_content_unlocked: boolean
+          is_preview: boolean
+          session_id: string
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          chapter_order?: number
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          hls_url?: string | null
+          id?: string
+          is_content_unlocked?: boolean
+          is_preview?: boolean
+          session_id: string
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          chapter_order?: number
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          hls_url?: string | null
+          id?: string
+          is_content_unlocked?: boolean
+          is_preview?: boolean
+          session_id?: string
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapters_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cohort_registrations: {
         Row: {
           additional_info: string | null
@@ -127,6 +221,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      course_ratings: {
+        Row: {
+          comment: string | null
+          course_id: string
+          created_at: string
+          id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          course_id: string
+          created_at?: string
+          id?: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          course_id?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_ratings_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       courses: {
         Row: {
@@ -718,6 +850,10 @@ export type Database = {
         Args: { _cohort_id: string }
         Returns: number
       }
+      get_course_community_progress: {
+        Args: { _course_id: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -733,6 +869,10 @@ export type Database = {
       is_enrolled_in_course: {
         Args: { _course_id: string; _user_id: string }
         Returns: boolean
+      }
+      recompute_session_completion: {
+        Args: { _session_id: string; _user_id: string }
+        Returns: undefined
       }
       submit_quiz_answers: {
         Args: { p_answers: Json; p_quiz_id: string }

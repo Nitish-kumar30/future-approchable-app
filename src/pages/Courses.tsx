@@ -67,7 +67,7 @@ export default function Courses() {
       <div className="space-y-8 animate-fade-in">
         {/* Header */}
         <div className="space-y-2">
-          <h1 className="text-3xl font-display font-bold text-foreground">Live Courses</h1>
+          <h1 className="text-3xl font-display font-bold text-foreground">Courses</h1>
           <p className="text-muted-foreground">
             Instructor-led courses with live sessions.
           </p>

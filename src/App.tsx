@@ -11,6 +11,7 @@ import CohortDetail from "./pages/CohortDetail";
 import Courses from "./pages/Courses";
 import CourseDetail from "./pages/CourseDetail";
 import LiveCourses from "./pages/LiveCourses";
+import CourseLearn from "./pages/CourseLearn";
 import Quiz from "./pages/Quiz";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/cohorts/:id" element={<CohortDetail />} />
             <Route path="/courses" element={<Courses />} />
             <Route path="/courses/:slug" element={<CourseDetail />} />
+            <Route path="/courses/:slug/learn" element={<CourseLearn />} />
             <Route path="/quiz/:id" element={<Quiz />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/admin" element={<Admin />} />
