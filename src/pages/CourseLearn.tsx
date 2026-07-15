@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '@/integrations/supabase/client';
@@ -97,16 +97,44 @@ export default function CourseLearn() {
     return items;
   }, [sessions, chapters]);
 
-  // Default selection: first unwatched watchable, else first item.
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Default selection: honor ?chapter= / ?quiz= deep link, else first unwatched.
   useEffect(() => {
     if (selected || playable.length === 0) return;
-    const firstUnwatched = playable.find((it) => {
-      if (it.kind === 'chapter') return !chapterProgress[it.id]?.is_completed;
-      return !sessionProgress[it.id];
-    }) ?? playable[0];
-    setSelected({ kind: firstUnwatched.kind, id: firstUnwatched.id });
-    setCurrentSessionId(firstUnwatched.sessionId);
-  }, [playable, selected, chapterProgress, sessionProgress]);
+    const qpChapter = searchParams.get('chapter');
+    const qpQuiz = searchParams.get('quiz');
+
+    if (qpQuiz) {
+      const sq = sessionQuizzes.find((q) => q.quiz?.id === qpQuiz);
+      if (sq) {
+        setSelected({ kind: 'quiz', id: qpQuiz });
+        setCurrentSessionId(sq.session_id);
+        const next = new URLSearchParams(searchParams);
+        next.delete('quiz');
+        setSearchParams(next, { replace: true });
+        return;
+      }
+    }
+
+    let target = qpChapter
+      ? playable.find((it) => it.kind === 'chapter' && it.id === qpChapter)
+      : undefined;
+    if (!target) {
+      target =
+        playable.find((it) => {
+          if (it.kind === 'chapter') return !chapterProgress[it.id]?.is_completed;
+          return !sessionProgress[it.id];
+        }) ?? playable[0];
+    }
+    setSelected({ kind: target.kind, id: target.id });
+    setCurrentSessionId(target.sessionId);
+    if (qpChapter) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('chapter');
+      setSearchParams(next, { replace: true });
+    }
+  }, [playable, selected, chapterProgress, sessionProgress, sessionQuizzes, searchParams, setSearchParams]);
 
   const totalChapters = chapters.length;
   const completedChapters = useMemo(

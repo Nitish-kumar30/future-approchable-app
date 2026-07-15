@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Markdown } from '@/components/ui/markdown';
 import { SessionQuizList, SessionQuiz, QuizSubmission } from '@/components/session/SessionQuizList';
+import CourseContentAccordion, { CurriculumSession } from '@/components/course/CourseContentAccordion';
 import { 
   Clock, 
   GraduationCap, 
@@ -82,6 +83,7 @@ export default function CourseDetail() {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isEnrolling, setIsEnrolling] = useState(false);
+  const [curriculumSessions, setCurriculumSessions] = useState<CurriculumSession[]>([]);
 
   useEffect(() => {
     if (slug) {
@@ -94,6 +96,32 @@ export default function CourseDetail() {
       fetchEnrolledContent(course.id);
     }
   }, [isEnrolled, course, user]);
+
+  useEffect(() => {
+    if (!slug) return;
+    (async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-course-curriculum?slug=${encodeURIComponent(slug)}`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setCurriculumSessions(data.sessions || []);
+        }
+      } catch (e) {
+        console.error('Failed to fetch curriculum:', e);
+      }
+    })();
+  }, [slug, user, isEnrolled]);
 
   const fetchCourse = async () => {
     const { data, error } = await supabase
@@ -460,119 +488,27 @@ export default function CourseDetail() {
           </div>
         )}
 
-        {/* Sessions - Always Visible */}
+        {/* Course Content */}
         <div className="space-y-4">
           <h2 className="text-2xl font-semibold">Course Content</h2>
-          {sessions.length === 0 ? (
+          {curriculumSessions.length === 0 ? (
             <Card className="card-elevated border-dashed">
               <CardContent className="py-8 text-center text-muted-foreground">
                 No content available yet.
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {sessions.map((session, index) => {
-                const sessionQuizzesList = getQuizzesForSession(session.id);
-                const sessionMaterials = getMaterialsForSession(session.id);
-                const completed = isSessionCompleted(session.id);
-                
-                return (
-                  <Card key={session.id} className={`card-elevated ${completed ? 'border-success/30 bg-success/5' : ''}`}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              Lesson {index + 1}
-                            </Badge>
-                            {completed && (
-                              <Badge variant="secondary" className="text-xs bg-success/20 text-success border-success/30">
-                                <CheckCircle2 className="h-3 w-3 mr-1" /> Completed
-                              </Badge>
-                            )}
-                          </div>
-                          <CardTitle className="text-lg">{session.title}</CardTitle>
-                        </div>
-                      </div>
-                      {session.description && (
-                        <CardDescription>{session.description}</CardDescription>
-                      )}
-                    </CardHeader>
-                    
-                    {/* Show content only if enrolled */}
-                    {isEnrolled ? (
-                      <CardContent className="space-y-4">
-                        {session.is_content_unlocked ? (
-                          <>
-                            {/* Pre-Reading Materials */}
-                            {sessionMaterials.length > 0 && (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                                  <BookOpen className="h-4 w-4" />
-                                  Pre-Reading Materials
-                                </div>
-                                <div className="pl-6 space-y-1">
-                                  {sessionMaterials.map((material) => (
-                                    <a
-                                      key={material.id}
-                                      href={material.link}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-2 text-sm text-primary hover:underline"
-                                    >
-                                      <ExternalLink className="h-3 w-3" />
-                                      {material.title}
-                                    </a>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {/* Session Actions */}
-                            <div className="flex flex-wrap gap-2">
-                              {session.recording_url && (
-                                <Button variant="secondary" size="sm" asChild>
-                                  <a href={session.recording_url} target="_blank" rel="noopener noreferrer">
-                                    <Video className="mr-2 h-4 w-4" /> Watch Video
-                                  </a>
-                                </Button>
-                              )}
-                              {session.presentation_url && (
-                                <Button variant="secondary" size="sm" asChild>
-                                  <a href={session.presentation_url} target="_blank" rel="noopener noreferrer">
-                                    <FileText className="mr-2 h-4 w-4" /> Resources
-                                  </a>
-                                </Button>
-                              )}
-                            </div>
-
-                            {/* Quizzes Section */}
-                            {sessionQuizzesList.length > 0 && (
-                              <SessionQuizList
-                                quizzes={sessionQuizzesList}
-                                submissions={quizSubmissions}
-                                sessionTitle={session.title}
-                              />
-                            )}
-                          </>
-                        ) : (
-                          <p className="text-sm text-muted-foreground flex items-center gap-2">
-                            <Lock className="h-4 w-4" /> This session's content will be available soon.
-                          </p>
-                        )}
-                      </CardContent>
-                    ) : (
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground italic">
-                          Enroll to access lesson materials and quizzes
-                        </p>
-                      </CardContent>
-                    )}
-                  </Card>
-                );
-              })}
-            </div>
+            <Card className="card-elevated">
+              <CardContent className="pt-6">
+                <CourseContentAccordion
+                  slug={slug!}
+                  isEnrolled={isEnrolled}
+                  sessions={curriculumSessions}
+                />
+              </CardContent>
+            </Card>
           )}
+
         </div>
       </div>
     </MainLayout>
