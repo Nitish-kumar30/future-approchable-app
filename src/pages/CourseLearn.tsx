@@ -51,7 +51,7 @@ export default function CourseLearn() {
   const [chapterProgress, setChapterProgress] = useState<Record<string, { is_completed: boolean; watched_seconds: number }>>({});
   const [sessionProgress, setSessionProgress] = useState<Record<string, boolean>>({});
   const [quizSubmissions, setQuizSubmissions] = useState<Record<string, number | null>>({});
-  const [selected, setSelected] = useState<{ kind: 'chapter' | 'session'; id: string } | null>(null);
+  const [selected, setSelected] = useState<{ kind: 'chapter' | 'session' | 'quiz'; id: string } | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [myRating, setMyRating] = useState<number>(0);
   const [myComment, setMyComment] = useState<string>('');
