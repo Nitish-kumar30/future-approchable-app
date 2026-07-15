@@ -112,7 +112,24 @@ export default function CourseSidebar({
             badge={quizSubmissions[sq.quiz.id] != null ? 'Done' : undefined}
           />
         ))}
+        {nextSession && (
+          <div className="mt-4 mx-3 mb-2">
+            <button
+              onClick={() => onSelectSession(nextSession.id)}
+              className="w-full text-left rounded-md border p-3 hover:bg-muted/60 transition flex items-center gap-2"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Next</div>
+                <div className="text-sm font-medium leading-snug line-clamp-2">
+                  Session {nextSession.session_order + 1}: {nextSession.title}
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            </button>
+          </div>
+        )}
       </div>
+
 
       {/* Footer: overall course progress */}
       <div className="p-4 border-t space-y-1">
