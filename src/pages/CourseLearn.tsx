@@ -337,8 +337,13 @@ export default function CourseLearn() {
                         src={currentChapter.hls_url}
                         autoPlay
                         onNearEnd={() => markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true)}
-                        onEnded={() => { if (nextItem) startAutoAdvance(); }}
+                        onEnded={() => {
+                          markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true);
+                          if (nextItem) startAutoAdvance();
+                        }}
                         onProgress={(t) => {
+                          // Don't clobber a completed chapter back to false
+                          if (chapterProgress[currentChapter.id]?.is_completed) return;
                           const floor = Math.floor(t);
                           const prev = lastSavedSecRef.current[currentChapter.id] ?? 0;
                           if (floor - prev >= 15) {
