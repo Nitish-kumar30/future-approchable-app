@@ -20,7 +20,9 @@ interface Props {
   onSelectSession: (sessionId: string) => void;
   onOpenQuiz: (quizId: string) => void;
   overallPct: number;
+  nextSession?: CS_Session | null;
 }
+
 
 function formatDuration(sec: number | null | undefined): string {
   if (!sec || sec <= 0) return 'Video';
