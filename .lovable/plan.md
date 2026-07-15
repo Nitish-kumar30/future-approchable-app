@@ -1,82 +1,61 @@
-## Overview
+## Goal
+Rework `/courses/:slug/learn` into a focused, DeepLearning.AI-style workspace: minimal top bar with clear back navigation, sticky session-scoped left rail, large working HLS video on the right, and a slim course-progress footer under the sidebar.
 
-Rename "Live Courses" → "Courses". Add optional **Chapters** under each Session (sessions may have 0 chapters). Chapters host Gumlet **HLS** video (public URLs like `https://video.gumlet.io/<collection>/<video>/main.m3u8`). Build a two-pane learning player, admin-controlled per-chapter previews, course ratings (0.5-step, 1–5) and personal + anonymous community progress. All chapter/session descriptions render as Markdown.
+## Layout
 
-## UI rename
-- Nav label + heading in `src/pages/LiveCourses.tsx` and `src/components/layout/PublicHeader.tsx`: "Live Courses" → "Courses". Route `/courses` unchanged.
+```text
+┌────────────────────────────────────────────────────────────────┐
+│ ← Back    Course name  ›  Session N ▾     [◀ ▶]   ★ Rate       │  top bar
+├──────────────┬─────────────────────────────────────────────────┤
+│ Session N:   │                                                 │
+│ Title        │              VIDEO PLAYER (16:9)                │
+│              │                                                 │
+│ ▶ Chapter 1  │─────────────────────────────────────────────────│
+│ ✓ Chapter 2  │  Chapter title                                  │
+│ 🔒 Chapter 3 │  Markdown description                           │
+│ ❓ Quiz       │                                                 │
+├──────────────┤                                                 │
+│ Course ▓▓░ 67%│                                                │
+└──────────────┴─────────────────────────────────────────────────┘
+```
 
-## Data model
+## Changes
 
-**New `chapters`**: `session_id`, `title`, `description` (markdown), `hls_url`, `thumbnail_url`, `duration_seconds`, `chapter_order`, `is_preview` (default false), `is_content_unlocked` (default true).
+### `src/pages/CourseLearn.tsx` (rewrite structure)
+- Render **outside** `MainLayout` so the page owns the viewport.
+- Minimal top bar:
+  - **Back button** on the left: navigates to `/courses/:slug` (course detail). A second link/icon goes to `/courses` (all courses). Both always visible so the user can always exit the player.
+  - Middle: course name → current session breadcrumb (session name is a dropdown to jump between sessions).
+  - Right: Prev/Next chapter arrows and a "Rate course" button (opens a dialog).
+- Two-column body (fills viewport minus top bar):
+  - **Left rail** (~300px, own scroll): header "Session N: Title", then the current session's chapters and quizzes. Row icon: check (done), play (active), circle (todo), lock (not watchable). Sub-label shows `Video · Xm` when duration is known, else just "Video". A slim "Switch session" collapsible above the list to jump to another session.
+  - **Sticky footer** in the rail: `Course` progress bar + `%`.
+  - **Right pane**: 16:9 video area, then chapter title and markdown description below.
+- Auto-select next unwatched chapter on load; on `onEnded` advance to next chapter.
+- Remove the current top progress card and inline rating card (rating moves to dialog).
 
-**New `chapter_progress`**: `user_id`, `chapter_id`, `is_completed`, `watched_seconds`, `completed_at`, unique(user_id, chapter_id).
+### Fix HLS playback in `src/components/video/HlsPlayer.tsx`
+The current player breaks when the `src` prop changes across chapters because `hls.js` isn't fully torn down and the media element isn't reset. Fix:
+- Reset the `<video>` element between sources: `video.pause(); video.removeAttribute('src'); video.load();` before attaching a new source.
+- Always prefer `hls.js` when supported and only fall back to native HLS if `Hls.isSupported()` is false (Safari path). Current order can attach native HLS on Chrome-based browsers that report they can play `application/vnd.apple.mpegurl` but don't actually stream Gumlet reliably.
+- Add `Hls` error handling: on `Hls.Events.ERROR` with fatal network/media errors, call `hls.recoverMediaError()` / `hls.startLoad()` as appropriate, and surface a toast on unrecoverable errors.
+- Ensure the effect cleanup runs on `src` change (destroy old `Hls` instance before creating a new one — currently the cleanup only runs on unmount because the dep tracking is fine, but the video element carries state; explicit reset above solves it).
+- Add `crossOrigin="anonymous"` to the `<video>` so subtitle/quality metadata from Gumlet loads cleanly.
+- Keep the existing `onProgress` / `onNearEnd` / `onEnded` API — used by `CourseLearn` for progress tracking and auto-advance.
 
-**New `course_ratings`**: `user_id`, `course_id`, `rating` numeric(2,1) CHECK (0.5–5, half-steps), optional `comment`, unique(user_id, course_id).
+If Gumlet still fails after the above, the likely cause is a signed URL or referrer policy — I'll add a fallback that opens the Gumlet URL in an `<iframe>` player (`https://play.gumlet.io/embed/<assetId>`) derived from the m3u8 asset id and log the underlying `hls.js` error so we can pin it down.
 
-Full GRANTs + RLS on all three (owner writes; SELECT scoped to enrolled/admin; community aggregates via SECURITY DEFINER function).
+### New small components
+- `src/components/course/CourseSidebar.tsx` — session-scoped list, extracted from `CourseLearn`.
+- `src/components/course/RateCourseDialog.tsx` — wraps `StarRating` + textarea + submit, opened from the top bar.
 
-**Session completion trigger** extended: session is complete when all its chapters (if any) are completed AND all its quizzes (if any) are submitted. Sessions with no chapters or quizzes keep current manual completion path.
+## Out of scope
+- No backend/edge-function changes.
+- No certificate / assignments concept — skipped as requested.
+- No changes to admin chapter management or the quiz flow.
+- Community-progress widget is dropped from this view for focus.
 
-## Video playback (Gumlet HLS)
-
-- New `HlsPlayer` using `hls.js` with native Safari fallback (`canPlayType('application/vnd.apple.mpegurl')`).
-- Public URLs — no signing edge function needed.
-- Completion trigger: mark chapter complete at ≥95% watched or via manual "Mark complete" button.
-
-## Markdown
-
-- Chapter and session description fields render via existing `Markdown` component in both admin previews and learner views.
-
-## Admin
-
-Extend `SessionForm` / Admin course view with a nested Chapters editor:
-- Add / edit / delete / reorder chapters.
-- Fields: title, Markdown description, HLS URL, thumbnail, duration, `is_preview`, `is_content_unlocked`.
-- If a session has chapters, its session-level `recording_url` becomes optional (label: "Optional overview video").
-
-## Preview access (logged-in, not enrolled)
-
-- Course detail page shows sessions; expanding a session lists its chapters.
-- Chapters with `is_preview = true` → playable for any logged-in user via `HlsPlayer`.
-- Non-preview chapters → lock icon + "Enroll to unlock".
-- Sessions without chapters retain today's behavior.
-
-## Learning player (enrolled users)
-
-New route `/courses/:slug/learn` → `src/pages/CourseLearn.tsx`:
-- Two-pane shadcn `Sidebar` (collapsible).
-- Left: accordion of Sessions → ordered Chapters + Quizzes. Progress icons + Preview badge.
-- Right: `HlsPlayer` + Markdown description + prev/next + "Mark complete".
-- Chapter id in URL (`?chapter=<id>`) for refresh/share.
-- Inline quizzes via existing `InlineQuiz`.
-
-## Course completion + rating
-
-- Sidebar header: % complete = completed chapters / total chapters (sessions with no chapters count once, tied to session completion).
-- At 100%: completion banner + rating widget (0.5-step, 1–5, optional Markdown comment) → upserts `course_ratings`.
-- Course cards show average rating + count.
-
-## Progress page
-
-New `src/pages/CourseProgress.tsx` linked from the learn view:
-- **My progress**: chapters/sessions completed vs total, quiz average.
-- **Community progress** (anonymous SECURITY DEFINER RPC):
-  - Per-session completion %.
-  - Overall completion distribution (0–25 / 25–50 / 50–75 / 75–100%).
-  - Average course completion %.
-  - No user names/ids exposed.
-
-## Edge functions (approved to create)
-
-1. `get-course-learn` — course + sessions + chapters + quizzes + caller's progress; respects preview vs enrolled.
-2. `update-chapter-progress` — upsert `chapter_progress`, recompute session completion.
-3. `submit-course-rating` — upsert `course_ratings`.
-4. `get-course-community-progress` — anonymous aggregates.
-5. Update `get-public-sessions` to include chapter titles + `is_preview` for previews.
-6. Update `CourseDetail` fetch path (currently direct DB reads) to go through edge functions per project rule.
-
-## Rollout notes
-
-- Migration is additive; existing sessions/courses keep working immediately.
-- Chapters are optional per session; UI adapts based on presence.
-- Rename ships in the same batch as chapter data model so nav copy and new player land together.
+## Technical notes
+- Files touched: `src/pages/CourseLearn.tsx`, `src/components/video/HlsPlayer.tsx`, plus two new small components under `src/components/course/`.
+- No new deps (`hls.js` already installed).
+- Existing route `/courses/:slug/learn` unchanged; enrollment/preview gating from `get-course-learn` is respected.
