@@ -1,54 +1,65 @@
-# Learn page fixes
+## Goal
 
-Three targeted fixes to `/courses/:slug/learn`. No backend changes, no edge functions.
+Replace the flat session list on `/courses/:slug` with an accordion "Course Content" module (matching the reference mockup) for **both enrolled and unenrolled users**. Remove the "This session's content will be available soon." copy entirely.
 
-## 1. Only the left panel scrolls
+## Behavior
 
-Currently the outer grid uses `md:grid-cols-[300px_1fr]` inside a `flex-1 min-h-0` row, but the sidebar itself is `h-full` and the main column has `overflow-y-auto`. On narrower viewports the whole page ends up scrolling.
+Same layout for everyone:
+- One accordion per session, header `Section {N} : {session.title}` (first section open by default).
+- Numbered chapter rows inside each section: `{n}  {chapter.title}`.
+- Quizzes (enrolled only) appended after chapters as `Quiz: <title>` rows.
 
-Changes in `src/pages/CourseLearn.tsx`:
-- Wrap the body row so it has a fixed height (`h-[calc(100vh-3.5rem)]`) and `overflow-hidden`.
-- Sidebar column: `h-full overflow-y-auto`.
-- Main column: `h-full overflow-hidden` — the video + description area sits inside a non-scrolling container. If description overflows, only that inner text block scrolls (`overflow-y-auto`), not the page.
+Row interaction:
 
-Result: page never scrolls; sidebar scrolls independently; video stays pinned.
+| State | Row click | Preview button |
+|---|---|---|
+| Unenrolled, chapter `is_preview=true` | Opens preview video in modal | Shown (also opens modal) |
+| Unenrolled, chapter `is_preview=false` | Non-clickable (muted) | Hidden |
+| Unenrolled, quiz row | Hidden (not rendered) | — |
+| Enrolled, chapter (any) | Navigates to `/courses/:slug/learn?chapter={id}` | Hidden |
+| Enrolled, quiz | Navigates to `/courses/:slug/learn?quiz={id}` | Hidden |
 
-## 2. "Next: <session>" card at the bottom of the sidebar list
+The "Enroll to access lesson materials and quizzes" placeholder card and the `Lock` "will be available soon" line are both removed.
 
-When the last item of the current session's chapter/quiz list is reached, show a compact "Next" card pointing to the next session (like the reference screenshot).
+## Data (new edge function)
 
-Changes in `src/components/course/CourseSidebar.tsx`:
-- Accept a new prop `nextSession?: { id: string; title: string; session_order: number }` and `onSelectSession` (already present).
-- After the chapter/quiz rows, render a card:
+Create `supabase/functions/get-course-curriculum/index.ts` (anon-callable, service role internally):
+- Input: `?slug=<course-slug>`; optional Bearer token to detect enrollment.
+- Output:
   ```
-  Next
-  Session N+1: <title>  ›
+  {
+    course: { id, slug, title },
+    is_enrolled: boolean,
+    sessions: [{
+      id, title, session_order,
+      chapters: [{ id, title, chapter_order, is_preview, hls_url|null }],
+      quizzes:  [{ id, title }]   // only when is_enrolled
+    }]
+  }
   ```
-  Clicking it calls `onSelectSession(nextSession.id)`.
-- Card sits above the "Course <pct>%" footer, inside the scrollable list area so it appears at the end of current session content.
+  `hls_url` is included only when the caller can watch it (chapter `is_preview = true` or enrolled).
 
-In `CourseLearn.tsx`, compute `nextSession` = sessions sorted by order, first one after `currentSession` and pass it in.
+## Frontend
 
-## 3. HLS video: not auto-starting, stops after a few seconds
+`src/pages/CourseDetail.tsx`
+- Fetch curriculum via the new edge function after course + enrollment resolve.
+- Replace the entire "Course Content" block (both enrolled and unenrolled branches) with `<CourseContentAccordion />`.
+- Delete the `Lock` "will be available soon" text and the "Enroll to access lesson materials and quizzes" placeholder.
+- Leave hero, about, instructor, ratings, community progress, and standalone course-level quizzes untouched.
 
-Two root causes in `src/components/video/HlsPlayer.tsx`:
+New `src/components/course/CourseContentAccordion.tsx`
+- shadcn `Accordion type="multiple" defaultValue={[firstSessionId]}`.
+- Renders sessions/chapters/quizzes per the interaction table above.
+- Uses semantic tokens (no hardcoded colors).
 
-a. `autoPlay` prop is not being passed by `CourseLearn.tsx`, so first chapter never starts. Even when true, browsers block autoplay with sound — we need `muted` on first attempt and explicit `video.play()` after manifest parses.
+New `src/components/course/ChapterPreviewDialog.tsx`
+- shadcn `Dialog` wrapping `HlsPlayer` for the unenrolled preview flow.
 
-b. The `onProgress` handler in `CourseLearn.tsx` calls `markChapterComplete` every 15 seconds, which does an `await invokeFn(...)` and, more importantly, updates React state `chapterProgress` on the currently-playing chapter. That state change re-renders `HlsPlayer`, and because the `useEffect` dep list includes `onError` (a new function each render via `toast`), the effect re-runs: it pauses the video, removes `src`, calls `video.load()`, and re-attaches HLS — which is exactly the "stops after a few seconds" symptom.
+`src/pages/CourseLearn.tsx`
+- Use `useSearchParams` to read `?chapter=` / `?quiz=` on load.
+- If present and found in curriculum, initialize `selected` to that item (and set `currentSessionId` accordingly) instead of the default first-unwatched item.
 
-Changes:
-- `HlsPlayer.tsx`:
-  - Store `onError`, `onProgress`, `onEnded`, `onNearEnd` in refs so the setup `useEffect` only depends on `src`. Setup runs once per src change, not on every parent re-render.
-  - After `Hls.Events.MANIFEST_PARSED` (and after `loadedmetadata` in native path), call `video.play().catch(...)`; if it rejects due to autoplay policy, set `video.muted = true` and retry once.
-  - Keep the reset (`pause` / `removeAttribute('src')` / `load()`) only on actual src change.
-- `CourseLearn.tsx`:
-  - Pass `autoPlay` to `HlsPlayer`.
-  - Throttle the progress writer using a ref (last-saved second) instead of reading React state, so `chapterProgress` isn't updated every 15s during playback. Persist completion only on `onNearEnd` and on chapter change/unmount.
-  - Memoize `onError`/`onProgress`/`onNearEnd`/`onEnded` with `useCallback` as a belt-and-suspenders measure.
+## Out of scope
 
-## Technical notes
-
-- No schema, RLS, edge-function, or route changes.
-- Files touched: `src/pages/CourseLearn.tsx`, `src/components/course/CourseSidebar.tsx`, `src/components/video/HlsPlayer.tsx`.
-- Verification: type-check, then Playwright load of `/courses/ai-mastery-for-working-professionals/learn`, screenshot to confirm no page scroll, sidebar scrolls, "Next" card visible at end of session list, video autoplays (muted) and continues past 15s without reload.
+- Admin chapter manager, progress tracking, learn workspace layout — unchanged beyond the deep-link initialization above.
+- `CohortDetail.tsx` — no changes.
