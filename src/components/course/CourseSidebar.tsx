@@ -32,8 +32,9 @@ function formatDuration(sec: number | null | undefined): string {
 
 export default function CourseSidebar({
   sessions, chapters, quizzes, currentSessionId, chapterProgress, quizSubmissions,
-  selected, onSelect, onSelectSession, onOpenQuiz, overallPct,
+  selected, onSelect, onSelectSession, onOpenQuiz, overallPct, nextSession,
 }: Props) {
+
   const currentSession = sessions.find((s) => s.id === currentSessionId) ?? sessions[0];
   const chs = chapters
     .filter((c) => c.session_id === currentSession?.id)
