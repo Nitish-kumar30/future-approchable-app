@@ -141,15 +141,61 @@ export default function CourseLearn() {
   // Throttle progress writes without triggering re-renders of the player.
   const lastSavedSecRef = useRef<Record<string, number>>({});
 
+  // Auto-advance countdown after a video ends.
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const currentIdx = selected ? playable.findIndex((p) => p.kind === selected.kind && p.id === selected.id) : -1;
+
+  const nextItem = currentIdx >= 0 ? playable[currentIdx + 1] : undefined;
+  const nextItemTitle = useMemo(() => {
+    if (!nextItem) return null;
+    if (nextItem.kind === 'chapter') return chapters.find((c) => c.id === nextItem.id)?.title ?? null;
+    return sessions.find((s) => s.id === nextItem.id)?.title ?? null;
+  }, [nextItem, chapters, sessions]);
+
+  const clearCountdown = () => {
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
+    setCountdown(null);
+  };
+
   const go = (delta: number) => {
     if (currentIdx < 0) return;
     const next = playable[currentIdx + delta];
     if (!next) return;
+    clearCountdown();
     setSelected({ kind: next.kind, id: next.id });
     setCurrentSessionId(next.sessionId);
   };
+
+  const startAutoAdvance = () => {
+    if (!nextItem) return;
+    clearCountdown();
+    setCountdown(5);
+    countdownRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev === null) return null;
+        if (prev <= 1) {
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          countdownRef.current = null;
+          go(1);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
+
+  // Cancel countdown when the user manually changes selection
+  useEffect(() => { clearCountdown(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [selected?.id]);
+
+
 
   const markChapterComplete = async (chapterId: string, watched: number, completed: boolean) => {
     if (!user) return;
@@ -284,14 +330,14 @@ export default function CourseLearn() {
                 })()
               ) : (
                 <>
-                  <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                  <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
                     {currentChapter?.can_watch && currentChapter.hls_url ? (
                       <HlsPlayer
                         key={currentChapter.id}
                         src={currentChapter.hls_url}
                         autoPlay
                         onNearEnd={() => markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true)}
-                        onEnded={() => go(1)}
+                        onEnded={() => { if (nextItem) startAutoAdvance(); }}
                         onProgress={(t) => {
                           const floor = Math.floor(t);
                           const prev = lastSavedSecRef.current[currentChapter.id] ?? 0;
@@ -316,7 +362,43 @@ export default function CourseLearn() {
                         <p>Select a chapter to start watching.</p>
                       </div>
                     )}
+
+                    {countdown !== null && nextItem && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-10">
+                        <div className="text-center px-8 py-6 max-w-sm w-full">
+                          <div className="relative w-16 h-16 mx-auto mb-5">
+                            <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
+                              <circle cx="32" cy="32" r="28" fill="none" stroke="hsl(var(--muted))" strokeWidth="4" />
+                              <circle
+                                cx="32" cy="32" r="28"
+                                fill="none"
+                                stroke="hsl(var(--primary))"
+                                strokeWidth="4"
+                                strokeDasharray={`${(countdown / 5) * 175.9} 175.9`}
+                                strokeLinecap="round"
+                                className="transition-all duration-1000"
+                              />
+                            </svg>
+                            <span className="absolute inset-0 flex items-center justify-center text-white text-xl font-bold">{countdown}</span>
+                          </div>
+                          <p className="text-white/60 text-xs uppercase tracking-widest mb-2">Up next</p>
+                          <h3 className="text-white font-semibold text-base mb-6 leading-snug line-clamp-2">{nextItemTitle}</h3>
+                          <div className="flex gap-3 justify-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={clearCountdown}
+                              className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+                            >
+                              Cancel
+                            </Button>
+                            <Button size="sm" onClick={() => go(1)}>Play now</Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
+
 
                   <div className="space-y-3">
                     <h1 className="text-xl font-semibold">
