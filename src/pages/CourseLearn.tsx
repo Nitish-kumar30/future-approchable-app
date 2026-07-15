@@ -254,7 +254,12 @@ export default function CourseLearn() {
               if (s?.video_url) setSelected({ kind: 'session', id: sid });
             }
           }}
-          onOpenQuiz={(quizId) => navigate(`/quiz/${quizId}`)}
+          onOpenQuiz={(quizId) => {
+            const sq = sessionQuizzes.find((q) => q.quiz?.id === quizId);
+            if (sq) setCurrentSessionId(sq.session_id);
+            setSelected({ kind: 'quiz', id: quizId });
+          }}
+
           overallPct={overallPct}
           nextSession={nextSession}
         />
