@@ -1407,7 +1407,7 @@ export default function Admin() {
                             />
                           </TableCell>
                           <TableCell className="text-right space-x-2">
-                            <Button variant="ghost" size="sm" onClick={() => setChaptersSession(session)}>Chapters</Button>
+                            <Button variant="ghost" size="sm" onClick={() => { console.log('[Chapters] clicked for session', session?.id, session?.title); setChaptersSession(session); }}>Chapters</Button>
                             <Button variant="ghost" size="sm" onClick={() => handleEditSession(session)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -2250,14 +2250,12 @@ export default function Admin() {
           miniProjects={sessionMiniProjects}
           onSave={handleSaveSession}
         />
-        {chaptersSession && (
-          <ChapterManager
-            open={!!chaptersSession}
-            onOpenChange={(o) => !o && setChaptersSession(null)}
-            sessionId={chaptersSession.id}
-            sessionTitle={chaptersSession.title}
-          />
-        )}
+        <ChapterManager
+          open={!!chaptersSession}
+          onOpenChange={(o) => { if (!o) setChaptersSession(null); }}
+          sessionId={chaptersSession?.id ?? ''}
+          sessionTitle={chaptersSession?.title ?? ''}
+        />
         <QuizForm
           open={quizFormOpen}
           onOpenChange={setQuizFormOpen}
