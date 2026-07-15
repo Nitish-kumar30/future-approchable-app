@@ -1,8 +1,8 @@
-import { CheckCircle2, Circle, Play, Lock, FileQuestion, ChevronDown } from 'lucide-react';
+import { CheckCircle2, Circle, Play, Lock, FileQuestion, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+
 
 export interface CS_Session { id: string; title: string; session_order: number; video_url: string | null; is_content_unlocked: boolean; }
 export interface CS_Chapter { id: string; session_id: string; title: string; chapter_order: number; can_watch: boolean; duration_seconds: number | null; is_preview: boolean; }
