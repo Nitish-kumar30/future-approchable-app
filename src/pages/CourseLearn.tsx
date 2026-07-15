@@ -337,7 +337,7 @@ export default function CourseLearn() {
                         src={currentChapter.hls_url}
                         autoPlay
                         onNearEnd={() => markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true)}
-                        onEnded={() => go(1)}
+                        onEnded={() => { if (nextItem) startAutoAdvance(); }}
                         onProgress={(t) => {
                           const floor = Math.floor(t);
                           const prev = lastSavedSecRef.current[currentChapter.id] ?? 0;
