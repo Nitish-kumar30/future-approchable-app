@@ -141,15 +141,61 @@ export default function CourseLearn() {
   // Throttle progress writes without triggering re-renders of the player.
   const lastSavedSecRef = useRef<Record<string, number>>({});
 
+  // Auto-advance countdown after a video ends.
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const currentIdx = selected ? playable.findIndex((p) => p.kind === selected.kind && p.id === selected.id) : -1;
+
+  const nextItem = currentIdx >= 0 ? playable[currentIdx + 1] : undefined;
+  const nextItemTitle = useMemo(() => {
+    if (!nextItem) return null;
+    if (nextItem.kind === 'chapter') return chapters.find((c) => c.id === nextItem.id)?.title ?? null;
+    return sessions.find((s) => s.id === nextItem.id)?.title ?? null;
+  }, [nextItem, chapters, sessions]);
+
+  const clearCountdown = () => {
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
+    setCountdown(null);
+  };
+
   const go = (delta: number) => {
     if (currentIdx < 0) return;
     const next = playable[currentIdx + delta];
     if (!next) return;
+    clearCountdown();
     setSelected({ kind: next.kind, id: next.id });
     setCurrentSessionId(next.sessionId);
   };
+
+  const startAutoAdvance = () => {
+    if (!nextItem) return;
+    clearCountdown();
+    setCountdown(5);
+    countdownRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev === null) return null;
+        if (prev <= 1) {
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          countdownRef.current = null;
+          go(1);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
+
+  // Cancel countdown when the user manually changes selection
+  useEffect(() => { clearCountdown(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [selected?.id]);
+
+
 
   const markChapterComplete = async (chapterId: string, watched: number, completed: boolean) => {
     if (!user) return;
