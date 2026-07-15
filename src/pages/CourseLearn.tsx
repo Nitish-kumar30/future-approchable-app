@@ -104,11 +104,22 @@ export default function CourseLearn() {
     if (selected || playable.length === 0) return;
     const qpChapter = searchParams.get('chapter');
     const qpQuiz = searchParams.get('quiz');
-    let target = playable.find((it) => {
-      if (qpChapter) return it.kind === 'chapter' && it.id === qpChapter;
-      if (qpQuiz) return it.kind === 'quiz' && it.id === qpQuiz;
-      return false;
-    });
+
+    if (qpQuiz) {
+      const sq = sessionQuizzes.find((q) => q.quiz?.id === qpQuiz);
+      if (sq) {
+        setSelected({ kind: 'quiz', id: qpQuiz });
+        setCurrentSessionId(sq.session_id);
+        const next = new URLSearchParams(searchParams);
+        next.delete('quiz');
+        setSearchParams(next, { replace: true });
+        return;
+      }
+    }
+
+    let target = qpChapter
+      ? playable.find((it) => it.kind === 'chapter' && it.id === qpChapter)
+      : undefined;
     if (!target) {
       target =
         playable.find((it) => {
@@ -118,13 +129,12 @@ export default function CourseLearn() {
     }
     setSelected({ kind: target.kind, id: target.id });
     setCurrentSessionId(target.sessionId);
-    if (qpChapter || qpQuiz) {
+    if (qpChapter) {
       const next = new URLSearchParams(searchParams);
       next.delete('chapter');
-      next.delete('quiz');
       setSearchParams(next, { replace: true });
     }
-  }, [playable, selected, chapterProgress, sessionProgress, searchParams, setSearchParams]);
+  }, [playable, selected, chapterProgress, sessionProgress, sessionQuizzes, searchParams, setSearchParams]);
 
   const totalChapters = chapters.length;
   const completedChapters = useMemo(
