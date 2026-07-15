@@ -97,6 +97,32 @@ export default function CourseDetail() {
     }
   }, [isEnrolled, course, user]);
 
+  useEffect(() => {
+    if (!slug) return;
+    (async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-course-curriculum?slug=${encodeURIComponent(slug)}`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setCurriculumSessions(data.sessions || []);
+        }
+      } catch (e) {
+        console.error('Failed to fetch curriculum:', e);
+      }
+    })();
+  }, [slug, user, isEnrolled]);
+
   const fetchCourse = async () => {
     const { data, error } = await supabase
       .from('courses')
