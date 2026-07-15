@@ -129,6 +129,17 @@ export default function CourseLearn() {
     ? sessions.find((s) => s.id === selected.id) ?? null
     : (currentChapter ? sessions.find((s) => s.id === currentChapter.session_id) ?? null : null);
 
+  const nextSession = useMemo(() => {
+    if (!currentSession) return null;
+    const sorted = [...sessions].sort((a, b) => a.session_order - b.session_order);
+    const idx = sorted.findIndex((s) => s.id === currentSession.id);
+    return idx >= 0 && idx < sorted.length - 1 ? sorted[idx + 1] : null;
+  }, [sessions, currentSession]);
+
+  // Throttle progress writes without triggering re-renders of the player.
+  const lastSavedSecRef = useRef<Record<string, number>>({});
+
+
   const currentIdx = selected ? playable.findIndex((p) => p.kind === selected.kind && p.id === selected.id) : -1;
   const go = (delta: number) => {
     if (currentIdx < 0) return;
