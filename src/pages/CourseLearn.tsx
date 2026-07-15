@@ -10,7 +10,7 @@ import RateCourseDialog from '@/components/course/RateCourseDialog';
 import InlineQuiz from '@/components/session/InlineQuiz';
 
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ChevronLeft, ChevronRight, Star, Lock, Loader2, LayoutGrid } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Star, Lock, Loader2, LayoutGrid, Maximize, Minimize } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Course { id: string; slug: string; name: string; description: string | null; }
