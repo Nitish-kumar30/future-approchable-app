@@ -225,7 +225,7 @@ export default function CourseLearn() {
       </header>
 
       {/* Body */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[300px_1fr]">
+      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[300px_1fr] overflow-hidden">
         <CourseSidebar
           sessions={sessions}
           chapters={chapters}
