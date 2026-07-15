@@ -259,24 +259,32 @@ export default function CourseLearn() {
 
 
         {/* Main viewer */}
-        <main className="min-h-0 overflow-y-auto">
-          <div className="max-w-5xl mx-auto p-4 space-y-4">
-            <div className="aspect-video bg-black rounded-lg overflow-hidden">
-              {currentChapter?.can_watch && currentChapter.hls_url ? (
-                <HlsPlayer
-                  key={currentChapter.id}
-                  src={currentChapter.hls_url}
-                  onNearEnd={() => markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true)}
-                  onEnded={() => go(1)}
-                  onProgress={(t) => {
-                    const prev = chapterProgress[currentChapter.id]?.watched_seconds ?? 0;
-                    if (Math.floor(t) - prev >= 15) {
-                      markChapterComplete(currentChapter.id, Math.floor(t), chapterProgress[currentChapter.id]?.is_completed ?? false);
-                    }
-                  }}
-                  onError={(msg) => toast({ title: 'Video error', description: msg, variant: 'destructive' })}
-                />
-              ) : selected?.kind === 'session' && currentSession?.video_url ? (
+        <main className="min-h-0 h-full overflow-hidden">
+          <div className="h-full overflow-y-auto">
+            <div className="max-w-5xl mx-auto p-4 space-y-4">
+              <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                {currentChapter?.can_watch && currentChapter.hls_url ? (
+                  <HlsPlayer
+                    key={currentChapter.id}
+                    src={currentChapter.hls_url}
+                    autoPlay
+                    onNearEnd={() => markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true)}
+                    onEnded={() => go(1)}
+                    onProgress={(t) => {
+                      const floor = Math.floor(t);
+                      const prev = lastSavedSecRef.current[currentChapter.id] ?? 0;
+                      if (floor - prev >= 15) {
+                        lastSavedSecRef.current[currentChapter.id] = floor;
+                        // fire-and-forget; do NOT update React state during playback
+                        invokeFn('update-chapter-progress', {
+                          body: { chapter_id: currentChapter.id, watched_seconds: floor, is_completed: false },
+                        });
+                      }
+                    }}
+                    onError={(msg) => toast({ title: 'Video error', description: msg, variant: 'destructive' })}
+                  />
+                ) : selected?.kind === 'session' && currentSession?.video_url ? (
+
                 <iframe src={currentSession.video_url} className="w-full h-full" allow="fullscreen" />
               ) : currentChapter && !currentChapter.can_watch ? (
                 <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
