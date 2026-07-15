@@ -42,7 +42,7 @@ export default function CourseSidebar({
   const qs = quizzes.filter((q) => q.session_id === currentSession?.id);
 
   return (
-    <aside className="flex flex-col h-full border-r bg-card">
+    <aside className="flex flex-col h-full min-h-0 border-r bg-card overflow-hidden">
       {/* Session picker */}
       <div className="p-4 border-b">
         <DropdownMenu>
