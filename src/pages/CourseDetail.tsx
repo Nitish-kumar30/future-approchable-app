@@ -481,38 +481,6 @@ export default function CourseDetail() {
             </Card>
           )}
 
-          {isEnrolled && sessions.some((s) => getMaterialsForSession(s.id).length > 0) && (
-            <div className="space-y-3 pt-4">
-              <h3 className="text-lg font-semibold">Pre-Reading Materials</h3>
-              {sessions.map((session) => {
-                const mats = getMaterialsForSession(session.id);
-                if (mats.length === 0) return null;
-                return (
-                  <Card key={session.id} className="card-elevated">
-                    <CardHeader>
-                      <CardTitle className="text-base">{session.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-1">
-                        {mats.map((material) => (
-                          <a
-                            key={material.id}
-                            href={material.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-sm text-primary hover:underline"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            {material.title}
-                          </a>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
     </MainLayout>
