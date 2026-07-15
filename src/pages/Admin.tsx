@@ -1407,7 +1407,7 @@ export default function Admin() {
                             />
                           </TableCell>
                           <TableCell className="text-right space-x-2">
-                            <Button variant="ghost" size="sm" onClick={() => setChaptersSession(session)}>Chapters</Button>
+                            <Button variant="ghost" size="sm" onClick={() => { console.log('[Chapters] clicked for session', session?.id, session?.title); setChaptersSession(session); }}>Chapters</Button>
                             <Button variant="ghost" size="sm" onClick={() => handleEditSession(session)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
