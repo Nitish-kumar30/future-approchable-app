@@ -97,16 +97,34 @@ export default function CourseLearn() {
     return items;
   }, [sessions, chapters]);
 
-  // Default selection: first unwatched watchable, else first item.
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Default selection: honor ?chapter= / ?quiz= deep link, else first unwatched.
   useEffect(() => {
     if (selected || playable.length === 0) return;
-    const firstUnwatched = playable.find((it) => {
-      if (it.kind === 'chapter') return !chapterProgress[it.id]?.is_completed;
-      return !sessionProgress[it.id];
-    }) ?? playable[0];
-    setSelected({ kind: firstUnwatched.kind, id: firstUnwatched.id });
-    setCurrentSessionId(firstUnwatched.sessionId);
-  }, [playable, selected, chapterProgress, sessionProgress]);
+    const qpChapter = searchParams.get('chapter');
+    const qpQuiz = searchParams.get('quiz');
+    let target = playable.find((it) => {
+      if (qpChapter) return it.kind === 'chapter' && it.id === qpChapter;
+      if (qpQuiz) return it.kind === 'quiz' && it.id === qpQuiz;
+      return false;
+    });
+    if (!target) {
+      target =
+        playable.find((it) => {
+          if (it.kind === 'chapter') return !chapterProgress[it.id]?.is_completed;
+          return !sessionProgress[it.id];
+        }) ?? playable[0];
+    }
+    setSelected({ kind: target.kind, id: target.id });
+    setCurrentSessionId(target.sessionId);
+    if (qpChapter || qpQuiz) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('chapter');
+      next.delete('quiz');
+      setSearchParams(next, { replace: true });
+    }
+  }, [playable, selected, chapterProgress, sessionProgress, searchParams, setSearchParams]);
 
   const totalChapters = chapters.length;
   const completedChapters = useMemo(
