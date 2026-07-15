@@ -15,8 +15,9 @@ interface Props {
   currentSessionId: string | null;
   chapterProgress: Record<string, { is_completed: boolean }>;
   quizSubmissions: Record<string, number | null>;
-  selected: { kind: 'chapter' | 'session'; id: string } | null;
-  onSelect: (s: { kind: 'chapter' | 'session'; id: string }) => void;
+  selected: { kind: 'chapter' | 'session' | 'quiz'; id: string } | null;
+  onSelect: (s: { kind: 'chapter' | 'session' | 'quiz'; id: string }) => void;
+
   onSelectSession: (sessionId: string) => void;
   onOpenQuiz: (quizId: string) => void;
   overallPct: number;
