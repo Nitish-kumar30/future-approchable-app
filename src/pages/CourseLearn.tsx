@@ -4,17 +4,12 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import MainLayout from '@/components/layout/MainLayout';
 import HlsPlayer from '@/components/video/HlsPlayer';
-import { StarRating } from '@/components/course/StarRating';
+import CourseSidebar from '@/components/course/CourseSidebar';
+import RateCourseDialog from '@/components/course/RateCourseDialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Progress } from '@/components/ui/progress';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { CheckCircle2, Circle, Play, Lock, FileQuestion, Users, Loader2 } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Star, Lock, Loader2, LayoutGrid } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 
 interface Course { id: string; slug: string; name: string; description: string | null; }
 interface Session { id: string; title: string; description: string | null; session_order: number; video_url: string | null; is_content_unlocked: boolean; }
@@ -55,11 +50,10 @@ export default function CourseLearn() {
   const [sessionProgress, setSessionProgress] = useState<Record<string, boolean>>({});
   const [quizSubmissions, setQuizSubmissions] = useState<Record<string, number | null>>({});
   const [selected, setSelected] = useState<{ kind: 'chapter' | 'session'; id: string } | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [myRating, setMyRating] = useState<number>(0);
   const [myComment, setMyComment] = useState<string>('');
-  const [ratingAvg, setRatingAvg] = useState(0);
-  const [ratingCount, setRatingCount] = useState(0);
-  const [community, setCommunity] = useState<any>(null);
+  const [rateOpen, setRateOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!slug) return;
@@ -80,36 +74,37 @@ export default function CourseLearn() {
     setQuizSubmissions(Object.fromEntries((data.quiz_submissions ?? []).map((q: any) => [q.quiz_id, q.score])));
     setMyRating(data.my_rating?.rating ?? 0);
     setMyComment(data.my_rating?.comment ?? '');
-    setRatingAvg(data.rating_avg ?? 0);
-    setRatingCount(data.rating_count ?? 0);
     setLoading(false);
   }, [slug, toast]);
 
   useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    if (!course?.id) return;
-    invokeFn('get-course-community-progress', { query: { course_id: course.id } }).then((d) => {
-      if (!d?.error) setCommunity(d);
-    });
-  }, [course?.id]);
-
-  // Default selection: first watchable item
-  useEffect(() => {
-    if (selected || sessions.length === 0) return;
+  // Ordered playable items (chapters and no-chapter sessions), for prev/next + auto-advance.
+  const playable = useMemo(() => {
+    const items: { kind: 'chapter' | 'session'; id: string; sessionId: string }[] = [];
     for (const s of sessions) {
-      const chs = chapters.filter((c) => c.session_id === s.id);
-      if (chs.length) {
-        const first = chs.find((c) => c.can_watch) ?? chs[0];
-        setSelected({ kind: 'chapter', id: first.id });
-        return;
-      }
-      if (s.video_url && (isEnrolled || s.is_content_unlocked)) {
-        setSelected({ kind: 'session', id: s.id });
-        return;
+      const chs = chapters
+        .filter((c) => c.session_id === s.id)
+        .sort((a, b) => a.chapter_order - b.chapter_order);
+      if (chs.length === 0 && s.video_url) {
+        items.push({ kind: 'session', id: s.id, sessionId: s.id });
+      } else {
+        for (const c of chs) items.push({ kind: 'chapter', id: c.id, sessionId: s.id });
       }
     }
-  }, [sessions, chapters, selected, isEnrolled]);
+    return items;
+  }, [sessions, chapters]);
+
+  // Default selection: first unwatched watchable, else first item.
+  useEffect(() => {
+    if (selected || playable.length === 0) return;
+    const firstUnwatched = playable.find((it) => {
+      if (it.kind === 'chapter') return !chapterProgress[it.id]?.is_completed;
+      return !sessionProgress[it.id];
+    }) ?? playable[0];
+    setSelected({ kind: firstUnwatched.kind, id: firstUnwatched.id });
+    setCurrentSessionId(firstUnwatched.sessionId);
+  }, [playable, selected, chapterProgress, sessionProgress]);
 
   const totalChapters = chapters.length;
   const completedChapters = useMemo(
@@ -134,6 +129,15 @@ export default function CourseLearn() {
     ? sessions.find((s) => s.id === selected.id) ?? null
     : (currentChapter ? sessions.find((s) => s.id === currentChapter.session_id) ?? null : null);
 
+  const currentIdx = selected ? playable.findIndex((p) => p.kind === selected.kind && p.id === selected.id) : -1;
+  const go = (delta: number) => {
+    if (currentIdx < 0) return;
+    const next = playable[currentIdx + delta];
+    if (!next) return;
+    setSelected({ kind: next.kind, id: next.id });
+    setCurrentSessionId(next.sessionId);
+  };
+
   const markChapterComplete = async (chapterId: string, watched: number, completed: boolean) => {
     if (!user) return;
     setChapterProgress((prev) => ({
@@ -145,225 +149,157 @@ export default function CourseLearn() {
     });
   };
 
-  const submitRating = async () => {
+  const submitRating = async (rating: number, comment: string) => {
     if (!course?.id) return;
     const res = await invokeFn('submit-course-rating', {
-      body: { course_id: course.id, rating: myRating, comment: myComment },
+      body: { course_id: course.id, rating, comment },
     });
     if (res?.error) {
       toast({ title: 'Failed to submit rating', description: res.error, variant: 'destructive' });
     } else {
       toast({ title: 'Rating saved' });
-      load();
+      setMyRating(rating);
+      setMyComment(comment);
     }
   };
 
   if (loading) {
     return (
-      <MainLayout>
-        <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-      </MainLayout>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
     );
   }
 
   if (!course) {
     return (
-      <MainLayout>
-        <p className="text-center py-16 text-muted-foreground">Course not found.</p>
-      </MainLayout>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <p className="text-muted-foreground">Course not found.</p>
+        <Button onClick={() => navigate('/courses')}>Back to courses</Button>
+      </div>
     );
   }
 
   return (
-    <MainLayout>
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-display font-bold">{course.name}</h1>
-            {ratingCount > 0 && (
-              <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                <StarRating value={ratingAvg} readOnly size={16} />
-                <span>({ratingCount})</span>
-              </div>
-            )}
-          </div>
-          <Button variant="outline" onClick={() => navigate(`/courses/${course.slug}`)}>Course details</Button>
+    <div className="h-screen flex flex-col bg-background">
+      {/* Top bar */}
+      <header className="h-14 border-b flex items-center gap-2 px-3 shrink-0">
+        <Button variant="ghost" size="sm" onClick={() => navigate(`/courses/${course.slug}`)} className="gap-1">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => navigate('/courses')} className="gap-1 hidden sm:inline-flex">
+          <LayoutGrid className="h-4 w-4" /> All courses
+        </Button>
+        <div className="flex-1 min-w-0 px-2 hidden md:block">
+          <div className="text-sm font-medium truncate">{course.name}</div>
+          {currentSession && (
+            <div className="text-xs text-muted-foreground truncate">
+              Session {currentSession.session_order + 1}: {currentSession.title}
+            </div>
+          )}
         </div>
+        <div className="flex items-center gap-1 ml-auto">
+          <Button variant="ghost" size="icon" onClick={() => go(-1)} disabled={currentIdx <= 0} aria-label="Previous">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => go(1)} disabled={currentIdx < 0 || currentIdx >= playable.length - 1} aria-label="Next">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          {isEnrolled && (
+            <Button variant="outline" size="sm" onClick={() => setRateOpen(true)} className="gap-1 ml-1">
+              <Star className="h-4 w-4" /> Rate
+            </Button>
+          )}
+        </div>
+      </header>
 
-        <Card>
-          <CardContent className="py-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="font-medium">Your progress</span>
-                  <span className="text-muted-foreground">{overallPct}%</span>
+      {/* Body */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[300px_1fr]">
+        <CourseSidebar
+          sessions={sessions}
+          chapters={chapters}
+          quizzes={sessionQuizzes}
+          currentSessionId={currentSessionId ?? currentSession?.id ?? null}
+          chapterProgress={chapterProgress}
+          quizSubmissions={quizSubmissions}
+          selected={selected}
+          onSelect={(sel) => {
+            setSelected(sel);
+            const sid = sel.kind === 'chapter'
+              ? chapters.find((c) => c.id === sel.id)?.session_id
+              : sel.id;
+            if (sid) setCurrentSessionId(sid);
+          }}
+          onSelectSession={(sid) => {
+            setCurrentSessionId(sid);
+            const firstCh = chapters
+              .filter((c) => c.session_id === sid)
+              .sort((a, b) => a.chapter_order - b.chapter_order)[0];
+            if (firstCh) setSelected({ kind: 'chapter', id: firstCh.id });
+            else {
+              const s = sessions.find((x) => x.id === sid);
+              if (s?.video_url) setSelected({ kind: 'session', id: sid });
+            }
+          }}
+          onOpenQuiz={(quizId) => navigate(`/quiz/${quizId}`)}
+          overallPct={overallPct}
+        />
+
+        {/* Main viewer */}
+        <main className="min-h-0 overflow-y-auto">
+          <div className="max-w-5xl mx-auto p-4 space-y-4">
+            <div className="aspect-video bg-black rounded-lg overflow-hidden">
+              {currentChapter?.can_watch && currentChapter.hls_url ? (
+                <HlsPlayer
+                  key={currentChapter.id}
+                  src={currentChapter.hls_url}
+                  onNearEnd={() => markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true)}
+                  onEnded={() => go(1)}
+                  onProgress={(t) => {
+                    const prev = chapterProgress[currentChapter.id]?.watched_seconds ?? 0;
+                    if (Math.floor(t) - prev >= 15) {
+                      markChapterComplete(currentChapter.id, Math.floor(t), chapterProgress[currentChapter.id]?.is_completed ?? false);
+                    }
+                  }}
+                  onError={(msg) => toast({ title: 'Video error', description: msg, variant: 'destructive' })}
+                />
+              ) : selected?.kind === 'session' && currentSession?.video_url ? (
+                <iframe src={currentSession.video_url} className="w-full h-full" allow="fullscreen" />
+              ) : currentChapter && !currentChapter.can_watch ? (
+                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
+                  <Lock className="h-8 w-8" />
+                  <p>Enroll to unlock this chapter.</p>
                 </div>
-                <Progress value={overallPct} />
-              </div>
-              {community && (
-                <div className="text-sm text-muted-foreground flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <span>Community: {community.avg_completion_pct ?? 0}% ({community.learner_count ?? 0} learners)</span>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                  <p>Select a chapter to start watching.</p>
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
-          {/* Sidebar */}
-          <Card className="lg:sticky lg:top-4 h-fit max-h-[calc(100vh-6rem)] overflow-y-auto">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Course content</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <Accordion type="multiple" defaultValue={sessions.map((s) => s.id)}>
-                {sessions.map((s) => {
-                  const chs = chapters.filter((c) => c.session_id === s.id).sort((a, b) => a.chapter_order - b.chapter_order);
-                  const quizzes = sessionQuizzes.filter((sq) => sq.session_id === s.id);
-                  return (
-                    <AccordionItem key={s.id} value={s.id}>
-                      <AccordionTrigger className="text-sm">
-                        <div className="flex items-center gap-2 text-left">
-                          {sessionProgress[s.id] ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
-                          ) : (
-                            <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
-                          )}
-                          <span className="line-clamp-2">Session {s.session_order}: {s.title}</span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <ul className="space-y-1 pl-1">
-                          {chs.length === 0 && s.video_url && (
-                            <li>
-                              <button
-                                onClick={() => setSelected({ kind: 'session', id: s.id })}
-                                className={cn(
-                                  'w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-muted transition',
-                                  selected?.kind === 'session' && selected.id === s.id && 'bg-muted'
-                                )}
-                              >
-                                <Play className="h-3.5 w-3.5" />
-                                <span className="flex-1 truncate">Watch session</span>
-                              </button>
-                            </li>
-                          )}
-                          {chs.map((c) => {
-                            const completed = chapterProgress[c.id]?.is_completed;
-                            const active = selected?.kind === 'chapter' && selected.id === c.id;
-                            return (
-                              <li key={c.id}>
-                                <button
-                                  onClick={() => setSelected({ kind: 'chapter', id: c.id })}
-                                  className={cn(
-                                    'w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-muted transition',
-                                    active && 'bg-muted'
-                                  )}
-                                >
-                                  {completed ? (
-                                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                                  ) : c.can_watch ? (
-                                    <Play className="h-3.5 w-3.5 shrink-0" />
-                                  ) : (
-                                    <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                  )}
-                                  <span className="flex-1 truncate">{c.title}</span>
-                                  {c.is_preview && (
-                                    <span className="text-[10px] font-medium text-blue-600">Preview</span>
-                                  )}
-                                </button>
-                              </li>
-                            );
-                          })}
-                          {quizzes.map((sq) => sq.quiz && (
-                            <li key={sq.quiz.id}>
-                              <button
-                                onClick={() => navigate(`/quiz/${sq.quiz!.id}`)}
-                                className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-muted transition"
-                              >
-                                <FileQuestion className="h-3.5 w-3.5" />
-                                <span className="flex-1 truncate">{sq.quiz.title}</span>
-                                {quizSubmissions[sq.quiz.id] != null && (
-                                  <span className="text-[10px] font-medium text-green-600">Done</span>
-                                )}
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            </CardContent>
-          </Card>
-
-          {/* Main viewer */}
-          <div className="space-y-4">
-            <Card>
-              <CardContent className="p-0">
-                {currentChapter?.can_watch && currentChapter.hls_url ? (
-                  <div className="aspect-video bg-black rounded-t-lg overflow-hidden">
-                    <HlsPlayer
-                      src={currentChapter.hls_url}
-                      onNearEnd={() => markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true)}
-                      onProgress={(t) => {
-                        const prev = chapterProgress[currentChapter.id]?.watched_seconds ?? 0;
-                        if (Math.floor(t) - prev >= 15) {
-                          markChapterComplete(currentChapter.id, Math.floor(t), chapterProgress[currentChapter.id]?.is_completed ?? false);
-                        }
-                      }}
-                    />
-                  </div>
-                ) : selected?.kind === 'session' && currentSession?.video_url ? (
-                  <div className="aspect-video bg-black rounded-t-lg overflow-hidden">
-                    <iframe src={currentSession.video_url} className="w-full h-full" allow="fullscreen" />
-                  </div>
-                ) : currentChapter && !currentChapter.can_watch ? (
-                  <div className="aspect-video bg-muted rounded-t-lg flex flex-col items-center justify-center text-muted-foreground gap-2">
-                    <Lock className="h-8 w-8" />
-                    <p>Enroll to unlock this chapter.</p>
-                  </div>
-                ) : (
-                  <div className="aspect-video bg-muted rounded-t-lg flex items-center justify-center text-muted-foreground">
-                    <p>Select a chapter to start watching.</p>
-                  </div>
-                )}
-                <div className="p-4 space-y-3">
-                  <h2 className="text-lg font-semibold">
-                    {currentChapter ? currentChapter.title : currentSession?.title}
-                  </h2>
-                  {(currentChapter?.description || currentSession?.description) && (
-                    <div className="prose prose-sm max-w-none dark:prose-invert">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {currentChapter?.description || currentSession?.description || ''}
-                      </ReactMarkdown>
-                    </div>
-                  )}
+            <div className="space-y-3">
+              <h1 className="text-xl font-semibold">
+                {currentChapter ? currentChapter.title : currentSession?.title}
+              </h1>
+              {(currentChapter?.description || currentSession?.description) && (
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {currentChapter?.description || currentSession?.description || ''}
+                  </ReactMarkdown>
                 </div>
-              </CardContent>
-            </Card>
-
-            {isEnrolled && (
-              <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-base">Rate this course</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  <StarRating value={myRating} onChange={setMyRating} />
-                  <Textarea
-                    value={myComment}
-                    onChange={(e) => setMyComment(e.target.value)}
-                    placeholder="Optional feedback (max 2000 chars)"
-                    maxLength={2000}
-                    rows={3}
-                  />
-                  <Button size="sm" onClick={submitRating} disabled={!myRating}>Submit rating</Button>
-                </CardContent>
-              </Card>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        </main>
       </div>
-    </MainLayout>
+
+      <RateCourseDialog
+        open={rateOpen}
+        onOpenChange={setRateOpen}
+        initialRating={myRating}
+        initialComment={myComment}
+        onSubmit={submitRating}
+      />
+    </div>
   );
 }
