@@ -86,7 +86,7 @@ export default function CourseSidebar({
           const icon = !c.can_watch
             ? <Lock className="h-4 w-4 text-muted-foreground" />
             : done
-              ? <CheckCircle2 className="h-4 w-4 text-green-500" />
+              ? <CheckCircle2 className="h-4 w-4 text-white fill-green-500" />
               : active
                 ? <Play className="h-4 w-4 text-primary" />
                 : <Circle className="h-4 w-4 text-muted-foreground" />;
