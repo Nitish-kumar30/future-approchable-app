@@ -311,7 +311,9 @@ export default function CourseLearn() {
               )}
             </div>
           </div>
+          </div>
         </main>
+
 
       </div>
 
