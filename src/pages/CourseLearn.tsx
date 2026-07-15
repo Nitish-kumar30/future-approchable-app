@@ -330,7 +330,7 @@ export default function CourseLearn() {
                 })()
               ) : (
                 <>
-                  <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                  <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
                     {currentChapter?.can_watch && currentChapter.hls_url ? (
                       <HlsPlayer
                         key={currentChapter.id}
