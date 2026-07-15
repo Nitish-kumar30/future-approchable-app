@@ -345,7 +345,10 @@ export default function CourseLearn() {
                 })()
               ) : (
                 <>
-                  <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                  <div
+                    ref={playerWrapperRef}
+                    className={`relative bg-black rounded-lg overflow-hidden group ${isFullscreen ? 'w-screen h-screen rounded-none' : 'aspect-video'}`}
+                  >
                     {currentChapter?.can_watch && currentChapter.hls_url ? (
                       <HlsPlayer
                         key={currentChapter.id}
