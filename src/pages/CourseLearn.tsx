@@ -312,6 +312,7 @@ export default function CourseLearn() {
             </div>
           </div>
         </main>
+
       </div>
 
       <RateCourseDialog
