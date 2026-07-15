@@ -136,22 +136,6 @@ export default function CourseLearn() {
     }
   }, [playable, selected, chapterProgress, sessionProgress, sessionQuizzes, searchParams, setSearchParams]);
 
-  const totalChapters = chapters.length;
-  const completedChapters = useMemo(
-    () => chapters.filter((c) => chapterProgress[c.id]?.is_completed).length,
-    [chapters, chapterProgress]
-  );
-  const totalSessions = sessions.length;
-  const completedSessions = useMemo(
-    () => sessions.filter((s) => sessionProgress[s.id]).length,
-    [sessions, sessionProgress]
-  );
-  const overallPct = totalChapters
-    ? Math.round((completedChapters / totalChapters) * 100)
-    : totalSessions
-      ? Math.round((completedSessions / totalSessions) * 100)
-      : 0;
-
   const currentChapter = selected?.kind === 'chapter'
     ? chapters.find((c) => c.id === selected.id) ?? null
     : null;
@@ -349,7 +333,7 @@ export default function CourseLearn() {
             setSelected({ kind: 'quiz', id: quizId });
           }}
 
-          overallPct={overallPct}
+          sessionProgress={sessionProgress}
           nextSession={nextSession}
         />
 

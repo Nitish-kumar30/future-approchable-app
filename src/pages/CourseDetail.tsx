@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -62,11 +62,6 @@ interface PreReadingMaterial {
   display_order: number;
 }
 
-interface SessionProgress {
-  session_id: string;
-  is_completed: boolean;
-}
-
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -79,7 +74,7 @@ export default function CourseDetail() {
   const [courseQuizzes, setCourseQuizzes] = useState<CourseQuiz[]>([]);
   const [quizSubmissions, setQuizSubmissions] = useState<QuizSubmission[]>([]);
   const [preReadingMaterials, setPreReadingMaterials] = useState<PreReadingMaterial[]>([]);
-  const [sessionProgress, setSessionProgress] = useState<SessionProgress[]>([]);
+  const [completedChapterIds, setCompletedChapterIds] = useState<Set<string>>(new Set());
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isEnrolling, setIsEnrolling] = useState(false);
@@ -122,6 +117,26 @@ export default function CourseDetail() {
       }
     })();
   }, [slug, user, isEnrolled]);
+
+  useEffect(() => {
+    if (!isEnrolled || !user || curriculumSessions.length === 0) {
+      setCompletedChapterIds(new Set());
+      return;
+    }
+    const chapterIds = curriculumSessions.flatMap((s) => s.chapters.map((c) => c.id));
+    if (chapterIds.length === 0) return;
+
+    (async () => {
+      const { data } = await supabase
+        .from('chapter_progress')
+        .select('chapter_id')
+        .eq('user_id', user.id)
+        .in('chapter_id', chapterIds)
+        .eq('is_completed', true);
+
+      setCompletedChapterIds(new Set((data ?? []).map((p) => p.chapter_id)));
+    })();
+  }, [isEnrolled, user, curriculumSessions]);
 
   const fetchCourse = async () => {
     const { data, error } = await supabase
@@ -248,16 +263,6 @@ export default function CourseDetail() {
           setPreReadingMaterials(materialsData);
         }
 
-        // Fetch session progress
-        const { data: progressData } = await supabase
-          .from('session_progress')
-          .select('session_id, is_completed')
-          .eq('user_id', user?.id)
-          .in('session_id', sessionIds);
-        
-        if (progressData) {
-          setSessionProgress(progressData);
-        }
       }
 
       // Fetch quiz submissions for the user
@@ -325,12 +330,20 @@ export default function CourseDetail() {
   const getMaterialsForSession = (sessionId: string) => 
     preReadingMaterials.filter(m => m.session_id === sessionId);
 
-  const isSessionCompleted = (sessionId: string) =>
-    sessionProgress.find(p => p.session_id === sessionId)?.is_completed || false;
-
-  // Calculate overall progress
-  const completedSessions = sessions.filter(s => isSessionCompleted(s.id)).length;
-  const overallProgress = sessions.length > 0 ? (completedSessions / sessions.length) * 100 : 0;
+  const totalChapters = useMemo(
+    () => curriculumSessions.reduce((n, s) => n + s.chapters.length, 0),
+    [curriculumSessions],
+  );
+  const completedChapters = useMemo(
+    () =>
+      curriculumSessions.reduce(
+        (n, s) => n + s.chapters.filter((c) => completedChapterIds.has(c.id)).length,
+        0,
+      ),
+    [curriculumSessions, completedChapterIds],
+  );
+  const overallProgress =
+    totalChapters > 0 ? Math.round((completedChapters / totalChapters) * 100) : 0;
 
   if (isLoading) {
     return (
@@ -433,7 +446,7 @@ export default function CourseDetail() {
         <Separator />
 
         {/* Overall Progress - Only for enrolled users */}
-        {isEnrolled && sessions.length > 0 && (
+        {isEnrolled && totalChapters > 0 && (
           <Card className="card-elevated border-primary/20 bg-primary/5">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Your Progress</CardTitle>
@@ -442,9 +455,9 @@ export default function CourseDetail() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">
-                    {completedSessions} of {sessions.length} lessons completed
+                    {completedChapters} of {totalChapters} lessons completed
                   </span>
-                  <span className="font-medium">{Math.round(overallProgress)}%</span>
+                  <span className="font-medium">{overallProgress}%</span>
                 </div>
                 <Progress value={overallProgress} className="h-3" />
               </div>
