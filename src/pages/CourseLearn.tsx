@@ -362,7 +362,43 @@ export default function CourseLearn() {
                         <p>Select a chapter to start watching.</p>
                       </div>
                     )}
+
+                    {countdown !== null && nextItem && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-10">
+                        <div className="text-center px-8 py-6 max-w-sm w-full">
+                          <div className="relative w-16 h-16 mx-auto mb-5">
+                            <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
+                              <circle cx="32" cy="32" r="28" fill="none" stroke="hsl(var(--muted))" strokeWidth="4" />
+                              <circle
+                                cx="32" cy="32" r="28"
+                                fill="none"
+                                stroke="hsl(var(--primary))"
+                                strokeWidth="4"
+                                strokeDasharray={`${(countdown / 5) * 175.9} 175.9`}
+                                strokeLinecap="round"
+                                className="transition-all duration-1000"
+                              />
+                            </svg>
+                            <span className="absolute inset-0 flex items-center justify-center text-white text-xl font-bold">{countdown}</span>
+                          </div>
+                          <p className="text-white/60 text-xs uppercase tracking-widest mb-2">Up next</p>
+                          <h3 className="text-white font-semibold text-base mb-6 leading-snug line-clamp-2">{nextItemTitle}</h3>
+                          <div className="flex gap-3 justify-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={clearCountdown}
+                              className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+                            >
+                              Cancel
+                            </Button>
+                            <Button size="sm" onClick={() => go(1)}>Play now</Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
+
 
                   <div className="space-y-3">
                     <h1 className="text-xl font-semibold">
