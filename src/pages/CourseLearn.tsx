@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import HlsPlayer from '@/components/video/HlsPlayer';
 import CourseSidebar from '@/components/course/CourseSidebar';
 import RateCourseDialog from '@/components/course/RateCourseDialog';
+import InlineQuiz from '@/components/session/InlineQuiz';
+
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ChevronLeft, ChevronRight, Star, Lock, Loader2, LayoutGrid } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
