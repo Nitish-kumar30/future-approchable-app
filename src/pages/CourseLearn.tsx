@@ -386,6 +386,17 @@ export default function CourseLearn() {
                       </div>
                     )}
 
+                    {(currentChapter?.can_watch && currentChapter.hls_url) || (selected?.kind === 'session' && currentSession?.video_url) ? (
+                      <button
+                        type="button"
+                        onClick={toggleFullscreen}
+                        aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                        className="absolute bottom-2 right-2 z-20 h-8 w-8 flex items-center justify-center rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                      >
+                        {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                      </button>
+                    ) : null}
+
                     {countdown !== null && nextItem && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-10">
                         <div className="text-center px-8 py-6 max-w-sm w-full">
