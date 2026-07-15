@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Markdown } from '@/components/ui/markdown';
 import { SessionQuizList, SessionQuiz, QuizSubmission } from '@/components/session/SessionQuizList';
+import CourseContentAccordion, { CurriculumSession } from '@/components/course/CourseContentAccordion';
 import { 
   Clock, 
   GraduationCap, 
