@@ -498,15 +498,11 @@ export default function CourseDetail() {
               </CardContent>
             </Card>
           ) : (
-            <Card className="card-elevated">
-              <CardContent className="pt-6">
-                <CourseContentAccordion
-                  slug={slug!}
-                  isEnrolled={isEnrolled}
-                  sessions={curriculumSessions}
-                />
-              </CardContent>
-            </Card>
+            <CourseContentAccordion
+              slug={slug!}
+              isEnrolled={isEnrolled}
+              sessions={curriculumSessions}
+            />
           )}
 
         </div>
