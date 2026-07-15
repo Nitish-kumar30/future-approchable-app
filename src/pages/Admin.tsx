@@ -2250,6 +2250,14 @@ export default function Admin() {
           miniProjects={sessionMiniProjects}
           onSave={handleSaveSession}
         />
+        {chaptersSession && (
+          <ChapterManager
+            open={!!chaptersSession}
+            onOpenChange={(o) => !o && setChaptersSession(null)}
+            sessionId={chaptersSession.id}
+            sessionTitle={chaptersSession.title}
+          />
+        )}
         <QuizForm
           open={quizFormOpen}
           onOpenChange={setQuizFormOpen}
