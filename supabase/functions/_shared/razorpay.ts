@@ -1,5 +1,3 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
-
 export type RazorpayOrder = {
   id: string;
   amount: number;
@@ -41,22 +39,40 @@ export async function createRazorpayOrder(params: {
   return res.json();
 }
 
-// HMAC-SHA256(order_id|payment_id) must match razorpay_signature
-export function verifyRazorpaySignature(
+// HMAC-SHA256(order_id|payment_id) must match razorpay_signature (Web Crypto — Deno-safe)
+export async function verifyRazorpaySignature(
   orderId: string,
   paymentId: string,
   signature: string,
-): boolean {
+): Promise<boolean> {
   const keySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
   if (!keySecret) return false;
 
-  const expected = createHmac("sha256", keySecret)
-    .update(`${orderId}|${paymentId}`)
-    .digest("hex");
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(keySecret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
 
-  const a = Buffer.from(signature, "utf8");
-  const b = Buffer.from(expected, "utf8");
-  return a.length === b.length && timingSafeEqual(a, b);
+  const sigBuffer = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(`${orderId}|${paymentId}`),
+  );
+
+  const expected = Array.from(new Uint8Array(sigBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  if (signature.length !== expected.length) return false;
+
+  let mismatch = 0;
+  for (let i = 0; i < signature.length; i++) {
+    mismatch |= signature.charCodeAt(i) ^ expected.charCodeAt(i);
+  }
+  return mismatch === 0;
 }
 
 export function getRazorpayKeyId(): string {
