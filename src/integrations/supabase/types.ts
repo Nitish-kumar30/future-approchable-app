@@ -141,6 +141,8 @@ export type Database = {
           mentor_info: string | null
           mentor_name: string | null
           name: string
+          price_inr_paise: number | null
+          price_usd_cents: number | null
           slug: string
           start_date: string | null
           updated_at: string
@@ -157,6 +159,8 @@ export type Database = {
           mentor_info?: string | null
           mentor_name?: string | null
           name: string
+          price_inr_paise?: number | null
+          price_usd_cents?: number | null
           slug: string
           start_date?: string | null
           updated_at?: string
@@ -173,6 +177,8 @@ export type Database = {
           mentor_info?: string | null
           mentor_name?: string | null
           name?: string
+          price_inr_paise?: number | null
+          price_usd_cents?: number | null
           slug?: string
           start_date?: string | null
           updated_at?: string
@@ -273,6 +279,53 @@ export type Database = {
           },
           {
             foreignKeyName: "feedback_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          course_id: string
+          created_at: string
+          currency: string
+          id: string
+          razorpay_order_id: string
+          razorpay_payment_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          course_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          razorpay_order_id: string
+          razorpay_payment_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          course_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          razorpay_order_id?: string
+          razorpay_payment_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
