@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy, Filter, Trophy, MessageSquare, Star, FileText, UserMinus, Download } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy, Filter, Trophy, MessageSquare, Star, FileText, UserMinus, Download, CreditCard } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
  import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CohortForm } from '@/components/admin/CohortForm';
@@ -211,6 +211,25 @@ export default function Admin() {
     const [registrationCohortFilter, setRegistrationCohortFilter] = useState('all');
     const [registrationsLoading, setRegistrationsLoading] = useState(false);
     const [expandedRegistration, setExpandedRegistration] = useState<string | null>(null);
+
+    interface PaymentRecord {
+      id: string;
+      user_id: string;
+      user_email: string;
+      user_name: string | null;
+      course_id: string;
+      course_name: string;
+      course_slug: string | null;
+      razorpay_order_id: string;
+      razorpay_payment_id: string | null;
+      amount: number;
+      currency: string;
+      status: string;
+      created_at: string;
+      updated_at: string;
+    }
+    const [payments, setPayments] = useState<PaymentRecord[]>([]);
+    const [paymentsLoading, setPaymentsLoading] = useState(false);
 
     // Quiz Responses state
     interface ResponseQuestion {
@@ -706,6 +725,35 @@ export default function Admin() {
       }
     };
 
+    const fetchPayments = async () => {
+      setPaymentsLoading(true);
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-payments`,
+          { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } },
+        );
+        const result = await response.json();
+        if (response.ok) {
+          setPayments(result.payments || []);
+        } else {
+          toast({ title: 'Failed to fetch payments', description: result.error, variant: 'destructive' });
+        }
+      } catch {
+        toast({ title: 'Error fetching payments', variant: 'destructive' });
+      } finally {
+        setPaymentsLoading(false);
+      }
+    };
+
+    const formatPaymentAmount = (amount: number, currency: string) => {
+      const value = amount / 100;
+      if (currency === 'INR') return `₹${value.toLocaleString('en-IN')}`;
+      if (currency === 'USD') return `$${value.toLocaleString('en-US')}`;
+      return `${value} ${currency}`;
+    };
+
     const downloadRegistrationsCSV = () => {
       const header = 'Name,Email,Phone,Country,State,Company,Role,Cohort,Capstone Office Hours,Interests,Other Interest,Reason,Additional Info,Status,Registered';
       const rows = registrations.map(r =>
@@ -1091,7 +1139,7 @@ export default function Admin() {
         </div>
 
          <Tabs defaultValue="cohorts" className="space-y-6">
-           <TabsList className="grid w-full grid-cols-11 lg:w-auto lg:inline-grid">
+           <TabsList className="grid w-full grid-cols-12 lg:w-auto lg:inline-grid">
               <TabsTrigger value="cohorts" className="gap-2">
                 <Users className="h-4 w-4" /> Cohorts
               </TabsTrigger>
@@ -1124,6 +1172,9 @@ export default function Admin() {
                 </TabsTrigger>
                 <TabsTrigger value="registrations" className="gap-2" onClick={() => { if (registrations.length === 0) fetchRegistrations(); }}>
                   <ClipboardList className="h-4 w-4" /> Registrations
+                </TabsTrigger>
+                <TabsTrigger value="payments" className="gap-2" onClick={() => { if (payments.length === 0) fetchPayments(); }}>
+                  <CreditCard className="h-4 w-4" /> Payments
                 </TabsTrigger>
              </TabsList>
 
@@ -2215,6 +2266,74 @@ export default function Admin() {
                         </Card>
                       ))}
                     </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Payments Tab */}
+          <TabsContent value="payments">
+            <Card className="card-elevated">
+              <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
+                <div>
+                  <CardTitle>Payments</CardTitle>
+                  <CardDescription>Razorpay transactions — use order/payment IDs to verify in Razorpay dashboard</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={fetchPayments} disabled={paymentsLoading}>
+                  {paymentsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Refresh
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {paymentsLoading ? (
+                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                ) : payments.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No payments found.</p>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-4">{payments.length} payment{payments.length !== 1 ? 's' : ''}</p>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>User</TableHead>
+                          <TableHead>Course</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Order ID</TableHead>
+                          <TableHead>Payment ID</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {payments.map((payment) => (
+                          <TableRow key={payment.id}>
+                            <TableCell className="whitespace-nowrap">
+                              {new Date(payment.created_at).toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-medium">{payment.user_name || payment.user_email}</div>
+                              {payment.user_name && (
+                                <div className="text-xs text-muted-foreground">{payment.user_email}</div>
+                              )}
+                            </TableCell>
+                            <TableCell>{payment.course_name}</TableCell>
+                            <TableCell>{formatPaymentAmount(payment.amount, payment.currency)}</TableCell>
+                            <TableCell>
+                              <Badge variant={payment.status === 'paid' ? 'default' : payment.status === 'failed' ? 'destructive' : 'secondary'}>
+                                {payment.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs max-w-[140px] truncate" title={payment.razorpay_order_id}>
+                              {payment.razorpay_order_id}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs max-w-[140px] truncate" title={payment.razorpay_payment_id || undefined}>
+                              {payment.razorpay_payment_id || '—'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </>
                 )}
               </CardContent>
