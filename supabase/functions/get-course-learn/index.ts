@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
     return json({
       course,
       is_enrolled: isEnrolled,
-      sessions: sessions ?? [],
+      sessions: safeSessions,
       chapters: safeChapters,
       session_quizzes: sessionQuizzes ?? [],
       chapter_progress: chapterProgress,
