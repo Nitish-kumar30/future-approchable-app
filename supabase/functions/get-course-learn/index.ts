@@ -69,7 +69,14 @@ Deno.serve(async (req) => {
       .eq("course_id", course.id)
       .order("session_order", { ascending: true });
 
-    const sessionIds = (sessions ?? []).map((s: any) => s.id);
+    // Redact recording/presentation urls for non-enrolled, non-admin callers
+    const safeSessions = (sessions ?? []).map((s: any) => ({
+      ...s,
+      recording_url: canAccessPrivileged ? s.recording_url : null,
+      presentation_url: canAccessPrivileged ? s.presentation_url : null,
+    }));
+
+    const sessionIds = safeSessions.map((s: any) => s.id);
 
     // Chapters
     const { data: chapters } = sessionIds.length
@@ -80,9 +87,9 @@ Deno.serve(async (req) => {
           .order("chapter_order", { ascending: true })
       : { data: [] as any[] };
 
-    // Redact non-preview HLS urls if not enrolled
+    // Redact non-preview HLS urls if not enrolled/admin
     const safeChapters = (chapters ?? []).map((c: any) => {
-      const canWatch = isEnrolled || c.is_preview;
+      const canWatch = canAccessPrivileged || c.is_preview;
       return {
         ...c,
         hls_url: canWatch ? c.hls_url : null,
