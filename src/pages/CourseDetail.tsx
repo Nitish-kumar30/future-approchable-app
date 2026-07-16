@@ -309,6 +309,15 @@ export default function CourseDetail() {
     }
   };
 
+  const handlePaymentSuccess = () => {
+    setHasPaid(true);
+    setIsEnrolled(true);
+    if (course) {
+      checkEnrollment(course.id);
+      fetchSessions(course.id);
+    }
+  };
+
   const handleEnroll = async () => {
     if (!user) {
       navigate('/auth');
@@ -424,30 +433,26 @@ export default function CourseDetail() {
                 <Badge variant="secondary" className="text-base px-4 py-2">
                   Enrollment Closed
                 </Badge>
+              ) : course && isPaidCourse(course) && !isAdmin ? (
+                <PaymentButton
+                  courseId={course.id}
+                  courseName={course.name}
+                  priceInrPaise={course.price_inr_paise}
+                  priceUsdCents={course.price_usd_cents}
+                  hasPaid={hasPaid}
+                  onPaid={handlePaymentSuccess}
+                />
               ) : (
-                <>
-                  {/* TEMP: paid courses still allow free Enroll Now — lock before prod */}
-                  <Button size="lg" onClick={handleEnroll} disabled={isEnrolling}>
-                    {isEnrolling ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Enrolling...
-                      </>
-                    ) : (
-                      'Enroll Now'
-                    )}
-                  </Button>
-                  {course && isPaidCourse(course) && !isAdmin && (
-                    <PaymentButton
-                      courseId={course.id}
-                      courseName={course.name}
-                      priceInrPaise={course.price_inr_paise}
-                      priceUsdCents={course.price_usd_cents}
-                      hasPaid={hasPaid}
-                      onPaid={() => setHasPaid(true)}
-                    />
+                <Button size="lg" onClick={handleEnroll} disabled={isEnrolling}>
+                  {isEnrolling ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enrolling...
+                    </>
+                  ) : (
+                    'Enroll Now'
                   )}
-                </>
+                </Button>
               )}
             </div>
           </div>

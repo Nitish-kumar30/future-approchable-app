@@ -23,7 +23,7 @@ type PaymentButtonProps = {
   size?: 'default' | 'sm' | 'lg' | 'icon';
 };
 
-// TEMP: paid courses still allow free Enroll Now — lock before prod.
+// Reusable Pay button for paid courses — opens Razorpay checkout and verifies on server
 export default function PaymentButton({
   courseId,
   courseName,
@@ -106,7 +106,10 @@ export default function PaymentButton({
             return;
           }
 
-          toast({ title: 'Payment successful', description: 'Your payment has been recorded.' });
+          toast({
+            title: 'Payment successful',
+            description: "You're enrolled in the course.",
+          });
           onPaid?.();
         },
         modal: {
