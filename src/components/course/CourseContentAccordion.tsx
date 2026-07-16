@@ -6,9 +6,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { Button } from '@/components/ui/button';
-import { Play, ClipboardList, Lock } from 'lucide-react';
+import { ClipboardList, Lock, Minus, Plus } from 'lucide-react';
 import ChapterPreviewDialog from './ChapterPreviewDialog';
+import { cn } from '@/lib/utils';
 
 export interface CurriculumChapter {
   id: string;
@@ -67,51 +67,63 @@ export default function CourseContentAccordion({ slug, isEnrolled, sessions }: P
 
   return (
     <>
-      <Accordion type="multiple" defaultValue={defaultOpen} className="w-full">
+      <Accordion type="multiple" defaultValue={defaultOpen} className="w-full space-y-3">
         {sessions.map((s) => (
-          <AccordionItem key={s.id} value={s.id} className="border-b">
-            <AccordionTrigger className="text-left hover:no-underline">
-              <span className="text-base font-semibold">
-                Section {s.session_order}: {s.title}
+          <AccordionItem
+            key={s.id}
+            value={s.id}
+            className="overflow-hidden rounded-lg border border-border bg-card"
+          >
+            <AccordionTrigger
+              className={cn(
+                'group/trigger px-4 py-3.5 hover:no-underline',
+                '[&>svg:last-child]:hidden',
+                'data-[state=closed]:bg-card data-[state=open]:bg-secondary',
+              )}
+            >
+              <span className="flex items-center gap-3 text-left">
+                <Plus className="h-4 w-4 shrink-0 text-primary group-data-[state=open]/trigger:hidden" />
+                <Minus className="hidden h-4 w-4 shrink-0 text-primary group-data-[state=open]/trigger:block" />
+                <span className="text-base font-semibold text-foreground">
+                  Section {s.session_order}: {s.title}
+                </span>
               </span>
             </AccordionTrigger>
-            <AccordionContent>
-              <ul className="divide-y">
+            <AccordionContent className="border-t border-border bg-card pb-0">
+              <ul className="divide-y divide-border">
                 {s.chapters.map((c, idx) => {
                   const clickable = isEnrolled || c.is_preview;
                   return (
                     <li
                       key={c.id}
-                      className={
-                        'flex items-center justify-between gap-3 py-2.5 pl-2 pr-1 ' +
-                        (clickable
-                          ? 'cursor-pointer rounded-md hover:bg-accent'
-                          : 'text-muted-foreground')
-                      }
+                      className={cn(
+                        'flex items-center justify-between gap-3 px-4 py-3',
+                        clickable
+                          ? 'cursor-pointer hover:bg-muted/50'
+                          : 'text-muted-foreground',
+                      )}
                       onClick={() => clickable && openChapter(c)}
                     >
                       <div className="flex min-w-0 items-center gap-3">
                         <span className="w-6 shrink-0 text-sm tabular-nums text-muted-foreground">
-                          {idx + 1}.
+                          {idx + 1}
                         </span>
-                        {clickable ? (
-                          <Play className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        ) : (
-                          <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        {!clickable && (
+                          <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         )}
                         <span className="truncate text-sm">{c.title}</span>
                       </div>
                       {!isEnrolled && c.is_preview && (
-                        <Button
-                          size="sm"
-                          variant="outline"
+                        <button
+                          type="button"
+                          className="shrink-0 rounded-full bg-info px-4 py-1 text-xs font-medium text-info-foreground transition-opacity hover:opacity-90"
                           onClick={(e) => {
                             e.stopPropagation();
                             openChapter(c);
                           }}
                         >
                           Preview
-                        </Button>
+                        </button>
                       )}
                     </li>
                   );
@@ -120,7 +132,7 @@ export default function CourseContentAccordion({ slug, isEnrolled, sessions }: P
                   s.quizzes.map((q) => (
                     <li
                       key={q.id}
-                      className="flex cursor-pointer items-center gap-3 rounded-md py-2.5 pl-2 pr-1 hover:bg-accent"
+                      className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-muted/50"
                       onClick={() => openQuiz(q)}
                     >
                       <span className="w-6 shrink-0" />
@@ -129,7 +141,7 @@ export default function CourseContentAccordion({ slug, isEnrolled, sessions }: P
                     </li>
                   ))}
                 {s.chapters.length === 0 && (!isEnrolled || s.quizzes.length === 0) && (
-                  <li className="py-2 text-sm text-muted-foreground">
+                  <li className="px-4 py-3 text-sm text-muted-foreground">
                     Content coming soon.
                   </li>
                 )}

@@ -20,7 +20,7 @@ interface Props {
 
   onSelectSession: (sessionId: string) => void;
   onOpenQuiz: (quizId: string) => void;
-  overallPct: number;
+  sessionProgress: Record<string, boolean>;
   nextSession?: CS_Session | null;
 }
 
@@ -33,7 +33,7 @@ function formatDuration(sec: number | null | undefined): string {
 
 export default function CourseSidebar({
   sessions, chapters, quizzes, currentSessionId, chapterProgress, quizSubmissions,
-  selected, onSelect, onSelectSession, onOpenQuiz, overallPct, nextSession,
+  selected, onSelect, onSelectSession, onOpenQuiz, sessionProgress, nextSession,
 }: Props) {
 
   const currentSession = sessions.find((s) => s.id === currentSessionId) ?? sessions[0];
@@ -41,6 +41,14 @@ export default function CourseSidebar({
     .filter((c) => c.session_id === currentSession?.id)
     .sort((a, b) => a.chapter_order - b.chapter_order);
   const qs = quizzes.filter((q) => q.session_id === currentSession?.id);
+
+  const sessionTotal = chs.length;
+  const sessionCompleted = chs.filter((c) => chapterProgress[c.id]?.is_completed).length;
+  const sessionPct = sessionTotal > 0
+    ? Math.round((sessionCompleted / sessionTotal) * 100)
+    : currentSession && sessionProgress[currentSession.id]
+      ? 100
+      : 0;
 
   return (
     <aside className="flex flex-col h-full min-h-0 border-r bg-card overflow-hidden">
@@ -133,13 +141,19 @@ export default function CourseSidebar({
       </div>
 
 
-      {/* Footer: overall course progress */}
+      {/* Footer: current session progress */}
       <div className="p-4 border-t space-y-1">
-        <div className="flex items-center justify-between text-xs">
-          <span className="font-medium">Course</span>
-          <span className="text-muted-foreground">{overallPct}%</span>
+        <div className="flex items-center justify-between text-xs gap-2">
+          <span className="font-medium truncate">
+            Section {currentSession?.session_order ?? 0}
+          </span>
+          <span className="text-muted-foreground shrink-0">
+            {sessionTotal > 0
+              ? `${sessionCompleted} of ${sessionTotal} · ${sessionPct}%`
+              : `${sessionPct}%`}
+          </span>
         </div>
-        <Progress value={overallPct} className="h-1.5" />
+        <Progress value={sessionPct} className="h-1.5" />
       </div>
     </aside>
   );
