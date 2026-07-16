@@ -1,31 +1,65 @@
-# Make Subjective Questions Optional
-
 ## Goal
-Allow users to submit a quiz without filling in subjective question textareas. Subjective answers become optional; MCQ (graded) and MCQ-ungraded remain required.
 
-## Changes
+Replace the flat session list on `/courses/:slug` with an accordion "Course Content" module (matching the reference mockup) for **both enrolled and unenrolled users**. Remove the "This session's content will be available soon." copy entirely.
 
-### 1. Database — `submit_quiz_answers` RPC (migration)
-Update the function so subjective questions skip the "missing answer" and "empty string" errors:
-- If `v_type = 'subjective'`: if the answer key is missing OR is null OR is an empty string, accept it and store it as `null`/`""` (skip validation, do not raise). Keep the 1000-char max validation when text is provided.
-- MCQ and `mcq_ungraded` validation stays unchanged (still required).
+## Behavior
 
-### 2. Frontend — `src/pages/Quiz.tsx`
-- `handleSubmit`'s `unanswered` filter: exclude `subjective` type entirely (only count MCQ/ungraded as required).
-- When building the `answers` payload, ensure subjective questions always have a key (send empty string if untouched) so the RPC payload is consistent.
-- Subjective question card: show "(Optional)" badge next to "Not graded" so users know they can skip it.
+Same layout for everyone:
+- One accordion per session, header `Section {N} : {session.title}` (first section open by default).
+- Numbered chapter rows inside each section: `{n}  {chapter.title}`.
+- Quizzes (enrolled only) appended after chapters as `Quiz: <title>` rows.
 
-### 3. Frontend — `src/components/session/InlineQuiz.tsx`
-- Same two changes: drop subjective from required-answer check and add the "(Optional)" badge.
+Row interaction:
 
-### 4. Results view — `src/components/session/QuizResponseList.tsx`
-Already handles missing answers via the "No response" branch — no change needed.
+| State | Row click | Preview button |
+|---|---|---|
+| Unenrolled, chapter `is_preview=true` | Opens preview video in modal | Shown (also opens modal) |
+| Unenrolled, chapter `is_preview=false` | Non-clickable (muted) | Hidden |
+| Unenrolled, quiz row | Hidden (not rendered) | — |
+| Enrolled, chapter (any) | Navigates to `/courses/:slug/learn?chapter={id}` | Hidden |
+| Enrolled, quiz | Navigates to `/courses/:slug/learn?quiz={id}` | Hidden |
 
-## Files Modified
-- New migration for `public.submit_quiz_answers`
-- `src/pages/Quiz.tsx`
-- `src/components/session/InlineQuiz.tsx`
+The "Enroll to access lesson materials and quizzes" placeholder card and the `Lock` "will be available soon" line are both removed.
 
-## Out of Scope
-- No changes to the admin Quiz Responses tab (it already shows "(no submission)" for missing answers and will simply show empty strings the same way).
-- No changes to question authoring UI (subjective remains a question type; it's the user's response that becomes optional).
+## Data (new edge function)
+
+Create `supabase/functions/get-course-curriculum/index.ts` (anon-callable, service role internally):
+- Input: `?slug=<course-slug>`; optional Bearer token to detect enrollment.
+- Output:
+  ```
+  {
+    course: { id, slug, title },
+    is_enrolled: boolean,
+    sessions: [{
+      id, title, session_order,
+      chapters: [{ id, title, chapter_order, is_preview, hls_url|null }],
+      quizzes:  [{ id, title }]   // only when is_enrolled
+    }]
+  }
+  ```
+  `hls_url` is included only when the caller can watch it (chapter `is_preview = true` or enrolled).
+
+## Frontend
+
+`src/pages/CourseDetail.tsx`
+- Fetch curriculum via the new edge function after course + enrollment resolve.
+- Replace the entire "Course Content" block (both enrolled and unenrolled branches) with `<CourseContentAccordion />`.
+- Delete the `Lock` "will be available soon" text and the "Enroll to access lesson materials and quizzes" placeholder.
+- Leave hero, about, instructor, ratings, community progress, and standalone course-level quizzes untouched.
+
+New `src/components/course/CourseContentAccordion.tsx`
+- shadcn `Accordion type="multiple" defaultValue={[firstSessionId]}`.
+- Renders sessions/chapters/quizzes per the interaction table above.
+- Uses semantic tokens (no hardcoded colors).
+
+New `src/components/course/ChapterPreviewDialog.tsx`
+- shadcn `Dialog` wrapping `HlsPlayer` for the unenrolled preview flow.
+
+`src/pages/CourseLearn.tsx`
+- Use `useSearchParams` to read `?chapter=` / `?quiz=` on load.
+- If present and found in curriculum, initialize `selected` to that item (and set `currentSessionId` accordingly) instead of the default first-unwatched item.
+
+## Out of scope
+
+- Admin chapter manager, progress tracking, learn workspace layout — unchanged beyond the deep-link initialization above.
+- `CohortDetail.tsx` — no changes.
