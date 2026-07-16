@@ -1,0 +1,1 @@
+ALTER VIEW public.cohorts_public SET (security_invoker = true);
