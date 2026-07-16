@@ -26,6 +26,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import FeedbackDialog from '@/components/FeedbackDialog';
+import { canEnrollInCourse } from '@/lib/coursePayment';
 
 interface Course {
   id: string;
@@ -34,6 +35,8 @@ interface Course {
   mentor_name: string | null;
   duration: string | null;
   image_url: string | null;
+  price_inr_paise?: number | null;
+  price_usd_cents?: number | null;
 }
 
 interface Session {
@@ -136,7 +139,7 @@ export default function OnDemandCourseDetail() {
 
   const fetchCourseData = async () => {
     // First fetch the course by slug
-    const courseRes = await supabase.from('courses').select('id, name, description, mentor_name, duration, image_url').eq('slug', slug!).single();
+    const courseRes = await supabase.from('courses').select('id, name, description, mentor_name, duration, image_url, price_inr_paise, price_usd_cents').eq('slug', slug!).single();
 
     if (!courseRes.data) { setIsLoading(false); return; }
     const courseData = courseRes.data;
@@ -182,9 +185,11 @@ export default function OnDemandCourseDetail() {
       .maybeSingle();
 
     if (!enrollment) {
-      // Auto-enroll for on-demand courses so user can see content immediately
-      await supabase.from('enrollments').insert({ user_id: user.id, course_id: course.id });
-      autoEnrolledRef.current = true;
+      const allowed = await canEnrollInCourse(supabase, user.id, course);
+      if (allowed) {
+        await supabase.from('enrollments').insert({ user_id: user.id, course_id: course.id });
+        autoEnrolledRef.current = true;
+      }
     }
 
     const sessionsRes = await supabase.from('sessions').select('id, title, description, recording_url, presentation_url, session_order').eq('course_id', course.id).order('session_order', { ascending: true });
@@ -269,9 +274,11 @@ export default function OnDemandCourseDetail() {
       .maybeSingle();
 
     if (!data) {
-      await supabase.from('enrollments').insert({ user_id: user.id, course_id: course.id });
-      // Re-fetch full session data now that user is enrolled
-      fetchEnrolledSessionData();
+      const allowed = await canEnrollInCourse(supabase, user.id, course);
+      if (allowed) {
+        await supabase.from('enrollments').insert({ user_id: user.id, course_id: course.id });
+        fetchEnrolledSessionData();
+      }
     }
   }, [user, course, fetchEnrolledSessionData]);
 
