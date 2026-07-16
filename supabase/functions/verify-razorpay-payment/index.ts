@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getAuthUser } from "../_shared/auth.ts";
-import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
+import { jsonResponse, optionsResponse } from "../_shared/cors.ts";
 import { verifyRazorpaySignature } from "../_shared/razorpay.ts";
 
 // TEMP: paid courses still allow free Enroll Now — lock before prod.
@@ -8,7 +8,7 @@ import { verifyRazorpaySignature } from "../_shared/razorpay.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return optionsResponse();
   }
 
   try {
