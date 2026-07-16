@@ -40,8 +40,9 @@ Deno.serve(async (req) => {
       : await courseQuery.eq("id", courseId!).maybeSingle();
     if (courseErr || !course) return json({ error: "Course not found" }, 404);
 
-    // Enrolled?
+    // Enrolled? Admin?
     let isEnrolled = false;
+    let isAdmin = false;
     if (userId) {
       const { data: enr } = await admin
         .from("enrollments")
@@ -50,7 +51,16 @@ Deno.serve(async (req) => {
         .eq("course_id", course.id)
         .maybeSingle();
       isEnrolled = !!enr;
+
+      const { data: roleRow } = await admin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      isAdmin = !!roleRow;
     }
+    const canAccessPrivileged = isEnrolled || isAdmin;
 
     // Sessions
     const { data: sessions } = await admin
@@ -59,7 +69,14 @@ Deno.serve(async (req) => {
       .eq("course_id", course.id)
       .order("session_order", { ascending: true });
 
-    const sessionIds = (sessions ?? []).map((s: any) => s.id);
+    // Redact recording/presentation urls for non-enrolled, non-admin callers
+    const safeSessions = (sessions ?? []).map((s: any) => ({
+      ...s,
+      recording_url: canAccessPrivileged ? s.recording_url : null,
+      presentation_url: canAccessPrivileged ? s.presentation_url : null,
+    }));
+
+    const sessionIds = safeSessions.map((s: any) => s.id);
 
     // Chapters
     const { data: chapters } = sessionIds.length
@@ -70,9 +87,9 @@ Deno.serve(async (req) => {
           .order("chapter_order", { ascending: true })
       : { data: [] as any[] };
 
-    // Redact non-preview HLS urls if not enrolled
+    // Redact non-preview HLS urls if not enrolled/admin
     const safeChapters = (chapters ?? []).map((c: any) => {
-      const canWatch = isEnrolled || c.is_preview;
+      const canWatch = canAccessPrivileged || c.is_preview;
       return {
         ...c,
         hls_url: canWatch ? c.hls_url : null,
@@ -144,7 +161,7 @@ Deno.serve(async (req) => {
     return json({
       course,
       is_enrolled: isEnrolled,
-      sessions: sessions ?? [],
+      sessions: safeSessions,
       chapters: safeChapters,
       session_quizzes: sessionQuizzes ?? [],
       chapter_progress: chapterProgress,
