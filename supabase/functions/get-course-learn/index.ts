@@ -40,8 +40,9 @@ Deno.serve(async (req) => {
       : await courseQuery.eq("id", courseId!).maybeSingle();
     if (courseErr || !course) return json({ error: "Course not found" }, 404);
 
-    // Enrolled?
+    // Enrolled? Admin?
     let isEnrolled = false;
+    let isAdmin = false;
     if (userId) {
       const { data: enr } = await admin
         .from("enrollments")
@@ -50,7 +51,16 @@ Deno.serve(async (req) => {
         .eq("course_id", course.id)
         .maybeSingle();
       isEnrolled = !!enr;
+
+      const { data: roleRow } = await admin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      isAdmin = !!roleRow;
     }
+    const canAccessPrivileged = isEnrolled || isAdmin;
 
     // Sessions
     const { data: sessions } = await admin
