@@ -3,8 +3,20 @@ import { getAuthUser } from "../_shared/auth.ts";
 import { jsonResponse, optionsResponse } from "../_shared/cors.ts";
 import { verifyRazorpaySignature } from "../_shared/razorpay.ts";
 
-// TEMP: paid courses still allow free Enroll Now — lock before prod.
-// This function only marks payments as paid; enrollment is not created here yet.
+// Idempotent enroll after verified payment (UNIQUE on user_id + course_id)
+async function ensureEnrollment(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  userId: string,
+  courseId: string,
+): Promise<void> {
+  const { error } = await supabaseAdmin.from("enrollments").insert({
+    user_id: userId,
+    course_id: courseId,
+  });
+  if (error && error.code !== "23505") {
+    throw error;
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -55,7 +67,12 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Order does not belong to user" }, 403);
     }
     if (payment.status === "paid") {
-      return jsonResponse({ success: true, course_id: payment.course_id });
+      await ensureEnrollment(supabaseAdmin, payment.user_id, payment.course_id);
+      return jsonResponse({
+        success: true,
+        course_id: payment.course_id,
+        enrolled: true,
+      });
     }
 
     const { error: updateError } = await supabaseAdmin
@@ -71,9 +88,12 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Failed to confirm payment" }, 500);
     }
 
+    await ensureEnrollment(supabaseAdmin, payment.user_id, payment.course_id);
+
     return jsonResponse({
       success: true,
       course_id: payment.course_id,
+      enrolled: true,
     });
   } catch (err) {
     console.error("verify-razorpay-payment error:", err);
