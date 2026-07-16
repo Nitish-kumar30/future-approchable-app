@@ -12,6 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Markdown } from '@/components/ui/markdown';
 import { SessionQuizList, SessionQuiz, QuizSubmission } from '@/components/session/SessionQuizList';
+import PaymentButton from '@/components/payment/PaymentButton';
+import { isPaidCourse } from '@/lib/coursePayment';
 import CourseContentAccordion, { CurriculumSession } from '@/components/course/CourseContentAccordion';
 import { 
   Clock, 
@@ -36,6 +38,8 @@ interface Course {
   duration: string | null;
   image_url: string | null;
   enrollment_disabled: boolean;
+  price_inr_paise?: number | null;
+  price_usd_cents?: number | null;
 }
 
 interface Session {
@@ -70,7 +74,7 @@ interface SessionProgress {
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   
   const [course, setCourse] = useState<Course | null>(null);
@@ -81,6 +85,7 @@ export default function CourseDetail() {
   const [preReadingMaterials, setPreReadingMaterials] = useState<PreReadingMaterial[]>([]);
   const [sessionProgress, setSessionProgress] = useState<SessionProgress[]>([]);
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [hasPaid, setHasPaid] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [curriculumSessions, setCurriculumSessions] = useState<CurriculumSession[]>([]);
@@ -134,7 +139,12 @@ export default function CourseDetail() {
       setCourse(data);
       // Now fetch sessions and enrollment using the course id
       fetchSessions(data.id);
-      if (user) checkEnrollment(data.id);
+      if (user) {
+        checkEnrollment(data.id);
+        if (isPaidCourse(data)) checkPaymentStatus(data.id);
+      } else {
+        setHasPaid(false);
+      }
     }
     setIsLoading(false);
   };
@@ -148,6 +158,18 @@ export default function CourseDetail() {
       .maybeSingle();
 
     setIsEnrolled(!!data);
+  };
+
+  const checkPaymentStatus = async (courseId: string) => {
+    const { data } = await supabase
+      .from('payments')
+      .select('id')
+      .eq('user_id', user!.id)
+      .eq('course_id', courseId)
+      .eq('status', 'paid')
+      .maybeSingle();
+
+    setHasPaid(!!data);
   };
 
   const fetchSessions = async (courseId: string) => {
@@ -287,6 +309,15 @@ export default function CourseDetail() {
     }
   };
 
+  const handlePaymentSuccess = () => {
+    setHasPaid(true);
+    setIsEnrolled(true);
+    if (course) {
+      checkEnrollment(course.id);
+      fetchSessions(course.id);
+    }
+  };
+
   const handleEnroll = async () => {
     if (!user) {
       navigate('/auth');
@@ -402,10 +433,15 @@ export default function CourseDetail() {
                 <Badge variant="secondary" className="text-base px-4 py-2">
                   Enrollment Closed
                 </Badge>
-              ) : course.enrollment_disabled ? (
-                <Badge variant="secondary" className="text-base px-4 py-2">
-                  Enrollment Closed
-                </Badge>
+              ) : course && isPaidCourse(course) && !isAdmin ? (
+                <PaymentButton
+                  courseId={course.id}
+                  courseName={course.name}
+                  priceInrPaise={course.price_inr_paise}
+                  priceUsdCents={course.price_usd_cents}
+                  hasPaid={hasPaid}
+                  onPaid={handlePaymentSuccess}
+                />
               ) : (
                 <Button size="lg" onClick={handleEnroll} disabled={isEnrolling}>
                   {isEnrolling ? (
