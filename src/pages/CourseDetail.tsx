@@ -15,6 +15,7 @@ import { SessionQuizList, SessionQuiz, QuizSubmission } from '@/components/sessi
 import PaymentButton from '@/components/payment/PaymentButton';
 import { isPaidCourse } from '@/lib/coursePayment';
 import CourseContentAccordion, { CurriculumSession } from '@/components/course/CourseContentAccordion';
+import StickyPayBar from '@/components/course/StickyPayBar';
 import { 
   Clock, 
   GraduationCap, 
