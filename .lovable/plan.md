@@ -1,33 +1,24 @@
-## Problem
-Admins attach **pre-reading materials** and **mini-projects** to sessions, but only quizzes surface in:
-- Course detail syllabus (`CourseContentAccordion`)
-- Learn workspace sidebar (`CourseSidebar` / `CourseLearn`)
+## Why it happens today
 
-The edge functions powering these views never fetch those rows.
+Two gates hide those rows from unenrolled visitors:
 
-## Plan
+1. `supabase/functions/get-course-curriculum/index.ts` only fetches `session_quizzes`, `pre_reading_materials`, and `mini_projects` when `isEnrolled === true`. For everyone else the arrays come back empty.
+2. `src/components/course/CourseContentAccordion.tsx` wraps the quiz / pre-reading / mini-project `<li>` rows in `isEnrolled && …`, so even if data were present they wouldn't render.
 
-### 1. Edge function `get-course-curriculum`
-For enrolled users, also fetch `pre_reading_materials` (id, title, link, display_order) and `mini_projects` (id, title, description, display_order) for the session IDs. Add both arrays per session in the payload.
+Chapters slip through because they're always fetched, and each row renders regardless of enrollment (with a `Lock` icon when `is_preview` is false).
 
-### 2. Edge function `get-course-learn`
-Same additions, so the learn workspace has the data.
+## Plan — show them as locked rows for unenrolled users
 
-### 3. `CourseContentAccordion` (course detail page)
-Under each session, after quizzes, render (enrolled users only, matching quiz visibility):
-- **Pre-reading** rows — book icon + title; click opens `link` in a new tab (`target="_blank" rel="noopener noreferrer"`).
-- **Mini-project** rows — clipboard icon + title; click opens an inline dialog rendering the markdown description.
+Match the chapter pattern: everyone sees the item exists, only enrolled users can open it.
 
-### 4. `CourseSidebar` + `CourseLearn` (learn workspace)
-Add the same two item groups under quizzes for each session:
-- **Pre-reading** → opens `link` in a new tab (no sidebar selection state changes).
-- **Mini-project** → sets `selected = { kind: 'mini_project', id }`; the right panel renders the title + markdown description block (no video, no chapter progress calls).
+1. **Edge function `get-course-curriculum`**
+   - Remove the `isEnrolled` guard around the three fetches.
+   - When `!isEnrolled`, return only the **title** (and `id`, `display_order`) for pre-readings and mini-projects — strip `link` and `description` server-side. Quizzes already expose only `id` + `title`.
+   - Enrolled users still get `link` and `description` as before.
 
-Empty groups render nothing. No DB changes.
+2. **`CourseContentAccordion.tsx`**
+   - Drop the `isEnrolled &&` wrapper on the three row groups.
+   - Unenrolled: render each row like a locked chapter — small lock icon, muted text, no click handler, no external-link icon, no dialog.
+   - Enrolled: keep today's behavior (clickable, opens quiz/mini-project dialog, opens pre-reading link in a new tab).
 
-### Files touched
-- `supabase/functions/get-course-curriculum/index.ts`
-- `supabase/functions/get-course-learn/index.ts`
-- `src/components/course/CourseContentAccordion.tsx`
-- `src/components/course/CourseSidebar.tsx`
-- `src/pages/CourseLearn.tsx`
+Result: unenrolled visitors see the full syllabus outline (chapters, quizzes, pre-readings, mini-projects) with locks; no URLs or project descriptions leak. No DB, RLS, or Learn-workspace changes needed.

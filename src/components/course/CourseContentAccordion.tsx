@@ -79,7 +79,7 @@ export default function CourseContentAccordion({ slug, isEnrolled, sessions }: P
         {sessions.map((s) => {
           const preReadings = s.pre_readings ?? [];
           const miniProjects = s.mini_projects ?? [];
-          const hasExtras = isEnrolled && (s.quizzes.length || preReadings.length || miniProjects.length);
+          const hasExtras = s.quizzes.length || preReadings.length || miniProjects.length;
           return (
           <AccordionItem key={s.id} value={s.id} className="overflow-hidden rounded-lg border border-border bg-card">
             <AccordionTrigger
@@ -130,48 +130,66 @@ export default function CourseContentAccordion({ slug, isEnrolled, sessions }: P
                     </li>
                   );
                 })}
-                {isEnrolled &&
-                  s.quizzes.map((q) => (
-                    <li
-                      key={q.id}
-                      className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-muted/50"
-                      onClick={() => openQuiz(q)}
-                    >
-                      <span className="w-6 shrink-0" />
+                {s.quizzes.map((q) => (
+                  <li
+                    key={q.id}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3",
+                      isEnrolled ? "cursor-pointer hover:bg-muted/50" : "text-muted-foreground",
+                    )}
+                    onClick={() => isEnrolled && openQuiz(q)}
+                  >
+                    <span className="w-6 shrink-0" />
+                    {isEnrolled ? (
                       <ClipboardList className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span className="truncate text-sm">Quiz: {q.title}</span>
-                    </li>
-                  ))}
-                {isEnrolled &&
-                  preReadings.map((p) => (
-                    <li
-                      key={p.id}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-3",
-                        p.link ? "cursor-pointer hover:bg-muted/50" : "text-muted-foreground",
-                      )}
-                      onClick={() => {
-                        if (p.link) window.open(p.link, "_blank", "noopener,noreferrer");
-                      }}
-                    >
-                      <span className="w-6 shrink-0" />
+                    ) : (
+                      <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    )}
+                    <span className="truncate text-sm">Quiz: {q.title}</span>
+                  </li>
+                ))}
+                {preReadings.map((p) => (
+                  <li
+                    key={p.id}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3",
+                      isEnrolled && p.link ? "cursor-pointer hover:bg-muted/50" : "text-muted-foreground",
+                    )}
+                    onClick={() => {
+                      if (isEnrolled && p.link) window.open(p.link, "_blank", "noopener,noreferrer");
+                    }}
+                  >
+                    <span className="w-6 shrink-0" />
+                    {isEnrolled ? (
                       <BookOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span className="truncate text-sm flex-1">Pre-reading: {p.title}</span>
-                      {p.link && <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
-                    </li>
-                  ))}
-                {isEnrolled &&
-                  miniProjects.map((m) => (
-                    <li
-                      key={m.id}
-                      className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-muted/50"
-                      onClick={() => setMp(m)}
-                    >
-                      <span className="w-6 shrink-0" />
+                    ) : (
+                      <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    )}
+                    <span className="truncate text-sm flex-1">Pre-reading: {p.title}</span>
+                    {isEnrolled && p.link && (
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    )}
+                  </li>
+                ))}
+                {miniProjects.map((m) => (
+                  <li
+                    key={m.id}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3",
+                      isEnrolled ? "cursor-pointer hover:bg-muted/50" : "text-muted-foreground",
+                    )}
+                    onClick={() => isEnrolled && setMp(m)}
+                  >
+                    <span className="w-6 shrink-0" />
+                    {isEnrolled ? (
                       <FolderKanban className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span className="truncate text-sm">Mini-project: {m.title}</span>
-                    </li>
-                  ))}
+                    ) : (
+                      <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    )}
+                    <span className="truncate text-sm">Mini-project: {m.title}</span>
+                  </li>
+                ))}
+
                 {s.chapters.length === 0 && !hasExtras && (
                   <li className="px-4 py-3 text-sm text-muted-foreground">Content coming soon.</li>
                 )}
