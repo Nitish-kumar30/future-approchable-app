@@ -79,7 +79,7 @@ export default function CourseContentAccordion({ slug, isEnrolled, sessions }: P
         {sessions.map((s) => {
           const preReadings = s.pre_readings ?? [];
           const miniProjects = s.mini_projects ?? [];
-          const hasExtras = isEnrolled && (s.quizzes.length || preReadings.length || miniProjects.length);
+          const hasExtras = s.quizzes.length || preReadings.length || miniProjects.length;
           return (
           <AccordionItem key={s.id} value={s.id} className="overflow-hidden rounded-lg border border-border bg-card">
             <AccordionTrigger
