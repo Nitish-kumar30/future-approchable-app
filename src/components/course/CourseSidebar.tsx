@@ -112,7 +112,7 @@ export default function CourseSidebar({
           <DropdownMenuTrigger asChild>
             <button className="w-full flex items-start justify-between gap-2 text-left group">
               <div className="min-w-0">
-                <div className="text-xs text-muted-foreground">Session {(currentSession?.session_order ?? 0) + 1}</div>
+                <div className="text-xs text-muted-foreground">Session {currentSession?.session_order ?? ""}</div>
                 <div className="font-semibold text-sm leading-snug line-clamp-2">{currentSession?.title}</div>
               </div>
               <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 mt-1 group-hover:text-foreground" />
