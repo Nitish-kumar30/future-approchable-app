@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Play, Lock, FileQuestion, ChevronDown, ChevronRight } from "lucide-react";
+import { CheckCircle2, Circle, Play, Lock, FileQuestion, ChevronDown, ChevronRight, BookOpen, FolderKanban, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import {
