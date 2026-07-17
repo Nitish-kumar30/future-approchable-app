@@ -374,7 +374,26 @@ export default function CourseLearn() {
                     />
                   );
                 })()
+              ) : selected?.kind === 'mini_project' ? (
+                (() => {
+                  const mp = miniProjects.find((m) => m.id === selected.id);
+                  if (!mp) return null;
+                  return (
+                    <div className="space-y-3">
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground">Mini-project</div>
+                      <h1 className="text-xl font-semibold">{mp.title}</h1>
+                      {mp.description ? (
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{mp.description}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No description provided.</p>
+                      )}
+                    </div>
+                  );
+                })()
               ) : (
+
                 <>
                   <div
                     ref={playerWrapperRef}
