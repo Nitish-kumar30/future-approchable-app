@@ -1,38 +1,87 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import HlsPlayer from '@/components/video/HlsPlayer';
-import CourseSidebar from '@/components/course/CourseSidebar';
-import RateCourseDialog from '@/components/course/RateCourseDialog';
-import InlineQuiz from '@/components/session/InlineQuiz';
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import HlsPlayer from "@/components/video/HlsPlayer";
+import CourseSidebar from "@/components/course/CourseSidebar";
+import RateCourseDialog from "@/components/course/RateCourseDialog";
+import InlineQuiz from "@/components/session/InlineQuiz";
 
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, ChevronLeft, ChevronRight, Star, Lock, Loader2, LayoutGrid, Maximize, Minimize } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Button } from "@/components/ui/button";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  Lock,
+  Loader2,
+  LayoutGrid,
+  Maximize,
+  Minimize,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-interface Course { id: string; slug: string; name: string; description: string | null; }
-interface Session { id: string; title: string; description: string | null; session_order: number; video_url: string | null; is_content_unlocked: boolean; }
-interface Chapter { id: string; session_id: string; title: string; description: string | null; hls_url: string | null; chapter_order: number; is_preview: boolean; can_watch: boolean; duration_seconds: number | null; }
-interface SessionQuiz { session_id: string; display_order: number; quiz: { id: string; title: string } | null; }
-interface PreReading { id: string; session_id: string; title: string; link: string | null; display_order: number; }
-interface MiniProject { id: string; session_id: string; title: string; description: string | null; display_order: number; }
-
+interface Course {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+}
+interface Session {
+  id: string;
+  title: string;
+  description: string | null;
+  session_order: number;
+  video_url: string | null;
+  is_content_unlocked: boolean;
+}
+interface Chapter {
+  id: string;
+  session_id: string;
+  title: string;
+  description: string | null;
+  hls_url: string | null;
+  chapter_order: number;
+  is_preview: boolean;
+  can_watch: boolean;
+  duration_seconds: number | null;
+}
+interface SessionQuiz {
+  session_id: string;
+  display_order: number;
+  quiz: { id: string; title: string } | null;
+}
+interface PreReading {
+  id: string;
+  session_id: string;
+  title: string;
+  link: string | null;
+  display_order: number;
+}
+interface MiniProject {
+  id: string;
+  session_id: string;
+  title: string;
+  description: string | null;
+  display_order: number;
+}
 
 async function invokeFn(name: string, opts: { body?: any; method?: string; query?: Record<string, string> } = {}) {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const token = session?.access_token;
   const projectId = (import.meta as any).env.VITE_SUPABASE_PROJECT_ID;
   const url = new URL(`https://${projectId}.functions.supabase.co/${name}`);
   Object.entries(opts.query ?? {}).forEach(([k, v]) => url.searchParams.set(k, v));
   const res = await fetch(url.toString(), {
-    method: opts.method ?? (opts.body ? 'POST' : 'GET'),
+    method: opts.method ?? (opts.body ? "POST" : "GET"),
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      apikey: (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY ?? '',
+      apikey: (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
     },
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
@@ -53,22 +102,27 @@ export default function CourseLearn() {
   const [sessionQuizzes, setSessionQuizzes] = useState<SessionQuiz[]>([]);
   const [preReadings, setPreReadings] = useState<PreReading[]>([]);
   const [miniProjects, setMiniProjects] = useState<MiniProject[]>([]);
-  const [chapterProgress, setChapterProgress] = useState<Record<string, { is_completed: boolean; watched_seconds: number }>>({});
+  const [chapterProgress, setChapterProgress] = useState<
+    Record<string, { is_completed: boolean; watched_seconds: number }>
+  >({});
   const [sessionProgress, setSessionProgress] = useState<Record<string, boolean>>({});
   const [quizSubmissions, setQuizSubmissions] = useState<Record<string, number | null>>({});
-  const [selected, setSelected] = useState<{ kind: 'chapter' | 'session' | 'quiz' | 'mini_project'; id: string } | null>(null);
+  const [selected, setSelected] = useState<{
+    kind: "chapter" | "session" | "quiz" | "mini_project";
+    id: string;
+  } | null>(null);
 
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [myRating, setMyRating] = useState<number>(0);
-  const [myComment, setMyComment] = useState<string>('');
+  const [myComment, setMyComment] = useState<string>("");
   const [rateOpen, setRateOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!slug) return;
     setLoading(true);
-    const data = await invokeFn('get-course-learn', { query: { slug } });
+    const data = await invokeFn("get-course-learn", { query: { slug } });
     if (data.error) {
-      toast({ title: 'Failed to load course', description: data.error, variant: 'destructive' });
+      toast({ title: "Failed to load course", description: data.error, variant: "destructive" });
       setLoading(false);
       return;
     }
@@ -81,26 +135,28 @@ export default function CourseLearn() {
     setMiniProjects(data.mini_projects ?? []);
 
     setChapterProgress(Object.fromEntries((data.chapter_progress ?? []).map((p: any) => [p.chapter_id, p])));
-    setSessionProgress(Object.fromEntries((data.session_progress ?? []).map((p: any) => [p.session_id, p.is_completed])));
+    setSessionProgress(
+      Object.fromEntries((data.session_progress ?? []).map((p: any) => [p.session_id, p.is_completed])),
+    );
     setQuizSubmissions(Object.fromEntries((data.quiz_submissions ?? []).map((q: any) => [q.quiz_id, q.score])));
     setMyRating(data.my_rating?.rating ?? 0);
-    setMyComment(data.my_rating?.comment ?? '');
+    setMyComment(data.my_rating?.comment ?? "");
     setLoading(false);
   }, [slug, toast]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   // Ordered playable items (chapters and no-chapter sessions), for prev/next + auto-advance.
   const playable = useMemo(() => {
-    const items: { kind: 'chapter' | 'session'; id: string; sessionId: string }[] = [];
+    const items: { kind: "chapter" | "session"; id: string; sessionId: string }[] = [];
     for (const s of sessions) {
-      const chs = chapters
-        .filter((c) => c.session_id === s.id)
-        .sort((a, b) => a.chapter_order - b.chapter_order);
+      const chs = chapters.filter((c) => c.session_id === s.id).sort((a, b) => a.chapter_order - b.chapter_order);
       if (chs.length === 0 && s.video_url) {
-        items.push({ kind: 'session', id: s.id, sessionId: s.id });
+        items.push({ kind: "session", id: s.id, sessionId: s.id });
       } else {
-        for (const c of chs) items.push({ kind: 'chapter', id: c.id, sessionId: s.id });
+        for (const c of chs) items.push({ kind: "chapter", id: c.id, sessionId: s.id });
       }
     }
     return items;
@@ -111,28 +167,26 @@ export default function CourseLearn() {
   // Default selection: honor ?chapter= / ?quiz= deep link, else first unwatched.
   useEffect(() => {
     if (selected || playable.length === 0) return;
-    const qpChapter = searchParams.get('chapter');
-    const qpQuiz = searchParams.get('quiz');
+    const qpChapter = searchParams.get("chapter");
+    const qpQuiz = searchParams.get("quiz");
 
     if (qpQuiz) {
       const sq = sessionQuizzes.find((q) => q.quiz?.id === qpQuiz);
       if (sq) {
-        setSelected({ kind: 'quiz', id: qpQuiz });
+        setSelected({ kind: "quiz", id: qpQuiz });
         setCurrentSessionId(sq.session_id);
         const next = new URLSearchParams(searchParams);
-        next.delete('quiz');
+        next.delete("quiz");
         setSearchParams(next, { replace: true });
         return;
       }
     }
 
-    let target = qpChapter
-      ? playable.find((it) => it.kind === 'chapter' && it.id === qpChapter)
-      : undefined;
+    let target = qpChapter ? playable.find((it) => it.kind === "chapter" && it.id === qpChapter) : undefined;
     if (!target) {
       target =
         playable.find((it) => {
-          if (it.kind === 'chapter') return !chapterProgress[it.id]?.is_completed;
+          if (it.kind === "chapter") return !chapterProgress[it.id]?.is_completed;
           return !sessionProgress[it.id];
         }) ?? playable[0];
     }
@@ -140,17 +194,18 @@ export default function CourseLearn() {
     setCurrentSessionId(target.sessionId);
     if (qpChapter) {
       const next = new URLSearchParams(searchParams);
-      next.delete('chapter');
+      next.delete("chapter");
       setSearchParams(next, { replace: true });
     }
   }, [playable, selected, chapterProgress, sessionProgress, sessionQuizzes, searchParams, setSearchParams]);
 
-  const currentChapter = selected?.kind === 'chapter'
-    ? chapters.find((c) => c.id === selected.id) ?? null
-    : null;
-  const currentSession = selected?.kind === 'session'
-    ? sessions.find((s) => s.id === selected.id) ?? null
-    : (currentChapter ? sessions.find((s) => s.id === currentChapter.session_id) ?? null : null);
+  const currentChapter = selected?.kind === "chapter" ? (chapters.find((c) => c.id === selected.id) ?? null) : null;
+  const currentSession =
+    selected?.kind === "session"
+      ? (sessions.find((s) => s.id === selected.id) ?? null)
+      : currentChapter
+        ? (sessions.find((s) => s.id === currentChapter.session_id) ?? null)
+        : null;
 
   const nextSession = useMemo(() => {
     if (!currentSession) return null;
@@ -167,8 +222,8 @@ export default function CourseLearn() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   useEffect(() => {
     const onChange = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', onChange);
-    return () => document.removeEventListener('fullscreenchange', onChange);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
   const toggleFullscreen = () => {
     const el = playerWrapperRef.current;
@@ -186,7 +241,7 @@ export default function CourseLearn() {
   const nextItem = currentIdx >= 0 ? playable[currentIdx + 1] : undefined;
   const nextItemTitle = useMemo(() => {
     if (!nextItem) return null;
-    if (nextItem.kind === 'chapter') return chapters.find((c) => c.id === nextItem.id)?.title ?? null;
+    if (nextItem.kind === "chapter") return chapters.find((c) => c.id === nextItem.id)?.title ?? null;
     return sessions.find((s) => s.id === nextItem.id)?.title ?? null;
   }, [nextItem, chapters, sessions]);
 
@@ -226,12 +281,17 @@ export default function CourseLearn() {
   };
 
   // Cleanup on unmount
-  useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
+  useEffect(
+    () => () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    },
+    [],
+  );
 
   // Cancel countdown when the user manually changes selection
-  useEffect(() => { clearCountdown(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [selected?.id]);
-
-
+  useEffect(() => {
+    clearCountdown(); /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [selected?.id]);
 
   const markChapterComplete = async (chapterId: string, watched: number, completed: boolean) => {
     if (!user) return;
@@ -239,20 +299,20 @@ export default function CourseLearn() {
       ...prev,
       [chapterId]: { is_completed: completed, watched_seconds: watched },
     }));
-    await invokeFn('update-chapter-progress', {
+    await invokeFn("update-chapter-progress", {
       body: { chapter_id: chapterId, watched_seconds: watched, is_completed: completed },
     });
   };
 
   const submitRating = async (rating: number, comment: string) => {
     if (!course?.id) return;
-    const res = await invokeFn('submit-course-rating', {
+    const res = await invokeFn("submit-course-rating", {
       body: { course_id: course.id, rating, comment },
     });
     if (res?.error) {
-      toast({ title: 'Failed to submit rating', description: res.error, variant: 'destructive' });
+      toast({ title: "Failed to submit rating", description: res.error, variant: "destructive" });
     } else {
-      toast({ title: 'Rating saved' });
+      toast({ title: "Rating saved" });
       setMyRating(rating);
       setMyComment(comment);
     }
@@ -270,7 +330,7 @@ export default function CourseLearn() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Course not found.</p>
-        <Button onClick={() => navigate('/courses')}>Back to courses</Button>
+        <Button onClick={() => navigate("/courses")}>Back to courses</Button>
       </div>
     );
   }
@@ -282,14 +342,14 @@ export default function CourseLearn() {
         <Button variant="ghost" size="sm" onClick={() => navigate(`/courses/${course.slug}`)} className="gap-1">
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => navigate('/courses')} className="gap-1 hidden sm:inline-flex">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/courses")} className="gap-1 hidden sm:inline-flex">
           <LayoutGrid className="h-4 w-4" /> All courses
         </Button>
         <div className="flex-1 min-w-0 px-2 hidden md:block">
           <div className="text-sm font-medium truncate">{course.name}</div>
           {currentSession && (
             <div className="text-xs text-muted-foreground truncate">
-              Session {currentSession.session_order + 1}: {currentSession.title}
+              Session {currentSession.session_order}: {currentSession.title}
             </div>
           )}
         </div>
@@ -297,7 +357,13 @@ export default function CourseLearn() {
           <Button variant="ghost" size="icon" onClick={() => go(-1)} disabled={currentIdx <= 0} aria-label="Previous">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => go(1)} disabled={currentIdx < 0 || currentIdx >= playable.length - 1} aria-label="Next">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => go(1)}
+            disabled={currentIdx < 0 || currentIdx >= playable.length - 1}
+            aria-label="Next"
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
           {isEnrolled && (
@@ -323,58 +389,49 @@ export default function CourseLearn() {
           onSelect={(sel) => {
             setSelected(sel);
             let sid: string | undefined;
-            if (sel.kind === 'chapter') sid = chapters.find((c) => c.id === sel.id)?.session_id;
-            else if (sel.kind === 'mini_project') sid = miniProjects.find((m) => m.id === sel.id)?.session_id;
+            if (sel.kind === "chapter") sid = chapters.find((c) => c.id === sel.id)?.session_id;
+            else if (sel.kind === "mini_project") sid = miniProjects.find((m) => m.id === sel.id)?.session_id;
             else sid = sel.id;
             if (sid) setCurrentSessionId(sid);
           }}
-
           onSelectSession={(sid) => {
             setCurrentSessionId(sid);
             const firstCh = chapters
               .filter((c) => c.session_id === sid)
               .sort((a, b) => a.chapter_order - b.chapter_order)[0];
-            if (firstCh) setSelected({ kind: 'chapter', id: firstCh.id });
+            if (firstCh) setSelected({ kind: "chapter", id: firstCh.id });
             else {
               const s = sessions.find((x) => x.id === sid);
-              if (s?.video_url) setSelected({ kind: 'session', id: sid });
+              if (s?.video_url) setSelected({ kind: "session", id: sid });
             }
           }}
           onOpenQuiz={(quizId) => {
             const sq = sessionQuizzes.find((q) => q.quiz?.id === quizId);
             if (sq) setCurrentSessionId(sq.session_id);
-            setSelected({ kind: 'quiz', id: quizId });
+            setSelected({ kind: "quiz", id: quizId });
           }}
           onOpenMiniProject={(id) => {
             const mp = miniProjects.find((m) => m.id === id);
             if (mp) setCurrentSessionId(mp.session_id);
-            setSelected({ kind: 'mini_project', id });
+            setSelected({ kind: "mini_project", id });
           }}
-
-
           sessionProgress={sessionProgress}
           nextSession={nextSession}
         />
-
 
         {/* Main viewer */}
         <main className="min-h-0 h-full overflow-hidden">
           <div className="h-full overflow-y-auto">
             <div className="max-w-5xl mx-auto p-4 space-y-4">
-              {selected?.kind === 'quiz' ? (
+              {selected?.kind === "quiz" ? (
                 (() => {
                   const sq = sessionQuizzes.find((q) => q.quiz?.id === selected.id);
-                  const title = sq?.quiz?.title ?? 'Quiz';
+                  const title = sq?.quiz?.title ?? "Quiz";
                   return (
-                    <InlineQuiz
-                      key={selected.id}
-                      quizId={selected.id}
-                      quizTitle={title}
-                      onCompleted={() => load()}
-                    />
+                    <InlineQuiz key={selected.id} quizId={selected.id} quizTitle={title} onCompleted={() => load()} />
                   );
                 })()
-              ) : selected?.kind === 'mini_project' ? (
+              ) : selected?.kind === "mini_project" ? (
                 (() => {
                   const mp = miniProjects.find((m) => m.id === selected.id);
                   if (!mp) return null;
@@ -393,18 +450,19 @@ export default function CourseLearn() {
                   );
                 })()
               ) : (
-
                 <>
                   <div
                     ref={playerWrapperRef}
-                    className={`relative bg-black rounded-lg overflow-hidden group ${isFullscreen ? 'w-screen h-screen rounded-none' : 'aspect-video'}`}
+                    className={`relative bg-black rounded-lg overflow-hidden group ${isFullscreen ? "w-screen h-screen rounded-none" : "aspect-video"}`}
                   >
                     {currentChapter?.can_watch && currentChapter.hls_url ? (
                       <HlsPlayer
                         key={currentChapter.id}
                         src={currentChapter.hls_url}
                         autoPlay
-                        onNearEnd={() => markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true)}
+                        onNearEnd={() =>
+                          markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true)
+                        }
                         onEnded={() => {
                           markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true);
                           if (nextItem) startAutoAdvance();
@@ -416,14 +474,14 @@ export default function CourseLearn() {
                           const prev = lastSavedSecRef.current[currentChapter.id] ?? 0;
                           if (floor - prev >= 15) {
                             lastSavedSecRef.current[currentChapter.id] = floor;
-                            invokeFn('update-chapter-progress', {
+                            invokeFn("update-chapter-progress", {
                               body: { chapter_id: currentChapter.id, watched_seconds: floor, is_completed: false },
                             });
                           }
                         }}
-                        onError={(msg) => toast({ title: 'Video error', description: msg, variant: 'destructive' })}
+                        onError={(msg) => toast({ title: "Video error", description: msg, variant: "destructive" })}
                       />
-                    ) : selected?.kind === 'session' && currentSession?.video_url ? (
+                    ) : selected?.kind === "session" && currentSession?.video_url ? (
                       <iframe src={currentSession.video_url} className="w-full h-full" allow="fullscreen" />
                     ) : currentChapter && !currentChapter.can_watch ? (
                       <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
@@ -436,11 +494,12 @@ export default function CourseLearn() {
                       </div>
                     )}
 
-                    {(currentChapter?.can_watch && currentChapter.hls_url) || (selected?.kind === 'session' && currentSession?.video_url) ? (
+                    {(currentChapter?.can_watch && currentChapter.hls_url) ||
+                    (selected?.kind === "session" && currentSession?.video_url) ? (
                       <button
                         type="button"
                         onClick={toggleFullscreen}
-                        aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                        aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
                         className="absolute bottom-2 right-2 z-20 h-8 w-8 flex items-center justify-center rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                       >
                         {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
@@ -454,7 +513,9 @@ export default function CourseLearn() {
                             <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
                               <circle cx="32" cy="32" r="28" fill="none" stroke="hsl(var(--muted))" strokeWidth="4" />
                               <circle
-                                cx="32" cy="32" r="28"
+                                cx="32"
+                                cy="32"
+                                r="28"
                                 fill="none"
                                 stroke="hsl(var(--primary))"
                                 strokeWidth="4"
@@ -463,10 +524,14 @@ export default function CourseLearn() {
                                 className="transition-all duration-1000"
                               />
                             </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-white text-xl font-bold">{countdown}</span>
+                            <span className="absolute inset-0 flex items-center justify-center text-white text-xl font-bold">
+                              {countdown}
+                            </span>
                           </div>
                           <p className="text-white/60 text-xs uppercase tracking-widest mb-2">Up next</p>
-                          <h3 className="text-white font-semibold text-base mb-6 leading-snug line-clamp-2">{nextItemTitle}</h3>
+                          <h3 className="text-white font-semibold text-base mb-6 leading-snug line-clamp-2">
+                            {nextItemTitle}
+                          </h3>
                           <div className="flex gap-3 justify-center">
                             <Button
                               variant="outline"
@@ -476,13 +541,14 @@ export default function CourseLearn() {
                             >
                               Cancel
                             </Button>
-                            <Button size="sm" onClick={() => go(1)}>Play now</Button>
+                            <Button size="sm" onClick={() => go(1)}>
+                              Play now
+                            </Button>
                           </div>
                         </div>
                       </div>
                     )}
                   </div>
-
 
                   <div className="space-y-3">
                     <h1 className="text-xl font-semibold">
@@ -491,7 +557,7 @@ export default function CourseLearn() {
                     {(currentChapter?.description || currentSession?.description) && (
                       <div className="prose prose-sm max-w-none dark:prose-invert">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {currentChapter?.description || currentSession?.description || ''}
+                          {currentChapter?.description || currentSession?.description || ""}
                         </ReactMarkdown>
                       </div>
                     )}
@@ -501,9 +567,6 @@ export default function CourseLearn() {
             </div>
           </div>
         </main>
-
-
-
       </div>
 
       <RateCourseDialog
