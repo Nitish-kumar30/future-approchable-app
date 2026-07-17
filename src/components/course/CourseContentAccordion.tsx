@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ClipboardList, Lock, Minus, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { BookOpen, ClipboardList, ExternalLink, FolderKanban, Lock, Minus, Plus } from "lucide-react";
 import ChapterPreviewDialog from "./ChapterPreviewDialog";
 import { cn } from "@/lib/utils";
 
@@ -18,12 +21,26 @@ export interface CurriculumQuiz {
   title: string;
 }
 
+export interface CurriculumPreReading {
+  id: string;
+  title: string;
+  link: string | null;
+}
+
+export interface CurriculumMiniProject {
+  id: string;
+  title: string;
+  description: string | null;
+}
+
 export interface CurriculumSession {
   id: string;
   title: string;
   session_order: number;
   chapters: CurriculumChapter[];
   quizzes: CurriculumQuiz[];
+  pre_readings?: CurriculumPreReading[];
+  mini_projects?: CurriculumMiniProject[];
 }
 
 interface Props {
@@ -35,6 +52,7 @@ interface Props {
 export default function CourseContentAccordion({ slug, isEnrolled, sessions }: Props) {
   const navigate = useNavigate();
   const [preview, setPreview] = useState<{ title: string; hlsUrl: string | null } | null>(null);
+  const [mp, setMp] = useState<CurriculumMiniProject | null>(null);
 
   const defaultOpen = useMemo(() => (sessions[0] ? [sessions[0].id] : []), [sessions]);
 
@@ -58,7 +76,11 @@ export default function CourseContentAccordion({ slug, isEnrolled, sessions }: P
   return (
     <>
       <Accordion type="multiple" defaultValue={defaultOpen} className="w-full space-y-3">
-        {sessions.map((s) => (
+        {sessions.map((s) => {
+          const preReadings = s.pre_readings ?? [];
+          const miniProjects = s.mini_projects ?? [];
+          const hasExtras = isEnrolled && (s.quizzes.length || preReadings.length || miniProjects.length);
+          return (
           <AccordionItem key={s.id} value={s.id} className="overflow-hidden rounded-lg border border-border bg-card">
             <AccordionTrigger
               className={cn(
@@ -120,13 +142,44 @@ export default function CourseContentAccordion({ slug, isEnrolled, sessions }: P
                       <span className="truncate text-sm">Quiz: {q.title}</span>
                     </li>
                   ))}
-                {s.chapters.length === 0 && (!isEnrolled || s.quizzes.length === 0) && (
+                {isEnrolled &&
+                  preReadings.map((p) => (
+                    <li
+                      key={p.id}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3",
+                        p.link ? "cursor-pointer hover:bg-muted/50" : "text-muted-foreground",
+                      )}
+                      onClick={() => {
+                        if (p.link) window.open(p.link, "_blank", "noopener,noreferrer");
+                      }}
+                    >
+                      <span className="w-6 shrink-0" />
+                      <BookOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate text-sm flex-1">Pre-reading: {p.title}</span>
+                      {p.link && <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+                    </li>
+                  ))}
+                {isEnrolled &&
+                  miniProjects.map((m) => (
+                    <li
+                      key={m.id}
+                      className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-muted/50"
+                      onClick={() => setMp(m)}
+                    >
+                      <span className="w-6 shrink-0" />
+                      <FolderKanban className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate text-sm">Mini-project: {m.title}</span>
+                    </li>
+                  ))}
+                {s.chapters.length === 0 && !hasExtras && (
                   <li className="px-4 py-3 text-sm text-muted-foreground">Content coming soon.</li>
                 )}
               </ul>
             </AccordionContent>
           </AccordionItem>
-        ))}
+          );
+        })}
       </Accordion>
 
       <ChapterPreviewDialog
@@ -135,6 +188,21 @@ export default function CourseContentAccordion({ slug, isEnrolled, sessions }: P
         title={preview?.title ?? ""}
         hlsUrl={preview?.hlsUrl ?? null}
       />
+
+      <Dialog open={!!mp} onOpenChange={(o) => !o && setMp(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{mp?.title}</DialogTitle>
+          </DialogHeader>
+          {mp?.description ? (
+            <div className="prose prose-sm max-w-none dark:prose-invert">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{mp.description}</ReactMarkdown>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No description provided.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
