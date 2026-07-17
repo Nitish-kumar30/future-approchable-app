@@ -73,6 +73,8 @@ export default function CourseSidebar({
   sessions,
   chapters,
   quizzes,
+  preReadings = [],
+  miniProjects = [],
   currentSessionId,
   chapterProgress,
   quizSubmissions,
@@ -80,6 +82,7 @@ export default function CourseSidebar({
   onSelect,
   onSelectSession,
   onOpenQuiz,
+  onOpenMiniProject,
   sessionProgress,
   nextSession,
 }: Props) {
@@ -88,6 +91,9 @@ export default function CourseSidebar({
     .filter((c) => c.session_id === currentSession?.id)
     .sort((a, b) => a.chapter_order - b.chapter_order);
   const qs = quizzes.filter((q) => q.session_id === currentSession?.id);
+  const prs = preReadings.filter((p) => p.session_id === currentSession?.id);
+  const mps = miniProjects.filter((m) => m.session_id === currentSession?.id);
+
 
   const sessionTotal = chs.length;
   const sessionCompleted = chs.filter((c) => chapterProgress[c.id]?.is_completed).length;
