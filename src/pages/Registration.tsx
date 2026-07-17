@@ -22,7 +22,14 @@ import { COHORT_CONFIG } from "@/lib/constants";
 
 const COHORT_OPTIONS = ["Cohort 6: Master the Claude Ecosystem - July 23rd 7:30PM/10AM Eastern"];
 
-const INTEREST_OPTIONS = ["Claude Overview", "Claude Code", "No-code AI Agents", "Claude Cowork", "Other"];
+const INTEREST_OPTIONS = [
+  "Claude Overview",
+  "Claude Code",
+  "No-code AI Agents",
+  "Claude Cowork",
+  "AI Fundamentals",
+  "Other",
+];
 
 const registrationSchema = z
   .object({
