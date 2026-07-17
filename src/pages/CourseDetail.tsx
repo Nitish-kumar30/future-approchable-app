@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +15,7 @@ import { SessionQuizList, SessionQuiz, QuizSubmission } from '@/components/sessi
 import PaymentButton from '@/components/payment/PaymentButton';
 import { isPaidCourse } from '@/lib/coursePayment';
 import CourseContentAccordion, { CurriculumSession } from '@/components/course/CourseContentAccordion';
+import StickyPayBar from '@/components/course/StickyPayBar';
 import { 
   Clock, 
   GraduationCap, 
@@ -81,6 +82,7 @@ export default function CourseDetail() {
   const [completedChapterIds, setCompletedChapterIds] = useState<Set<string>>(new Set());
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [hasPaid, setHasPaid] = useState(false);
+  const heroRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [curriculumSessions, setCurriculumSessions] = useState<CurriculumSession[]>([]);
@@ -409,7 +411,7 @@ export default function CourseDetail() {
 
         {/* Course Image */}
         {course.image_url && (
-          <div className="relative w-full aspect-[5/2] md:aspect-[8/3] rounded-xl overflow-hidden bg-muted">
+          <div ref={heroRef} className="relative w-full aspect-[5/2] md:aspect-[8/3] rounded-xl overflow-hidden bg-muted">
             <img
               src={course.image_url}
               alt={course.name}
@@ -556,6 +558,17 @@ export default function CourseDetail() {
 
         </div>
       </div>
+      {course && isPaidCourse(course) && !isAdmin && !isEnrolled && !course.enrollment_disabled && (
+        <StickyPayBar
+          courseId={course.id}
+          courseName={course.name}
+          priceInrPaise={course.price_inr_paise}
+          priceUsdCents={course.price_usd_cents}
+          hasPaid={hasPaid}
+          heroRef={heroRef}
+          onPaid={handlePaymentSuccess}
+        />
+      )}
     </MainLayout>
   );
 }

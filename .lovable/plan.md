@@ -1,26 +1,40 @@
-## Why the markdown didn't render properly
 
-Your markdown is stored correctly in the database — headings, lists, bold, and horizontal rules are all there. The issue is purely a CSS one.
+## Plan: Floating sticky Pay bar on CourseDetail
 
-`src/components/ui/markdown.tsx` styles the output using Tailwind's `prose prose-sm ...` classes, which come from the `@tailwindcss/typography` plugin. The package is installed in `package.json`, but it is **not registered** in `tailwind.config.ts`:
+A fixed bar at the bottom of the viewport that appears once the user scrolls past the hero banner, shows the course name + price, and includes the existing Pay CTA. Hides again when the user reaches the footer so it doesn't overlap it.
 
+### Behavior
+- Visible only on `/courses/:slug` (CourseDetail).
+- Only rendered when the course is paid (`isPaidCourse(course)` true) AND the user hasn't already paid/enrolled.
+- Appears when the hero banner scrolls out of view (IntersectionObserver on the hero element).
+- Hides when the footer enters view (IntersectionObserver on footer sentinel) so it never overlaps the footer.
+- On mobile and desktop: same fixed bar, full width, safe-area padding.
+- Not shown for admins previewing, if `enrollment_disabled`, or for free courses.
+
+### UI
 ```
-plugins: [require("tailwindcss-animate")],   // ← typography missing
+┌──────────────────────────────────────────────────────────────┐
+│  AI Mastery for Working Professionals   ₹XX,XXX   [ Pay ▸ ]  │
+└──────────────────────────────────────────────────────────────┘
 ```
+- Left: course name (truncated on small screens).
+- Middle/right: price label (INR default, USD if only USD is set).
+- Right: reuses existing `<PaymentButton>` (small size) → opens Razorpay just like the in-page button.
+- Subtle top border + backdrop blur, `z-40` so it sits above content but below dialogs.
 
-Because the plugin isn't loaded, every `prose-*` class is a no-op. Tailwind's own preflight then resets `h1`/`h2`/`ul` to look like plain paragraphs, so your `# Heading`, `## Subheading`, and bullet lists all appear as flat body text with no size/weight/spacing hierarchy. Bold (`**...**`) still works because that's plain HTML `<strong>`.
+### Files
+- **New** `src/components/course/StickyPayBar.tsx` — presentational component. Props: `course`, `hasPaid`, `heroRef`, `onPaid`.
+- **Edit** `src/pages/CourseDetail.tsx`:
+  - Add a `ref` on the existing hero banner `div`.
+  - Render `<StickyPayBar …/>` at the bottom of the page (inside `MainLayout`, outside the main content flow).
+  - No changes to About / Content / Mentor sections.
 
-## Fix
+### Not touched
+- `PaymentButton`, `create-razorpay-order`, `verify-razorpay-payment`, edge functions, DB — none of it changes.
 
-Register the plugin in `tailwind.config.ts`:
+### Tech notes (for reference)
+- Visibility toggled with a single `useEffect` + `IntersectionObserver` on the hero ref: bar is `visible` when hero's `intersectionRatio === 0`.
+- Add `pb-20 lg:pb-24` on the main container only when bar is visible, so the last content isn't hidden behind the bar.
+- Small entry animation: `translate-y-full → translate-y-0` with `transition-transform`.
 
-```ts
-plugins: [
-  require("tailwindcss-animate"),
-  require("@tailwindcss/typography"),
-],
-```
-
-That's the only change needed. After it's in, your existing `Markdown` component will style headings, lists, `<hr>`, blockquotes, and code blocks correctly on the course About section (and anywhere else `Markdown` is used — session descriptions, bios, etc.).
-
-No DB changes, no edge function changes, no component rewrites.
+Ready to implement?
