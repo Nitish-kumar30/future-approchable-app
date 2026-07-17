@@ -77,6 +77,9 @@ export default function CourseLearn() {
     setSessions(data.sessions ?? []);
     setChapters(data.chapters ?? []);
     setSessionQuizzes(data.session_quizzes ?? []);
+    setPreReadings(data.pre_readings ?? []);
+    setMiniProjects(data.mini_projects ?? []);
+
     setChapterProgress(Object.fromEntries((data.chapter_progress ?? []).map((p: any) => [p.chapter_id, p])));
     setSessionProgress(Object.fromEntries((data.session_progress ?? []).map((p: any) => [p.session_id, p.is_completed])));
     setQuizSubmissions(Object.fromEntries((data.quiz_submissions ?? []).map((q: any) => [q.quiz_id, q.score])));
