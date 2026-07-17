@@ -1,45 +1,22 @@
-## Goal
+## Fix: Course hero image being cropped
 
-Make the published site (`learn.approachable.dev`) show the new "AI Mastery for Working Professionals" course with paid-course pricing, so you can see the recently merged payment-gateway and course-content changes end-to-end.
+**File:** `src/pages/CourseDetail.tsx` (hero image block, ~line 411)
 
-## Why the site looks empty today
+**Change:** Replace the fixed-height container (`h-64 md:h-80` with `object-cover`) with a responsive aspect-ratio container that matches the uploaded artwork proportions, so the full image is visible without cropping the top/bottom.
 
-- The code merged to `main` is already Live.
-- Live DB has only 3 courses, all `is_on_demand = true`, so `/courses` (which filters `is_on_demand = false`) correctly shows "No Courses Available".
-- Test DB has the AI Mastery course (with pricing, 2 sessions, 24 chapters, 2 session-quiz links). Publishing never copies data — only schema/functions.
+```tsx
+<div className="relative w-full aspect-[5/2] md:aspect-[8/3] rounded-xl overflow-hidden bg-muted">
+  <img
+    src={course.image_url}
+    alt={course.name}
+    className="w-full h-full object-cover object-center"
+  />
+</div>
+```
 
-## What I'll copy from Test → Live
+Why this works:
+- The AI Mastery banner is ~1600×620 (≈8:3). Using `aspect-[8/3]` on desktop matches it, so `object-cover` no longer trims the top.
+- On mobile we use a slightly taller `aspect-[5/2]` so text in the artwork remains readable at narrow widths.
+- No other course/session/thumbnail logic is touched — this only affects the hero container on the course detail page.
 
-The AI Mastery course row (`96be8221-...`) plus all its dependent content, preserving IDs so links keep working:
-
-- 1 row in `courses` (including `price_inr_paise=299900`, `price_usd_cents=9900`, `is_on_demand=false`, `is_published=true`)
-- 2 rows in `sessions`
-- 24 rows in `chapters`
-- The 2 quizzes referenced by `session_quizzes` for those sessions (rows in `quizzes` + `session_quizzes`)
-- Any `pre_reading_materials` and `mini_projects` linked to those sessions
-
-Not copied (intentional):
-- Enrollments, quiz submissions, chapter progress, ratings, payments — all user data stays isolated per environment.
-
-## How
-
-Since project rules require DB writes through edge functions or the migration/insert tools (never client SQL), I will:
-
-1. Read the exact rows from Test with `supabase--read_query` (development).
-2. Use the `supabase--insert` tool against **production** to `INSERT ... ON CONFLICT (id) DO UPDATE` each row in dependency order:
-   `courses` → `sessions` → `chapters` → `quizzes` → `session_quizzes` → `pre_reading_materials` → `mini_projects`.
-3. Verify with a production `SELECT` that the course appears with the right session/chapter counts.
-
-No code changes, no schema changes, no new edge functions.
-
-## After it's done
-
-- `learn.approachable.dev/courses` will show "AI Mastery for Working Professionals".
-- The detail page shows the new accordion + Preview modal.
-- Enrolling triggers the Razorpay flow using the Live keys currently set in Cloud → Secrets (please confirm they are the **live** Razorpay keys, not test keys, before you take a real payment).
-
-## Confirm before I run
-
-- ✅ Copy AI Mastery only? (Say the word and I'll also include "Building AI Agents with n8n" or "Claude Code Deep Dive" if you want them Live too.)
-- ✅ OK to keep prices as ₹2,999 / $99?
-- ✅ Razorpay keys in Live Cloud → Secrets are the ones you want charged?
+No DB or edge function changes needed.

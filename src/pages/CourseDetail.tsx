@@ -409,11 +409,11 @@ export default function CourseDetail() {
 
         {/* Course Image */}
         {course.image_url && (
-          <div className="relative h-64 md:h-80 rounded-xl overflow-hidden bg-muted">
-            <img 
-              src={course.image_url} 
+          <div className="relative w-full aspect-[5/2] md:aspect-[8/3] rounded-xl overflow-hidden bg-muted">
+            <img
+              src={course.image_url}
               alt={course.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-center"
             />
           </div>
         )}
