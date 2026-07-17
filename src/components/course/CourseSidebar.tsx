@@ -112,7 +112,7 @@ export default function CourseSidebar({
           <DropdownMenuTrigger asChild>
             <button className="w-full flex items-start justify-between gap-2 text-left group">
               <div className="min-w-0">
-                <div className="text-xs text-muted-foreground">Session {(currentSession?.session_order ?? 0) + 1}</div>
+                <div className="text-xs text-muted-foreground">Session {currentSession?.session_order ?? ""}</div>
                 <div className="font-semibold text-sm leading-snug line-clamp-2">{currentSession?.title}</div>
               </div>
               <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 mt-1 group-hover:text-foreground" />
@@ -121,7 +121,7 @@ export default function CourseSidebar({
           <DropdownMenuContent align="start" className="w-72">
             {sessions.map((s) => (
               <DropdownMenuItem key={s.id} onSelect={() => onSelectSession(s.id)}>
-                <span className="text-xs text-muted-foreground mr-2">S{s.session_order + 1}</span>
+                <span className="text-xs text-muted-foreground mr-2">S{s.session_order}</span>
                 <span className="truncate">{s.title}</span>
               </DropdownMenuItem>
             ))}
@@ -224,7 +224,7 @@ export default function CourseSidebar({
       {/* Footer: current session progress */}
       <div className="p-4 border-t space-y-1">
         <div className="flex items-center justify-between text-xs gap-2">
-          <span className="font-medium truncate">Session {(currentSession?.session_order ?? -1) + 1}</span>
+          <span className="font-medium truncate">Session {currentSession?.session_order ?? ""}</span>
           <span className="text-muted-foreground shrink-0">
             {sessionTotal > 0 ? `${sessionCompleted} of ${sessionTotal} · ${sessionPct}%` : `${sessionPct}%`}
           </span>
