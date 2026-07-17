@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     const quizzesBySession: Record<string, any[]> = {};
     const preReadingsBySession: Record<string, any[]> = {};
     const miniProjectsBySession: Record<string, any[]> = {};
-    if (sessionIds.length > 0 && isEnrolled) {
+    if (sessionIds.length > 0) {
       const { data: sq } = await supabaseAdmin
         .from("session_quizzes")
         .select("session_id, display_order, quiz:quizzes ( id, title )")
@@ -118,7 +118,10 @@ Deno.serve(async (req) => {
         .order("display_order", { ascending: true });
       for (const r of prs ?? []) {
         (preReadingsBySession[r.session_id] ||= []).push({
-          id: r.id, title: r.title, link: r.link, display_order: r.display_order,
+          id: r.id,
+          title: r.title,
+          link: isEnrolled ? r.link : null,
+          display_order: r.display_order,
         });
       }
 
@@ -129,10 +132,14 @@ Deno.serve(async (req) => {
         .order("display_order", { ascending: true });
       for (const r of mps ?? []) {
         (miniProjectsBySession[r.session_id] ||= []).push({
-          id: r.id, title: r.title, description: r.description, display_order: r.display_order,
+          id: r.id,
+          title: r.title,
+          description: isEnrolled ? r.description : null,
+          display_order: r.display_order,
         });
       }
     }
+
 
     const payload = {
       course: { id: course.id, slug: course.slug, title: course.name },
