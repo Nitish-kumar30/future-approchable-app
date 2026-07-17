@@ -178,6 +178,30 @@ export default function CourseSidebar({
               />
             ),
         )}
+        {prs.map((p) => (
+          <SidebarRow
+            key={p.id}
+            active={false}
+            onClick={() => {
+              if (p.link) window.open(p.link, "_blank", "noopener,noreferrer");
+            }}
+            icon={<BookOpen className="h-4 w-4" />}
+            title={p.title}
+            subtitle="Pre-reading"
+            badge={p.link ? undefined : undefined}
+          />
+        ))}
+        {mps.map((m) => (
+          <SidebarRow
+            key={m.id}
+            active={selected?.kind === "mini_project" && selected.id === m.id}
+            onClick={() => onOpenMiniProject?.(m.id)}
+            icon={<FolderKanban className="h-4 w-4" />}
+            title={m.title}
+            subtitle="Mini-project"
+          />
+        ))}
+
 
         {nextSession && (
           <div className="mt-4 mx-3 mb-2">
