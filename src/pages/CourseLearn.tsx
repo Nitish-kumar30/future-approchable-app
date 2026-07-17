@@ -314,17 +314,21 @@ export default function CourseLearn() {
           sessions={sessions}
           chapters={chapters}
           quizzes={sessionQuizzes}
+          preReadings={preReadings}
+          miniProjects={miniProjects}
           currentSessionId={currentSessionId ?? currentSession?.id ?? null}
           chapterProgress={chapterProgress}
           quizSubmissions={quizSubmissions}
           selected={selected}
           onSelect={(sel) => {
             setSelected(sel);
-            const sid = sel.kind === 'chapter'
-              ? chapters.find((c) => c.id === sel.id)?.session_id
-              : sel.id;
+            let sid: string | undefined;
+            if (sel.kind === 'chapter') sid = chapters.find((c) => c.id === sel.id)?.session_id;
+            else if (sel.kind === 'mini_project') sid = miniProjects.find((m) => m.id === sel.id)?.session_id;
+            else sid = sel.id;
             if (sid) setCurrentSessionId(sid);
           }}
+
           onSelectSession={(sid) => {
             setCurrentSessionId(sid);
             const firstCh = chapters
