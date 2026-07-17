@@ -177,7 +177,7 @@ export default function CourseSidebar({
       {/* Footer: current session progress */}
       <div className="p-4 border-t space-y-1">
         <div className="flex items-center justify-between text-xs gap-2">
-          <span className="font-medium truncate">Session {currentSession?.session_order + 1 ?? 0}</span>
+          <span className="font-medium truncate">Session {(currentSession?.session_order ?? -1) + 1}</span>
           <span className="text-muted-foreground shrink-0">
             {sessionTotal > 0 ? `${sessionCompleted} of ${sessionTotal} · ${sessionPct}%` : `${sessionPct}%`}
           </span>
