@@ -345,6 +345,12 @@ export default function CourseLearn() {
             if (sq) setCurrentSessionId(sq.session_id);
             setSelected({ kind: 'quiz', id: quizId });
           }}
+          onOpenMiniProject={(id) => {
+            const mp = miniProjects.find((m) => m.id === id);
+            if (mp) setCurrentSessionId(mp.session_id);
+            setSelected({ kind: 'mini_project', id });
+          }}
+
 
           sessionProgress={sessionProgress}
           nextSession={nextSession}
