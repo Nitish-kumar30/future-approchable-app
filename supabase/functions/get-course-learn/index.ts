@@ -185,6 +185,8 @@ Deno.serve(async (req) => {
       sessions: safeSessions,
       chapters: safeChapters,
       session_quizzes: sessionQuizzes ?? [],
+      pre_readings: preReadings,
+      mini_projects: miniProjects,
       chapter_progress: chapterProgress,
       session_progress: sessionProgress,
       quiz_submissions: quizSubmissions,
@@ -192,6 +194,7 @@ Deno.serve(async (req) => {
       rating_avg: Math.round(ratingAvg * 10) / 10,
       rating_count: ratingCount,
     });
+
   } catch (err) {
     console.error(err);
     return json({ error: "Internal server error" }, 500);
