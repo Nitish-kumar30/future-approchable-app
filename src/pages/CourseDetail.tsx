@@ -82,6 +82,7 @@ export default function CourseDetail() {
   const [completedChapterIds, setCompletedChapterIds] = useState<Set<string>>(new Set());
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [hasPaid, setHasPaid] = useState(false);
+  const heroRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [curriculumSessions, setCurriculumSessions] = useState<CurriculumSession[]>([]);
