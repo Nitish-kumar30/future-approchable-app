@@ -558,6 +558,17 @@ export default function CourseDetail() {
 
         </div>
       </div>
+      {course && isPaidCourse(course) && !isAdmin && !isEnrolled && !course.enrollment_disabled && (
+        <StickyPayBar
+          courseId={course.id}
+          courseName={course.name}
+          priceInrPaise={course.price_inr_paise}
+          priceUsdCents={course.price_usd_cents}
+          hasPaid={hasPaid}
+          heroRef={heroRef}
+          onPaid={handlePaymentSuccess}
+        />
+      )}
     </MainLayout>
   );
 }
