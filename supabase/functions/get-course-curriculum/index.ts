@@ -94,6 +94,8 @@ Deno.serve(async (req) => {
     }
 
     const quizzesBySession: Record<string, any[]> = {};
+    const preReadingsBySession: Record<string, any[]> = {};
+    const miniProjectsBySession: Record<string, any[]> = {};
     if (sessionIds.length > 0 && isEnrolled) {
       const { data: sq } = await supabaseAdmin
         .from("session_quizzes")
@@ -108,6 +110,28 @@ Deno.serve(async (req) => {
           });
         }
       }
+
+      const { data: prs } = await supabaseAdmin
+        .from("pre_reading_materials")
+        .select("id, session_id, title, link, display_order")
+        .in("session_id", sessionIds)
+        .order("display_order", { ascending: true });
+      for (const r of prs ?? []) {
+        (preReadingsBySession[r.session_id] ||= []).push({
+          id: r.id, title: r.title, link: r.link, display_order: r.display_order,
+        });
+      }
+
+      const { data: mps } = await supabaseAdmin
+        .from("mini_projects")
+        .select("id, session_id, title, description, display_order")
+        .in("session_id", sessionIds)
+        .order("display_order", { ascending: true });
+      for (const r of mps ?? []) {
+        (miniProjectsBySession[r.session_id] ||= []).push({
+          id: r.id, title: r.title, description: r.description, display_order: r.display_order,
+        });
+      }
     }
 
     const payload = {
@@ -119,8 +143,11 @@ Deno.serve(async (req) => {
         session_order: s.session_order,
         chapters: chaptersBySession[s.id] ?? [],
         quizzes: quizzesBySession[s.id] ?? [],
+        pre_readings: preReadingsBySession[s.id] ?? [],
+        mini_projects: miniProjectsBySession[s.id] ?? [],
       })),
     };
+
 
     return new Response(JSON.stringify(payload), {
       status: 200,
