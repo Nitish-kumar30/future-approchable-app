@@ -411,7 +411,7 @@ export default function CourseDetail() {
 
         {/* Course Image */}
         {course.image_url && (
-          <div className="relative w-full aspect-[5/2] md:aspect-[8/3] rounded-xl overflow-hidden bg-muted">
+          <div ref={heroRef} className="relative w-full aspect-[5/2] md:aspect-[8/3] rounded-xl overflow-hidden bg-muted">
             <img
               src={course.image_url}
               alt={course.name}
