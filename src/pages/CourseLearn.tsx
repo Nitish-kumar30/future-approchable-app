@@ -17,6 +17,9 @@ interface Course { id: string; slug: string; name: string; description: string |
 interface Session { id: string; title: string; description: string | null; session_order: number; video_url: string | null; is_content_unlocked: boolean; }
 interface Chapter { id: string; session_id: string; title: string; description: string | null; hls_url: string | null; chapter_order: number; is_preview: boolean; can_watch: boolean; duration_seconds: number | null; }
 interface SessionQuiz { session_id: string; display_order: number; quiz: { id: string; title: string } | null; }
+interface PreReading { id: string; session_id: string; title: string; link: string | null; display_order: number; }
+interface MiniProject { id: string; session_id: string; title: string; description: string | null; display_order: number; }
+
 
 async function invokeFn(name: string, opts: { body?: any; method?: string; query?: Record<string, string> } = {}) {
   const { data: { session } } = await supabase.auth.getSession();
