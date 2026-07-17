@@ -121,7 +121,7 @@ export default function CourseSidebar({
           <DropdownMenuContent align="start" className="w-72">
             {sessions.map((s) => (
               <DropdownMenuItem key={s.id} onSelect={() => onSelectSession(s.id)}>
-                <span className="text-xs text-muted-foreground mr-2">S{s.session_order + 1}</span>
+                <span className="text-xs text-muted-foreground mr-2">S{s.session_order}</span>
                 <span className="truncate">{s.title}</span>
               </DropdownMenuItem>
             ))}
