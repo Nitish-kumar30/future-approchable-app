@@ -165,7 +165,7 @@ export default function CourseSidebar({
               <div className="flex-1 min-w-0">
                 <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Next</div>
                 <div className="text-sm font-medium leading-snug line-clamp-2">
-                  Session {nextSession.session_order + 1}: {nextSession.title}
+                  Session {nextSession.session_order}: {nextSession.title}
                 </div>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />

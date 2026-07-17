@@ -71,7 +71,7 @@ export default function CourseContentAccordion({ slug, isEnrolled, sessions }: P
                 <Plus className="h-4 w-4 shrink-0 text-primary group-data-[state=open]/trigger:hidden" />
                 <Minus className="hidden h-4 w-4 shrink-0 text-primary group-data-[state=open]/trigger:block" />
                 <span className="text-base font-semibold text-foreground">
-                  Session {s.session_order + 1}: {s.title}
+                  Session {s.session_order}: {s.title}
                 </span>
               </span>
             </AccordionTrigger>
