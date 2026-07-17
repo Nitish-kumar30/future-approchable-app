@@ -1,40 +1,33 @@
+## Problem
+Admins attach **pre-reading materials** and **mini-projects** to sessions, but only quizzes surface in:
+- Course detail syllabus (`CourseContentAccordion`)
+- Learn workspace sidebar (`CourseSidebar` / `CourseLearn`)
 
-## Plan: Floating sticky Pay bar on CourseDetail
+The edge functions powering these views never fetch those rows.
 
-A fixed bar at the bottom of the viewport that appears once the user scrolls past the hero banner, shows the course name + price, and includes the existing Pay CTA. Hides again when the user reaches the footer so it doesn't overlap it.
+## Plan
 
-### Behavior
-- Visible only on `/courses/:slug` (CourseDetail).
-- Only rendered when the course is paid (`isPaidCourse(course)` true) AND the user hasn't already paid/enrolled.
-- Appears when the hero banner scrolls out of view (IntersectionObserver on the hero element).
-- Hides when the footer enters view (IntersectionObserver on footer sentinel) so it never overlaps the footer.
-- On mobile and desktop: same fixed bar, full width, safe-area padding.
-- Not shown for admins previewing, if `enrollment_disabled`, or for free courses.
+### 1. Edge function `get-course-curriculum`
+For enrolled users, also fetch `pre_reading_materials` (id, title, link, display_order) and `mini_projects` (id, title, description, display_order) for the session IDs. Add both arrays per session in the payload.
 
-### UI
-```
-┌──────────────────────────────────────────────────────────────┐
-│  AI Mastery for Working Professionals   ₹XX,XXX   [ Pay ▸ ]  │
-└──────────────────────────────────────────────────────────────┘
-```
-- Left: course name (truncated on small screens).
-- Middle/right: price label (INR default, USD if only USD is set).
-- Right: reuses existing `<PaymentButton>` (small size) → opens Razorpay just like the in-page button.
-- Subtle top border + backdrop blur, `z-40` so it sits above content but below dialogs.
+### 2. Edge function `get-course-learn`
+Same additions, so the learn workspace has the data.
 
-### Files
-- **New** `src/components/course/StickyPayBar.tsx` — presentational component. Props: `course`, `hasPaid`, `heroRef`, `onPaid`.
-- **Edit** `src/pages/CourseDetail.tsx`:
-  - Add a `ref` on the existing hero banner `div`.
-  - Render `<StickyPayBar …/>` at the bottom of the page (inside `MainLayout`, outside the main content flow).
-  - No changes to About / Content / Mentor sections.
+### 3. `CourseContentAccordion` (course detail page)
+Under each session, after quizzes, render (enrolled users only, matching quiz visibility):
+- **Pre-reading** rows — book icon + title; click opens `link` in a new tab (`target="_blank" rel="noopener noreferrer"`).
+- **Mini-project** rows — clipboard icon + title; click opens an inline dialog rendering the markdown description.
 
-### Not touched
-- `PaymentButton`, `create-razorpay-order`, `verify-razorpay-payment`, edge functions, DB — none of it changes.
+### 4. `CourseSidebar` + `CourseLearn` (learn workspace)
+Add the same two item groups under quizzes for each session:
+- **Pre-reading** → opens `link` in a new tab (no sidebar selection state changes).
+- **Mini-project** → sets `selected = { kind: 'mini_project', id }`; the right panel renders the title + markdown description block (no video, no chapter progress calls).
 
-### Tech notes (for reference)
-- Visibility toggled with a single `useEffect` + `IntersectionObserver` on the hero ref: bar is `visible` when hero's `intersectionRatio === 0`.
-- Add `pb-20 lg:pb-24` on the main container only when bar is visible, so the last content isn't hidden behind the bar.
-- Small entry animation: `translate-y-full → translate-y-0` with `transition-transform`.
+Empty groups render nothing. No DB changes.
 
-Ready to implement?
+### Files touched
+- `supabase/functions/get-course-curriculum/index.ts`
+- `supabase/functions/get-course-learn/index.ts`
+- `src/components/course/CourseContentAccordion.tsx`
+- `src/components/course/CourseSidebar.tsx`
+- `src/pages/CourseLearn.tsx`

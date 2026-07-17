@@ -106,6 +106,27 @@ Deno.serve(async (req) => {
           .order("display_order", { ascending: true })
       : { data: [] as any[] };
 
+    // Pre-reading materials + mini-projects (privileged users only)
+    let preReadings: any[] = [];
+    let miniProjects: any[] = [];
+    if (sessionIds.length && canAccessPrivileged) {
+      const [{ data: prs }, { data: mps }] = await Promise.all([
+        admin
+          .from("pre_reading_materials")
+          .select("id, session_id, title, link, display_order")
+          .in("session_id", sessionIds)
+          .order("display_order", { ascending: true }),
+        admin
+          .from("mini_projects")
+          .select("id, session_id, title, description, display_order")
+          .in("session_id", sessionIds)
+          .order("display_order", { ascending: true }),
+      ]);
+      preReadings = prs ?? [];
+      miniProjects = mps ?? [];
+    }
+
+
     // User progress
     let chapterProgress: any[] = [];
     let sessionProgress: any[] = [];
@@ -164,6 +185,8 @@ Deno.serve(async (req) => {
       sessions: safeSessions,
       chapters: safeChapters,
       session_quizzes: sessionQuizzes ?? [],
+      pre_readings: preReadings,
+      mini_projects: miniProjects,
       chapter_progress: chapterProgress,
       session_progress: sessionProgress,
       quiz_submissions: quizSubmissions,
@@ -171,6 +194,7 @@ Deno.serve(async (req) => {
       rating_avg: Math.round(ratingAvg * 10) / 10,
       rating_count: ratingCount,
     });
+
   } catch (err) {
     console.error(err);
     return json({ error: "Internal server error" }, 500);

@@ -17,6 +17,9 @@ interface Course { id: string; slug: string; name: string; description: string |
 interface Session { id: string; title: string; description: string | null; session_order: number; video_url: string | null; is_content_unlocked: boolean; }
 interface Chapter { id: string; session_id: string; title: string; description: string | null; hls_url: string | null; chapter_order: number; is_preview: boolean; can_watch: boolean; duration_seconds: number | null; }
 interface SessionQuiz { session_id: string; display_order: number; quiz: { id: string; title: string } | null; }
+interface PreReading { id: string; session_id: string; title: string; link: string | null; display_order: number; }
+interface MiniProject { id: string; session_id: string; title: string; description: string | null; display_order: number; }
+
 
 async function invokeFn(name: string, opts: { body?: any; method?: string; query?: Record<string, string> } = {}) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -48,10 +51,13 @@ export default function CourseLearn() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [sessionQuizzes, setSessionQuizzes] = useState<SessionQuiz[]>([]);
+  const [preReadings, setPreReadings] = useState<PreReading[]>([]);
+  const [miniProjects, setMiniProjects] = useState<MiniProject[]>([]);
   const [chapterProgress, setChapterProgress] = useState<Record<string, { is_completed: boolean; watched_seconds: number }>>({});
   const [sessionProgress, setSessionProgress] = useState<Record<string, boolean>>({});
   const [quizSubmissions, setQuizSubmissions] = useState<Record<string, number | null>>({});
-  const [selected, setSelected] = useState<{ kind: 'chapter' | 'session' | 'quiz'; id: string } | null>(null);
+  const [selected, setSelected] = useState<{ kind: 'chapter' | 'session' | 'quiz' | 'mini_project'; id: string } | null>(null);
+
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [myRating, setMyRating] = useState<number>(0);
   const [myComment, setMyComment] = useState<string>('');
@@ -71,6 +77,9 @@ export default function CourseLearn() {
     setSessions(data.sessions ?? []);
     setChapters(data.chapters ?? []);
     setSessionQuizzes(data.session_quizzes ?? []);
+    setPreReadings(data.pre_readings ?? []);
+    setMiniProjects(data.mini_projects ?? []);
+
     setChapterProgress(Object.fromEntries((data.chapter_progress ?? []).map((p: any) => [p.chapter_id, p])));
     setSessionProgress(Object.fromEntries((data.session_progress ?? []).map((p: any) => [p.session_id, p.is_completed])));
     setQuizSubmissions(Object.fromEntries((data.quiz_submissions ?? []).map((q: any) => [q.quiz_id, q.score])));
@@ -305,17 +314,21 @@ export default function CourseLearn() {
           sessions={sessions}
           chapters={chapters}
           quizzes={sessionQuizzes}
+          preReadings={preReadings}
+          miniProjects={miniProjects}
           currentSessionId={currentSessionId ?? currentSession?.id ?? null}
           chapterProgress={chapterProgress}
           quizSubmissions={quizSubmissions}
           selected={selected}
           onSelect={(sel) => {
             setSelected(sel);
-            const sid = sel.kind === 'chapter'
-              ? chapters.find((c) => c.id === sel.id)?.session_id
-              : sel.id;
+            let sid: string | undefined;
+            if (sel.kind === 'chapter') sid = chapters.find((c) => c.id === sel.id)?.session_id;
+            else if (sel.kind === 'mini_project') sid = miniProjects.find((m) => m.id === sel.id)?.session_id;
+            else sid = sel.id;
             if (sid) setCurrentSessionId(sid);
           }}
+
           onSelectSession={(sid) => {
             setCurrentSessionId(sid);
             const firstCh = chapters
@@ -332,6 +345,12 @@ export default function CourseLearn() {
             if (sq) setCurrentSessionId(sq.session_id);
             setSelected({ kind: 'quiz', id: quizId });
           }}
+          onOpenMiniProject={(id) => {
+            const mp = miniProjects.find((m) => m.id === id);
+            if (mp) setCurrentSessionId(mp.session_id);
+            setSelected({ kind: 'mini_project', id });
+          }}
+
 
           sessionProgress={sessionProgress}
           nextSession={nextSession}
@@ -355,7 +374,26 @@ export default function CourseLearn() {
                     />
                   );
                 })()
+              ) : selected?.kind === 'mini_project' ? (
+                (() => {
+                  const mp = miniProjects.find((m) => m.id === selected.id);
+                  if (!mp) return null;
+                  return (
+                    <div className="space-y-3">
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground">Mini-project</div>
+                      <h1 className="text-xl font-semibold">{mp.title}</h1>
+                      {mp.description ? (
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{mp.description}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No description provided.</p>
+                      )}
+                    </div>
+                  );
+                })()
               ) : (
+
                 <>
                   <div
                     ref={playerWrapperRef}
