@@ -30,21 +30,38 @@ export interface CS_Quiz {
   display_order: number;
 }
 
+export interface CS_PreReading {
+  id: string;
+  session_id: string;
+  title: string;
+  link: string | null;
+}
+export interface CS_MiniProject {
+  id: string;
+  session_id: string;
+  title: string;
+  description: string | null;
+}
+
 interface Props {
   sessions: CS_Session[];
   chapters: CS_Chapter[];
   quizzes: CS_Quiz[];
+  preReadings?: CS_PreReading[];
+  miniProjects?: CS_MiniProject[];
   currentSessionId: string | null;
   chapterProgress: Record<string, { is_completed: boolean }>;
   quizSubmissions: Record<string, number | null>;
-  selected: { kind: "chapter" | "session" | "quiz"; id: string } | null;
-  onSelect: (s: { kind: "chapter" | "session" | "quiz"; id: string }) => void;
+  selected: { kind: "chapter" | "session" | "quiz" | "mini_project"; id: string } | null;
+  onSelect: (s: { kind: "chapter" | "session" | "quiz" | "mini_project"; id: string }) => void;
 
   onSelectSession: (sessionId: string) => void;
   onOpenQuiz: (quizId: string) => void;
+  onOpenMiniProject?: (miniProjectId: string) => void;
   sessionProgress: Record<string, boolean>;
   nextSession?: CS_Session | null;
 }
+
 
 function formatDuration(sec: number | null | undefined): string {
   if (!sec || sec <= 0) return "Video";
