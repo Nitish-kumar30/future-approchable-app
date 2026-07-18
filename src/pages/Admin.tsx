@@ -683,6 +683,27 @@ export default function Admin() {
     return null;
   };
 
+  const handleDuplicateQuiz = async (id: string) => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/duplicate-quiz`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ quiz_id: id }),
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload?.error || 'Failed to duplicate quiz');
+      toast({ title: 'Quiz duplicated', description: payload.quiz?.title });
+      fetchQuizzes();
+    } catch (err) {
+      toast({ title: 'Error duplicating quiz', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
+    }
+  };
+
   const handleDeleteQuiz = async (id: string) => {
     const { error } = await supabase.from('quizzes').delete().eq('id', id);
     if (error) {
