@@ -683,6 +683,27 @@ export default function Admin() {
     return null;
   };
 
+  const handleDuplicateQuiz = async (id: string) => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/duplicate-quiz`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ quiz_id: id }),
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload?.error || 'Failed to duplicate quiz');
+      toast({ title: 'Quiz duplicated', description: payload.quiz?.title });
+      fetchQuizzes();
+    } catch (err) {
+      toast({ title: 'Error duplicating quiz', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
+    }
+  };
+
   const handleDeleteQuiz = async (id: string) => {
     const { error } = await supabase.from('quizzes').delete().eq('id', id);
     if (error) {
@@ -1525,6 +1546,9 @@ export default function Admin() {
                           <TableCell className="text-right space-x-2">
                             <Button variant="ghost" size="sm" onClick={() => { setEditingQuiz(quiz); setQuizFormOpen(true); }}>
                               <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" title="Duplicate" onClick={() => handleDuplicateQuiz(quiz.id)}>
+                              <Copy className="h-4 w-4" />
                             </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
