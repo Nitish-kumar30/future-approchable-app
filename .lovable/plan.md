@@ -1,24 +1,27 @@
-## Why it happens today
+## Goal
+Add a "Duplicate" action for quizzes in the Admin → Quizzes tab so admins can clone a quiz's definition (title + questions) without copying any submissions/responses.
 
-Two gates hide those rows from unenrolled visitors:
+## Scope
+- Only clones the row in `quizzes` (title, questions JSON).
+- Does NOT copy `quiz_submissions`.
+- Does NOT copy `session_quizzes` mappings — the duplicate starts unattached, so admins can assign it to sessions as needed.
+- New quiz title = `"<original title> (Copy)"`.
 
-1. `supabase/functions/get-course-curriculum/index.ts` only fetches `session_quizzes`, `pre_reading_materials`, and `mini_projects` when `isEnrolled === true`. For everyone else the arrays come back empty.
-2. `src/components/course/CourseContentAccordion.tsx` wraps the quiz / pre-reading / mini-project `<li>` rows in `isEnrolled && …`, so even if data were present they wouldn't render.
+## UX
+- In `src/pages/Admin.tsx` Quizzes list, add a "Duplicate" button next to Edit/Delete on each quiz row.
+- On click → confirm → call edge function → toast success → refresh list.
+- The duplicated quiz appears in the list, ready to edit or attach to sessions.
 
-Chapters slip through because they're always fetched, and each row renders regardless of enrollment (with a `Lock` icon when `is_preview` is false).
+## Backend (per project rule: DB writes go through edge functions)
+New edge function `supabase/functions/duplicate-quiz/index.ts`:
+- Auth: verify caller JWT, require `admin` role via `user_roles`.
+- Input: `{ quiz_id: string }` (validated).
+- Reads original quiz via service role, inserts a new row with the same `questions` and title suffixed `(Copy)`.
+- Returns the new `{ id, title }`.
 
-## Plan — show them as locked rows for unenrolled users
-
-Match the chapter pattern: everyone sees the item exists, only enrolled users can open it.
-
-1. **Edge function `get-course-curriculum`**
-   - Remove the `isEnrolled` guard around the three fetches.
-   - When `!isEnrolled`, return only the **title** (and `id`, `display_order`) for pre-readings and mini-projects — strip `link` and `description` server-side. Quizzes already expose only `id` + `title`.
-   - Enrolled users still get `link` and `description` as before.
-
-2. **`CourseContentAccordion.tsx`**
-   - Drop the `isEnrolled &&` wrapper on the three row groups.
-   - Unenrolled: render each row like a locked chapter — small lock icon, muted text, no click handler, no external-link icon, no dialog.
-   - Enrolled: keep today's behavior (clickable, opens quiz/mini-project dialog, opens pre-reading link in a new tab).
-
-Result: unenrolled visitors see the full syllabus outline (chapters, quizzes, pre-readings, mini-projects) with locks; no URLs or project descriptions leak. No DB, RLS, or Learn-workspace changes needed.
+## Technical Details
+- Files:
+  - New: `supabase/functions/duplicate-quiz/index.ts`
+  - Edit: `src/pages/Admin.tsx` (add button + handler in the Quizzes tab)
+- No schema/migration changes; no new tables; existing `quizzes` grants and RLS remain unchanged.
+- Session mappings and prior submissions are intentionally untouched.
