@@ -1526,6 +1526,9 @@ export default function Admin() {
                             <Button variant="ghost" size="sm" onClick={() => { setEditingQuiz(quiz); setQuizFormOpen(true); }}>
                               <Pencil className="h-4 w-4" />
                             </Button>
+                            <Button variant="ghost" size="sm" title="Duplicate" onClick={() => handleDuplicateQuiz(quiz.id)}>
+                              <Copy className="h-4 w-4" />
+                            </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="sm"><Trash2 className="h-4 w-4 text-destructive" /></Button>
