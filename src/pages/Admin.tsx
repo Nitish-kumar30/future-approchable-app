@@ -1,25 +1,61 @@
-import { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import MainLayout from '@/components/layout/MainLayout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Users, BookOpen, GraduationCap, ClipboardList, Plus, Pencil, Trash2, Loader2, Copy, Filter, Trophy, MessageSquare, Star, FileText, UserMinus, Download, CreditCard } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
- import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CohortForm } from '@/components/admin/CohortForm';
-import { CourseForm } from '@/components/admin/CourseForm';
-import { SessionForm } from '@/components/admin/SessionForm';
-import { ChapterManager } from '@/components/admin/ChapterManager';
-import { QuizForm } from '@/components/admin/QuizForm';
+import { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import MainLayout from "@/components/layout/MainLayout";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Users,
+  BookOpen,
+  GraduationCap,
+  ClipboardList,
+  Plus,
+  Pencil,
+  Trash2,
+  Loader2,
+  Copy,
+  Filter,
+  Trophy,
+  MessageSquare,
+  Star,
+  FileText,
+  UserMinus,
+  Download,
+  CreditCard,
+} from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CohortForm } from "@/components/admin/CohortForm";
+import { CourseForm } from "@/components/admin/CourseForm";
+import { SessionForm } from "@/components/admin/SessionForm";
+import { ChapterManager } from "@/components/admin/ChapterManager";
+import { QuizForm } from "@/components/admin/QuizForm";
 
 interface Cohort {
   id: string;
@@ -83,7 +119,7 @@ interface MiniProject {
 
 interface Question {
   id: string;
-  type?: 'mcq' | 'mcq_ungraded' | 'subjective';
+  type?: "mcq" | "mcq_ungraded" | "subjective";
   question: string;
   options: string[];
   correctAnswer: number;
@@ -99,37 +135,37 @@ interface SessionQuiz {
   quiz_id: string;
 }
 
- interface EnrollmentWithUser {
-   id: string;
-   user_id: string;
-   cohort_id: string | null;
-   course_id: string | null;
-   enrolled_at: string;
-   user_email: string;
-   user_name: string | null;
- }
+interface EnrollmentWithUser {
+  id: string;
+  user_id: string;
+  cohort_id: string | null;
+  course_id: string | null;
+  enrolled_at: string;
+  user_email: string;
+  user_name: string | null;
+}
 
- interface LeaderboardEntry {
-   user_id: string;
-   user_name: string | null;
-   user_email: string;
-   avg_quiz_score: number;
-   quizzes_attempted: number;
-   sessions_completed: number;
-   total_sessions: number;
-   completion_percentage: number;
- }
- interface FeedbackEntry {
-   id: string;
-   user_id: string;
-   course_id: string | null;
-   cohort_id: string | null;
-   rating: number;
-   comment: string | null;
-   created_at: string;
-   user_name: string | null;
-   user_email: string | null;
- }
+interface LeaderboardEntry {
+  user_id: string;
+  user_name: string | null;
+  user_email: string;
+  avg_quiz_score: number;
+  quizzes_attempted: number;
+  sessions_completed: number;
+  total_sessions: number;
+  completion_percentage: number;
+}
+interface FeedbackEntry {
+  id: string;
+  user_id: string;
+  course_id: string | null;
+  cohort_id: string | null;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  user_name: string | null;
+  user_email: string | null;
+}
 
 export default function Admin() {
   const { isAdmin, isLoading: authLoading } = useAuth();
@@ -157,116 +193,126 @@ export default function Admin() {
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
 
   // Session filter state
-  const [sessionFilter, setSessionFilter] = useState<string>('all');
+  const [sessionFilter, setSessionFilter] = useState<string>("all");
 
   // Course filter state
-  const [courseFilter, setCourseFilter] = useState<string>('all');
- 
-   // Enrollment state
-   const [enrollments, setEnrollments] = useState<EnrollmentWithUser[]>([]);
-   const [enrollmentFilter, setEnrollmentFilter] = useState<string>('');
-   const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
+  const [courseFilter, setCourseFilter] = useState<string>("all");
 
-   // Leaderboard state
-   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-   const [leaderboardFilter, setLeaderboardFilter] = useState<string>('');
-   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  // Enrollment state
+  const [enrollments, setEnrollments] = useState<EnrollmentWithUser[]>([]);
+  const [enrollmentFilter, setEnrollmentFilter] = useState<string>("");
+  const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
 
-   // Feedback state
-   const [feedbackEntries, setFeedbackEntries] = useState<FeedbackEntry[]>([]);
-   const [feedbackFilter, setFeedbackFilter] = useState<string>('');
-   const [feedbackLoading, setFeedbackLoading] = useState(false);
+  // Leaderboard state
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardFilter, setLeaderboardFilter] = useState<string>("");
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
-   // Prompts state
-    const [prompts, setPrompts] = useState<{ id: string; title: string; content: string; display_order: number }[]>([]);
-    const [promptTitle, setPromptTitle] = useState('');
-    const [promptContent, setPromptContent] = useState('');
-    const [promptsLoading, setPromptsLoading] = useState(false);
-    const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
-    const [editPromptTitle, setEditPromptTitle] = useState('');
-    const [editPromptContent, setEditPromptContent] = useState('');
+  // Feedback state
+  const [feedbackEntries, setFeedbackEntries] = useState<FeedbackEntry[]>([]);
+  const [feedbackFilter, setFeedbackFilter] = useState<string>("");
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
 
-    // Unenrolled users state
-    const [unenrolledUsers, setUnenrolledUsers] = useState<{ id: string; name: string; email: string; whatsapp_number: string; cohort: string; status: string; created_at: string }[]>([]);
-    const [unenrolledLoading, setUnenrolledLoading] = useState(false);
-    const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
+  // Prompts state
+  const [prompts, setPrompts] = useState<{ id: string; title: string; content: string; display_order: number }[]>([]);
+  const [promptTitle, setPromptTitle] = useState("");
+  const [promptContent, setPromptContent] = useState("");
+  const [promptsLoading, setPromptsLoading] = useState(false);
+  const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
+  const [editPromptTitle, setEditPromptTitle] = useState("");
+  const [editPromptContent, setEditPromptContent] = useState("");
 
-    // Registrations state
-    interface Registration {
+  // Unenrolled users state
+  const [unenrolledUsers, setUnenrolledUsers] = useState<
+    {
       id: string;
       name: string;
       email: string;
       whatsapp_number: string;
-      country: string | null;
-      state: string | null;
       cohort: string;
-      company: string;
-      role: string;
-      interests: string[];
-      other_interest: string | null;
-      reason: string;
-      additional_info: string | null;
-      capstone_office_hours: boolean;
       status: string;
       created_at: string;
-    }
-    const [registrations, setRegistrations] = useState<Registration[]>([]);
-    const [registrationCohorts, setRegistrationCohorts] = useState<string[]>([]);
-    const [registrationCohortFilter, setRegistrationCohortFilter] = useState('all');
-    const [registrationsLoading, setRegistrationsLoading] = useState(false);
-    const [expandedRegistration, setExpandedRegistration] = useState<string | null>(null);
+    }[]
+  >([]);
+  const [unenrolledLoading, setUnenrolledLoading] = useState(false);
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
 
-    interface PaymentRecord {
-      id: string;
-      user_id: string;
-      user_email: string;
-      user_name: string | null;
-      course_id: string;
-      course_name: string;
-      course_slug: string | null;
-      razorpay_order_id: string;
-      razorpay_payment_id: string | null;
-      amount: number;
-      currency: string;
-      status: string;
-      created_at: string;
-      updated_at: string;
-    }
-    const [payments, setPayments] = useState<PaymentRecord[]>([]);
-    const [paymentsLoading, setPaymentsLoading] = useState(false);
+  // Registrations state
+  interface Registration {
+    id: string;
+    name: string;
+    email: string;
+    whatsapp_number: string;
+    country: string | null;
+    state: string | null;
+    cohort: string;
+    company: string;
+    role: string;
+    interests: string[];
+    other_interest: string | null;
+    reason: string;
+    additional_info: string | null;
+    capstone_office_hours: boolean;
+    status: string;
+    created_at: string;
+  }
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [registrationCohorts, setRegistrationCohorts] = useState<string[]>([]);
+  const [registrationCohortFilter, setRegistrationCohortFilter] = useState("all");
+  const [registrationsLoading, setRegistrationsLoading] = useState(false);
+  const [expandedRegistration, setExpandedRegistration] = useState<string | null>(null);
 
-    // Quiz Responses state
-    interface ResponseQuestion {
-      id: string;
-      type?: 'mcq' | 'mcq_ungraded' | 'subjective';
-      question: string;
-      options?: string[];
-      correctAnswer?: number;
-    }
-    interface ResponsesEnrolled {
-      user_id: string;
-      name: string | null;
-      email: string;
-    }
-    interface ResponsesQuizBlock {
-      id: string;
-      title: string;
-      questions: ResponseQuestion[];
-      submissions: Array<{ user_id: string; submitted_at: string; answers: Record<string, number | string> }>;
-    }
-    interface ResponsesSessionBlock {
-      id: string;
-      title: string;
-      session_order: number | null;
-      quizzes: ResponsesQuizBlock[];
-    }
-    interface ResponsesData {
-      enrolled: ResponsesEnrolled[];
-      sessions: ResponsesSessionBlock[];
-    }
-    const [responsesCohortFilter, setResponsesCohortFilter] = useState<string>('');
-    const [responsesData, setResponsesData] = useState<ResponsesData | null>(null);
-    const [responsesLoading, setResponsesLoading] = useState(false);
+  interface PaymentRecord {
+    id: string;
+    user_id: string;
+    user_email: string;
+    user_name: string | null;
+    course_id: string;
+    course_name: string;
+    course_slug: string | null;
+    razorpay_order_id: string;
+    razorpay_payment_id: string | null;
+    amount: number;
+    currency: string;
+    status: string;
+    created_at: string;
+    updated_at: string;
+  }
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+
+  // Quiz Responses state
+  interface ResponseQuestion {
+    id: string;
+    type?: "mcq" | "mcq_ungraded" | "subjective";
+    question: string;
+    options?: string[];
+    correctAnswer?: number;
+  }
+  interface ResponsesEnrolled {
+    user_id: string;
+    name: string | null;
+    email: string;
+  }
+  interface ResponsesQuizBlock {
+    id: string;
+    title: string;
+    questions: ResponseQuestion[];
+    submissions: Array<{ user_id: string; submitted_at: string; answers: Record<string, number | string> }>;
+  }
+  interface ResponsesSessionBlock {
+    id: string;
+    title: string;
+    session_order: number | null;
+    quizzes: ResponsesQuizBlock[];
+  }
+  interface ResponsesData {
+    enrolled: ResponsesEnrolled[];
+    sessions: ResponsesSessionBlock[];
+  }
+  const [responsesCohortFilter, setResponsesCohortFilter] = useState<string>("");
+  const [responsesData, setResponsesData] = useState<ResponsesData | null>(null);
+  const [responsesLoading, setResponsesLoading] = useState(false);
 
   useEffect(() => {
     if (isAdmin) {
@@ -276,45 +322,44 @@ export default function Admin() {
 
   const fetchAllData = async () => {
     setIsLoading(true);
-    await Promise.all([
-      fetchCohorts(),
-      fetchCourses(),
-      fetchSessions(),
-      fetchQuizzes(),
-      fetchPrompts(),
-    ]);
+    await Promise.all([fetchCohorts(), fetchCourses(), fetchSessions(), fetchQuizzes(), fetchPrompts()]);
     setIsLoading(false);
   };
 
   const fetchPrompts = async () => {
     setPromptsLoading(true);
-    const { data } = await supabase.from('prompts').select('*').order('display_order').order('created_at', { ascending: false });
+    const { data } = await supabase
+      .from("prompts")
+      .select("*")
+      .order("display_order")
+      .order("created_at", { ascending: false });
     if (data) setPrompts(data as { id: string; title: string; content: string; display_order: number }[]);
     setPromptsLoading(false);
   };
 
   const fetchCohorts = async () => {
-    const { data } = await supabase.from('cohorts').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase.from("cohorts").select("*").order("created_at", { ascending: false });
     if (data) setCohorts(data as Cohort[]);
   };
 
   const fetchCourses = async () => {
-    const { data } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase.from("courses").select("*").order("created_at", { ascending: false });
     if (data) setCourses(data as Course[]);
   };
 
   const fetchSessions = async () => {
-    const { data } = await supabase.from('sessions').select('*').order('session_order', { ascending: true });
+    const { data } = await supabase.from("sessions").select("*").order("session_order", { ascending: true });
     if (data) setSessions(data as Session[]);
   };
 
   const fetchQuizzes = async () => {
-    const { data } = await supabase.from('quizzes').select('*').order('created_at', { ascending: false });
-    if (data) setQuizzes(data.map(q => ({ ...q, questions: (q.questions as unknown as Question[]) || [] })) as Quiz[]);
+    const { data } = await supabase.from("quizzes").select("*").order("created_at", { ascending: false });
+    if (data)
+      setQuizzes(data.map((q) => ({ ...q, questions: (q.questions as unknown as Question[]) || [] })) as Quiz[]);
   };
 
   // Cohort CRUD
-  const handleSaveCohort = async (cohort: Omit<Cohort, 'id'> & { id?: string }) => {
+  const handleSaveCohort = async (cohort: Omit<Cohort, "id"> & { id?: string }) => {
     const cohortData = {
       name: cohort.name,
       description: cohort.description || null,
@@ -329,32 +374,32 @@ export default function Admin() {
       is_published: cohort.is_published,
       enrollment_disabled: cohort.enrollment_disabled,
     };
-    
+
     if (cohort.id) {
-      const { error } = await supabase.from('cohorts').update(cohortData).eq('id', cohort.id);
+      const { error } = await supabase.from("cohorts").update(cohortData).eq("id", cohort.id);
       if (error) {
-        toast({ title: 'Error updating cohort', description: error.message, variant: 'destructive' });
+        toast({ title: "Error updating cohort", description: error.message, variant: "destructive" });
       } else {
-        toast({ title: 'Cohort updated successfully' });
+        toast({ title: "Cohort updated successfully" });
         fetchCohorts();
       }
     } else {
-      const { error } = await supabase.from('cohorts').insert(cohortData);
+      const { error } = await supabase.from("cohorts").insert(cohortData);
       if (error) {
-        toast({ title: 'Error creating cohort', description: error.message, variant: 'destructive' });
+        toast({ title: "Error creating cohort", description: error.message, variant: "destructive" });
       } else {
-        toast({ title: 'Cohort created successfully' });
+        toast({ title: "Cohort created successfully" });
         fetchCohorts();
       }
     }
   };
 
   const handleDeleteCohort = async (id: string) => {
-    const { error } = await supabase.from('cohorts').delete().eq('id', id);
+    const { error } = await supabase.from("cohorts").delete().eq("id", id);
     if (error) {
-      toast({ title: 'Error deleting cohort', description: error.message, variant: 'destructive' });
+      toast({ title: "Error deleting cohort", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: 'Cohort deleted successfully' });
+      toast({ title: "Cohort deleted successfully" });
       fetchCohorts();
     }
   };
@@ -372,26 +417,26 @@ export default function Admin() {
         max_seats: cohort.max_seats || null,
         session_time: cohort.session_time || null,
         meeting_link: null, // Exclude URL
-        group_link: null,   // Exclude URL
+        group_link: null, // Exclude URL
         is_published: false, // Always start as draft
       };
 
       const { data: newCohort, error: cohortError } = await supabase
-        .from('cohorts')
+        .from("cohorts")
         .insert(newCohortData)
-        .select('id')
+        .select("id")
         .single();
 
       if (cohortError || !newCohort) {
-        throw new Error(cohortError?.message || 'Failed to create cohort');
+        throw new Error(cohortError?.message || "Failed to create cohort");
       }
 
       // 2. Fetch sessions for original cohort
       const { data: originalSessions } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('cohort_id', cohort.id)
-        .order('session_order', { ascending: true });
+        .from("sessions")
+        .select("*")
+        .eq("cohort_id", cohort.id)
+        .order("session_order", { ascending: true });
 
       if (originalSessions && originalSessions.length > 0) {
         for (const session of originalSessions) {
@@ -402,82 +447,94 @@ export default function Admin() {
             description: session.description || null,
             session_date: session.session_date || null,
             session_order: session.session_order || 0,
-            recording_url: null,      // Exclude URL
-            presentation_url: null,   // Exclude URL
+            recording_url: null, // Exclude URL
+            presentation_url: null, // Exclude URL
           };
 
           const { data: newSession, error: sessionError } = await supabase
-            .from('sessions')
+            .from("sessions")
             .insert(newSessionData)
-            .select('id')
+            .select("id")
             .single();
 
           if (sessionError || !newSession) continue;
 
           // 3. Copy pre-reading materials (without links)
           const { data: materials } = await supabase
-            .from('pre_reading_materials')
-            .select('*')
-            .eq('session_id', session.id)
-            .order('display_order', { ascending: true });
+            .from("pre_reading_materials")
+            .select("*")
+            .eq("session_id", session.id)
+            .order("display_order", { ascending: true });
 
           if (materials && materials.length > 0) {
-            const newMaterials = materials.map(m => ({
+            const newMaterials = materials.map((m) => ({
               session_id: newSession.id,
               title: m.title,
               link: m.link,
               display_order: m.display_order,
             }));
-            await supabase.from('pre_reading_materials').insert(newMaterials);
+            await supabase.from("pre_reading_materials").insert(newMaterials);
           }
 
           // 4. Copy session quiz assignments (quizzes are reused, not duplicated)
           const { data: sessionQuizzes } = await supabase
-            .from('session_quizzes')
-            .select('quiz_id, display_order')
-            .eq('session_id', session.id)
-            .order('display_order', { ascending: true });
+            .from("session_quizzes")
+            .select("quiz_id, display_order")
+            .eq("session_id", session.id)
+            .order("display_order", { ascending: true });
 
           if (sessionQuizzes && sessionQuizzes.length > 0) {
-            const newQuizAssignments = sessionQuizzes.map(sq => ({
+            const newQuizAssignments = sessionQuizzes.map((sq) => ({
               session_id: newSession.id,
               quiz_id: sq.quiz_id,
               display_order: sq.display_order,
             }));
-            await supabase.from('session_quizzes').insert(newQuizAssignments);
+            await supabase.from("session_quizzes").insert(newQuizAssignments);
           }
 
           // 5. Copy mini projects
           const { data: miniProjects } = await supabase
-            .from('mini_projects')
-            .select('*')
-            .eq('session_id', session.id)
-            .order('display_order', { ascending: true });
+            .from("mini_projects")
+            .select("*")
+            .eq("session_id", session.id)
+            .order("display_order", { ascending: true });
 
           if (miniProjects && miniProjects.length > 0) {
-            const newMiniProjects = miniProjects.map(mp => ({
+            const newMiniProjects = miniProjects.map((mp) => ({
               session_id: newSession.id,
               title: mp.title,
               description: mp.description || null,
               display_order: mp.display_order,
             }));
-            const { error: mpError } = await supabase.from('mini_projects').insert(newMiniProjects);
-            if (mpError) console.error('Mini project duplication error:', mpError);
+            const { error: mpError } = await supabase.from("mini_projects").insert(newMiniProjects);
+            if (mpError) console.error("Mini project duplication error:", mpError);
           }
         }
       }
 
-      toast({ title: 'Cohort duplicated successfully', description: 'All sessions, quizzes, pre-reading materials, and mini projects have been copied.' });
+      toast({
+        title: "Cohort duplicated successfully",
+        description: "All sessions, quizzes, pre-reading materials, and mini projects have been copied.",
+      });
       fetchCohorts();
       fetchSessions();
     } catch (error) {
-      toast({ title: 'Error duplicating cohort', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
+      toast({
+        title: "Error duplicating cohort",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
     }
   };
 
   // Course CRUD
-  const handleSaveCourse = async (course: Omit<Course, 'id'> & { id?: string }) => {
-    const slug = course.slug || course.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+  const handleSaveCourse = async (course: Omit<Course, "id"> & { id?: string }) => {
+    const slug =
+      course.slug ||
+      course.name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-");
     const courseData = {
       name: course.name,
       slug,
@@ -493,38 +550,43 @@ export default function Admin() {
       price_inr_paise: course.price_inr_paise ?? null,
       price_usd_cents: course.price_usd_cents ?? null,
     };
-    
+
     if (course.id) {
-      const { error } = await supabase.from('courses').update(courseData).eq('id', course.id);
+      const { error } = await supabase.from("courses").update(courseData).eq("id", course.id);
       if (error) {
-        toast({ title: 'Error updating course', description: error.message, variant: 'destructive' });
+        toast({ title: "Error updating course", description: error.message, variant: "destructive" });
       } else {
-        toast({ title: 'Course updated successfully' });
+        toast({ title: "Course updated successfully" });
         fetchCourses();
       }
     } else {
-      const { error } = await supabase.from('courses').insert(courseData);
+      const { error } = await supabase.from("courses").insert(courseData);
       if (error) {
-        toast({ title: 'Error creating course', description: error.message, variant: 'destructive' });
+        toast({ title: "Error creating course", description: error.message, variant: "destructive" });
       } else {
-        toast({ title: 'Course created successfully' });
+        toast({ title: "Course created successfully" });
         fetchCourses();
       }
     }
   };
 
   const handleDeleteCourse = async (id: string) => {
-    const { error } = await supabase.from('courses').delete().eq('id', id);
+    const { error } = await supabase.from("courses").delete().eq("id", id);
     if (error) {
-      toast({ title: 'Error deleting course', description: error.message, variant: 'destructive' });
+      toast({ title: "Error deleting course", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: 'Course deleted successfully' });
+      toast({ title: "Course deleted successfully" });
       fetchCourses();
     }
   };
 
   // Session CRUD
-  const handleSaveSession = async (session: Omit<Session, 'id'> & { id?: string }, materials: PreReadingMaterial[], quizIds: string[], projects: MiniProject[]) => {
+  const handleSaveSession = async (
+    session: Omit<Session, "id"> & { id?: string },
+    materials: PreReadingMaterial[],
+    quizIds: string[],
+    projects: MiniProject[],
+  ) => {
     const sessionData = {
       title: session.title,
       description: session.description || null,
@@ -536,19 +598,19 @@ export default function Admin() {
       session_order: session.session_order || 0,
       is_content_unlocked: session.is_content_unlocked ?? false,
     };
-    
+
     let sessionId = session.id;
-    
+
     if (session.id) {
-      const { error } = await supabase.from('sessions').update(sessionData).eq('id', session.id);
+      const { error } = await supabase.from("sessions").update(sessionData).eq("id", session.id);
       if (error) {
-        toast({ title: 'Error updating session', description: error.message, variant: 'destructive' });
+        toast({ title: "Error updating session", description: error.message, variant: "destructive" });
         return;
       }
     } else {
-      const { data, error } = await supabase.from('sessions').insert(sessionData).select('id').single();
+      const { data, error } = await supabase.from("sessions").insert(sessionData).select("id").single();
       if (error) {
-        toast({ title: 'Error creating session', description: error.message, variant: 'destructive' });
+        toast({ title: "Error creating session", description: error.message, variant: "destructive" });
         return;
       }
       sessionId = data.id;
@@ -556,8 +618,8 @@ export default function Admin() {
 
     if (sessionId) {
       // Handle pre-reading materials
-      await supabase.from('pre_reading_materials').delete().eq('session_id', sessionId);
-      
+      await supabase.from("pre_reading_materials").delete().eq("session_id", sessionId);
+
       if (materials.length > 0) {
         const materialsToInsert = materials.map((m, idx) => ({
           session_id: sessionId,
@@ -565,32 +627,40 @@ export default function Admin() {
           link: m.link,
           display_order: m.display_order ?? idx,
         }));
-        
-        const { error: matError } = await supabase.from('pre_reading_materials').insert(materialsToInsert);
+
+        const { error: matError } = await supabase.from("pre_reading_materials").insert(materialsToInsert);
         if (matError) {
-          toast({ title: 'Session saved, but error saving materials', description: matError.message, variant: 'destructive' });
+          toast({
+            title: "Session saved, but error saving materials",
+            description: matError.message,
+            variant: "destructive",
+          });
         }
       }
 
       // Handle quiz assignments
-      await supabase.from('session_quizzes').delete().eq('session_id', sessionId);
-      
+      await supabase.from("session_quizzes").delete().eq("session_id", sessionId);
+
       if (quizIds.length > 0) {
         const quizAssignments = quizIds.map((quizId, idx) => ({
           session_id: sessionId,
           quiz_id: quizId,
           display_order: idx,
         }));
-        
-        const { error: quizError } = await supabase.from('session_quizzes').insert(quizAssignments);
+
+        const { error: quizError } = await supabase.from("session_quizzes").insert(quizAssignments);
         if (quizError) {
-          toast({ title: 'Session saved, but error assigning quizzes', description: quizError.message, variant: 'destructive' });
+          toast({
+            title: "Session saved, but error assigning quizzes",
+            description: quizError.message,
+            variant: "destructive",
+          });
         }
       }
 
       // Handle mini projects
-      await supabase.from('mini_projects').delete().eq('session_id', sessionId);
-      
+      await supabase.from("mini_projects").delete().eq("session_id", sessionId);
+
       if (projects.length > 0) {
         const projectsToInsert = projects.map((p, idx) => ({
           session_id: sessionId,
@@ -598,35 +668,39 @@ export default function Admin() {
           description: p.description || null,
           display_order: p.display_order ?? idx,
         }));
-        
-        const { error: projError } = await supabase.from('mini_projects').insert(projectsToInsert);
+
+        const { error: projError } = await supabase.from("mini_projects").insert(projectsToInsert);
         if (projError) {
-          toast({ title: 'Session saved, but error saving mini projects', description: projError.message, variant: 'destructive' });
+          toast({
+            title: "Session saved, but error saving mini projects",
+            description: projError.message,
+            variant: "destructive",
+          });
         }
       }
     }
 
-    toast({ title: session.id ? 'Session updated successfully' : 'Session created successfully' });
+    toast({ title: session.id ? "Session updated successfully" : "Session created successfully" });
     fetchSessions();
   };
 
   const fetchSessionData = async (sessionId: string) => {
     const [materialsRes, quizzesRes, projectsRes] = await Promise.all([
       supabase
-        .from('pre_reading_materials')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('display_order', { ascending: true }),
+        .from("pre_reading_materials")
+        .select("*")
+        .eq("session_id", sessionId)
+        .order("display_order", { ascending: true }),
       supabase
-        .from('session_quizzes')
-        .select('quiz_id')
-        .eq('session_id', sessionId)
-        .order('display_order', { ascending: true }),
+        .from("session_quizzes")
+        .select("quiz_id")
+        .eq("session_id", sessionId)
+        .order("display_order", { ascending: true }),
       supabase
-        .from('mini_projects')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('display_order', { ascending: true }),
+        .from("mini_projects")
+        .select("*")
+        .eq("session_id", sessionId)
+        .order("display_order", { ascending: true }),
     ]);
     setSessionMaterials(materialsRes.data || []);
     setSessionQuizIds((quizzesRes.data || []).map((sq: SessionQuiz) => sq.quiz_id));
@@ -648,35 +722,35 @@ export default function Admin() {
   };
 
   const handleDeleteSession = async (id: string) => {
-    const { error } = await supabase.from('sessions').delete().eq('id', id);
+    const { error } = await supabase.from("sessions").delete().eq("id", id);
     if (error) {
-      toast({ title: 'Error deleting session', description: error.message, variant: 'destructive' });
+      toast({ title: "Error deleting session", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: 'Session deleted successfully' });
+      toast({ title: "Session deleted successfully" });
       fetchSessions();
     }
   };
 
   // Quiz CRUD
-  const handleSaveQuiz = async (quiz: Omit<Quiz, 'id'> & { id?: string }) => {
-    const quizData = { 
+  const handleSaveQuiz = async (quiz: Omit<Quiz, "id"> & { id?: string }) => {
+    const quizData = {
       title: quiz.title,
-      questions: JSON.parse(JSON.stringify(quiz.questions))
+      questions: JSON.parse(JSON.stringify(quiz.questions)),
     };
     if (quiz.id) {
-      const { error } = await supabase.from('quizzes').update(quizData).eq('id', quiz.id);
+      const { error } = await supabase.from("quizzes").update(quizData).eq("id", quiz.id);
       if (error) {
-        toast({ title: 'Error updating quiz', description: error.message, variant: 'destructive' });
+        toast({ title: "Error updating quiz", description: error.message, variant: "destructive" });
       } else {
-        toast({ title: 'Quiz updated successfully' });
+        toast({ title: "Quiz updated successfully" });
         fetchQuizzes();
       }
     } else {
-      const { error } = await supabase.from('quizzes').insert(quizData);
+      const { error } = await supabase.from("quizzes").insert(quizData);
       if (error) {
-        toast({ title: 'Error creating quiz', description: error.message, variant: 'destructive' });
+        toast({ title: "Error creating quiz", description: error.message, variant: "destructive" });
       } else {
-        toast({ title: 'Quiz created successfully' });
+        toast({ title: "Quiz created successfully" });
         fetchQuizzes();
       }
     }
@@ -692,467 +766,491 @@ export default function Admin() {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/duplicate-quiz`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ quiz_id: id }),
       });
       const payload = await res.json();
-      if (!res.ok) throw new Error(payload?.error || 'Failed to duplicate quiz');
-      toast({ title: 'Quiz duplicated', description: payload.quiz?.title });
+      if (!res.ok) throw new Error(payload?.error || "Failed to duplicate quiz");
+      toast({ title: "Quiz duplicated", description: payload.quiz?.title });
       fetchQuizzes();
     } catch (err) {
-      toast({ title: 'Error duplicating quiz', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
+      toast({
+        title: "Error duplicating quiz",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
     }
   };
 
   const handleDeleteQuiz = async (id: string) => {
-    const { error } = await supabase.from('quizzes').delete().eq('id', id);
+    const { error } = await supabase.from("quizzes").delete().eq("id", id);
     if (error) {
-      toast({ title: 'Error deleting quiz', description: error.message, variant: 'destructive' });
+      toast({ title: "Error deleting quiz", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: 'Quiz deleted successfully' });
+      toast({ title: "Quiz deleted successfully" });
       fetchQuizzes();
     }
   };
 
   const getSessionParentName = (session: Session) => {
     if (session.cohort_id) {
-      return cohorts.find(c => c.id === session.cohort_id)?.name || 'Unknown Cohort';
+      return cohorts.find((c) => c.id === session.cohort_id)?.name || "Unknown Cohort";
     }
     if (session.course_id) {
-      return courses.find(c => c.id === session.course_id)?.name || 'Unknown Course';
+      return courses.find((c) => c.id === session.course_id)?.name || "Unknown Course";
     }
-    return '-';
-   };
+    return "-";
+  };
 
-    const fetchRegistrations = async (cohortFilter = 'all') => {
-      setRegistrationsLoading(true);
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
-        const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-registrations`);
-        if (cohortFilter && cohortFilter !== 'all') url.searchParams.set('cohort', cohortFilter);
-        const response = await fetch(url.toString(), {
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        });
-        const result = await response.json();
-        if (response.ok) {
-          setRegistrations(result.registrations || []);
-          if (result.cohorts) setRegistrationCohorts(result.cohorts);
-        } else {
-          toast({ title: 'Failed to fetch registrations', description: result.error, variant: 'destructive' });
-        }
-      } catch {
-        toast({ title: 'Error fetching registrations', variant: 'destructive' });
-      } finally {
-        setRegistrationsLoading(false);
-      }
-    };
-
-    const fetchPayments = async () => {
-      setPaymentsLoading(true);
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-payments`,
-          { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } },
-        );
-        const result = await response.json();
-        if (response.ok) {
-          setPayments(result.payments || []);
-        } else {
-          toast({ title: 'Failed to fetch payments', description: result.error, variant: 'destructive' });
-        }
-      } catch {
-        toast({ title: 'Error fetching payments', variant: 'destructive' });
-      } finally {
-        setPaymentsLoading(false);
-      }
-    };
-
-    const formatPaymentAmount = (amount: number, currency: string) => {
-      const value = amount / 100;
-      if (currency === 'INR') return `₹${value.toLocaleString('en-IN')}`;
-      if (currency === 'USD') return `$${value.toLocaleString('en-US')}`;
-      return `${value} ${currency}`;
-    };
-
-    const downloadRegistrationsCSV = () => {
-      const header = 'Name,Email,Phone,Country,State,Company,Role,Cohort,Capstone Office Hours,Interests,Other Interest,Reason,Additional Info,Status,Registered';
-      const rows = registrations.map(r =>
-        `"${(r.name || '').replace(/"/g, '""')}","${r.email}","${r.whatsapp_number}","${(r.country || '').replace(/"/g, '""')}","${(r.state || '').replace(/"/g, '""')}","${(r.company || '').replace(/"/g, '""')}","${(r.role || '').replace(/"/g, '""')}","${(r.cohort || '').replace(/"/g, '""')}","${r.capstone_office_hours ? 'Yes' : 'No'}","${(r.interests || []).join('; ')}","${(r.other_interest || '').replace(/"/g, '""')}","${(r.reason || '').replace(/"/g, '""')}","${(r.additional_info || '').replace(/"/g, '""')}","${r.status}","${new Date(r.created_at).toLocaleDateString()}"`
-      );
-      const csv = [header, ...rows].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `registrations${registrationCohortFilter !== 'all' ? '_filtered' : ''}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    };
-
-    const fetchUnenrolledUsers = async () => {
-      setUnenrolledLoading(true);
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
-        if (!token) return;
-
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-unenrolled-users`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            },
-          }
-        );
-        const result = await response.json();
-        if (response.ok) {
-          setUnenrolledUsers(result.users || []);
-        } else {
-          toast({ title: 'Failed to fetch unenrolled users', description: result.error, variant: 'destructive' });
-        }
-      } catch (err) {
-        toast({ title: 'Error fetching unenrolled users', variant: 'destructive' });
-      } finally {
-        setUnenrolledLoading(false);
-      }
-    };
-
-    const copyUnenrolledEmails = () => {
-      const emails = unenrolledUsers.map(u => u.email).join(', ');
-      navigator.clipboard.writeText(emails);
-      toast({ title: `${unenrolledUsers.length} emails copied to clipboard` });
-    };
-
-    const copyUnenrolledPhones = () => {
-      const phones = unenrolledUsers.map(u => u.whatsapp_number).join(', ');
-      navigator.clipboard.writeText(phones);
-      toast({ title: `${unenrolledUsers.length} phone numbers copied to clipboard` });
-    };
-
-    const handleStatusUpdate = async (registrationId: string, newStatus: string) => {
-      const previous = unenrolledUsers;
-      setUnenrolledUsers(prev => prev.map(u => u.id === registrationId ? { ...u, status: newStatus } : u));
-      setStatusUpdatingId(registrationId);
-      try {
-        const { data, error } = await supabase.functions.invoke('update-registration-status', {
-          body: { id: registrationId, status: newStatus },
-        });
-        if (error || (data && (data as any).error)) {
-          throw new Error(error?.message || (data as any)?.error || 'Update failed');
-        }
-        toast({ title: `Status updated to ${newStatus}` });
-      } catch (err: any) {
-        setUnenrolledUsers(previous);
-        toast({ title: 'Failed to update status', description: err.message, variant: 'destructive' });
-      } finally {
-        setStatusUpdatingId(null);
-      }
-    };
-
-    const downloadUnenrolledCSV = () => {
-      const header = 'Name,Email,Phone,Cohort,Status,Registered';
-      const rows = unenrolledUsers.map(u =>
-        `"${(u.name || '').replace(/"/g, '""')}","${u.email}","${u.whatsapp_number}","${u.cohort}","${u.status}","${new Date(u.created_at).toLocaleDateString()}"`
-      );
-      const csv = [header, ...rows].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'unenrolled_users.csv';
-      a.click();
-      URL.revokeObjectURL(url);
-    };
-
-
-   // Fetch enrollments when filter changes
-   const fetchEnrollments = async (filter: string) => {
-     if (!filter) {
-       setEnrollments([]);
-       return;
-     }
- 
-     setEnrollmentsLoading(true);
-     try {
-       let queryParam = '';
-       if (filter.startsWith('cohort:')) {
-         queryParam = `cohort_id=${filter.replace('cohort:', '')}`;
-       } else if (filter.startsWith('course:')) {
-         queryParam = `course_id=${filter.replace('course:', '')}`;
-       }
- 
-       const { data: sessionData } = await supabase.auth.getSession();
-       const token = sessionData?.session?.access_token;
- 
-       if (!token) {
-         toast({ title: 'Authentication required', variant: 'destructive' });
-         setEnrollmentsLoading(false);
-         return;
-       }
- 
-       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-       const res = await fetch(`${supabaseUrl}/functions/v1/get-enrollments?${queryParam}`, {
-         method: 'GET',
-         headers: {
-           'Authorization': `Bearer ${token}`,
-           'Content-Type': 'application/json',
-         },
-       });
- 
-       if (!res.ok) {
-         const errorData = await res.json();
-         throw new Error(errorData.error || 'Failed to fetch enrollments');
-       }
- 
-       const data = await res.json();
-       setEnrollments(data.enrollments || []);
-     } catch (error) {
-       console.error('Error fetching enrollments:', error);
-       toast({ title: 'Error fetching enrollments', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
-       setEnrollments([]);
-     } finally {
-       setEnrollmentsLoading(false);
-     }
-   };
- 
-   useEffect(() => {
-     if (enrollmentFilter) {
-       fetchEnrollments(enrollmentFilter);
-     } else {
-       setEnrollments([]);
-     }
-   }, [enrollmentFilter]);
-
-   // Fetch leaderboard when filter changes
-   const fetchLeaderboard = async (filter: string) => {
-     if (!filter) {
-       setLeaderboard([]);
-       return;
-     }
-
-     setLeaderboardLoading(true);
-     try {
-       let queryParam = '';
-       if (filter.startsWith('cohort:')) {
-         queryParam = `cohort_id=${filter.replace('cohort:', '')}`;
-       } else if (filter.startsWith('course:')) {
-         queryParam = `course_id=${filter.replace('course:', '')}`;
-       }
-
-       const { data: sessionData } = await supabase.auth.getSession();
-       const token = sessionData?.session?.access_token;
-
-       if (!token) {
-         toast({ title: 'Authentication required', variant: 'destructive' });
-         setLeaderboardLoading(false);
-         return;
-       }
-
-       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-       const res = await fetch(`${supabaseUrl}/functions/v1/get-leaderboard?${queryParam}`, {
-         method: 'GET',
-         headers: {
-           'Authorization': `Bearer ${token}`,
-           'Content-Type': 'application/json',
-         },
-       });
-
-       if (!res.ok) {
-         const errorData = await res.json();
-         throw new Error(errorData.error || 'Failed to fetch leaderboard');
-       }
-
-       const data = await res.json();
-       setLeaderboard(data.leaderboard || []);
-     } catch (error) {
-       console.error('Error fetching leaderboard:', error);
-       toast({ title: 'Error fetching leaderboard', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
-       setLeaderboard([]);
-     } finally {
-       setLeaderboardLoading(false);
-     }
-   };
-
-   useEffect(() => {
-     if (leaderboardFilter) {
-       fetchLeaderboard(leaderboardFilter);
-     } else {
-       setLeaderboard([]);
-     }
-   }, [leaderboardFilter]);
-
-   // Fetch feedback when filter changes
-   const fetchFeedback = async (filter: string) => {
-     if (!filter) {
-       setFeedbackEntries([]);
-       return;
-     }
-
-     setFeedbackLoading(true);
-     try {
-       let query = supabase.from('feedback').select('*').order('created_at', { ascending: false });
-
-       if (filter.startsWith('cohort:')) {
-         query = query.eq('cohort_id', filter.replace('cohort:', ''));
-       } else if (filter.startsWith('course:')) {
-         query = query.eq('course_id', filter.replace('course:', ''));
-       }
-
-       const { data: feedbackData, error } = await query;
-       if (error) throw error;
-
-       if (!feedbackData || feedbackData.length === 0) {
-         setFeedbackEntries([]);
-         setFeedbackLoading(false);
-         return;
-       }
-
-       // Fetch profile names for each unique user_id
-       const userIds = [...new Set(feedbackData.map(f => f.user_id))];
-       const { data: profiles } = await supabase
-         .from('profiles')
-         .select('user_id, full_name')
-         .in('user_id', userIds);
-
-       const profileMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
-
-       setFeedbackEntries(feedbackData.map(f => ({
-         ...f,
-         user_name: profileMap.get(f.user_id) || null,
-         user_email: null,
-       })));
-     } catch (error) {
-       console.error('Error fetching feedback:', error);
-       toast({ title: 'Error fetching feedback', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
-       setFeedbackEntries([]);
-     } finally {
-       setFeedbackLoading(false);
-     }
-   };
-
-   useEffect(() => {
-     if (feedbackFilter) {
-       fetchFeedback(feedbackFilter);
-     } else {
-       setFeedbackEntries([]);
-     }
-    }, [feedbackFilter]);
-
-    // Quiz Responses fetcher (single round-trip per cohort/course)
-    const fetchCohortQuizResponses = async (filterValue: string) => {
-      setResponsesLoading(true);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('Not authenticated');
-        const param = filterValue.startsWith('cohort:')
-          ? `cohort_id=${filterValue.replace('cohort:', '')}`
-          : `course_id=${filterValue.replace('course:', '')}`;
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-quiz-responses?${param}`;
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-        });
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || 'Failed to fetch responses');
-        }
-        const data = await res.json();
-        setResponsesData({ enrolled: data.enrolled || [], sessions: data.sessions || [] });
-      } catch (error) {
-        console.error('Error fetching quiz responses:', error);
-        toast({ title: 'Error fetching responses', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
-        setResponsesData(null);
-      } finally {
-        setResponsesLoading(false);
-      }
-    };
-
-    useEffect(() => {
-      if (responsesCohortFilter) {
-        fetchCohortQuizResponses(responsesCohortFilter);
-      } else {
-        setResponsesData(null);
-      }
-    }, [responsesCohortFilter]);
-
-    const formatAnswerForCSV = (q: ResponseQuestion, a: number | string | undefined) => {
-      if (a === undefined || a === null || a === '') return '';
-      if ((q.type ?? 'mcq') === 'subjective') return String(a);
-      const idx = Number(a);
-      return q.options?.[idx] ?? `Option ${idx + 1}`;
-    };
-
-    const downloadResponsesCSV = () => {
-      if (!responsesData) return;
-      const lines: string[] = [];
-      const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
-      responsesData.sessions.forEach((sess) => {
-        sess.quizzes.forEach((quiz) => {
-          const header = ['Session', 'Quiz', 'Learner', 'Email', ...quiz.questions.map((q, i) => `Q${i + 1}: ${q.question}`)];
-          lines.push(header.map(esc).join(','));
-          const subByUser = new Map(quiz.submissions.map((s) => [s.user_id, s]));
-          responsesData.enrolled.forEach((u) => {
-            const sub = subByUser.get(u.user_id);
-            const row = [
-              `${sess.session_order ?? ''} ${sess.title}`.trim(),
-              quiz.title,
-              u.name || '',
-              u.email,
-              ...quiz.questions.map((q) => {
-                if (!sub) return '(no submission)';
-                return formatAnswerForCSV(q, sub.answers?.[q.id] as number | string | undefined);
-              }),
-            ];
-            lines.push(row.map(esc).join(','));
-          });
-          lines.push('');
-        });
+  const fetchRegistrations = async (cohortFilter = "all") => {
+    setRegistrationsLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-registrations`);
+      if (cohortFilter && cohortFilter !== "all") url.searchParams.set("cohort", cohortFilter);
+      const response = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
-      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      const label = responsesCohortFilter.replace(/^(cohort|course):/, '');
-      link.download = `quiz-responses-${label}-${new Date().toISOString().split('T')[0]}.csv`;
-      link.click();
-    };
+      const result = await response.json();
+      if (response.ok) {
+        setRegistrations(result.registrations || []);
+        if (result.cohorts) setRegistrationCohorts(result.cohorts);
+      } else {
+        toast({ title: "Failed to fetch registrations", description: result.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error fetching registrations", variant: "destructive" });
+    } finally {
+      setRegistrationsLoading(false);
+    }
+  };
 
+  const fetchPayments = async () => {
+    setPaymentsLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-payments`, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      const result = await response.json();
+      if (response.ok) {
+        setPayments(result.payments || []);
+      } else {
+        toast({ title: "Failed to fetch payments", description: result.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error fetching payments", variant: "destructive" });
+    } finally {
+      setPaymentsLoading(false);
+    }
+  };
 
-    const getEnrollmentParentName = (enrollment: EnrollmentWithUser) => {
-     if (enrollment.cohort_id) {
-       return cohorts.find(c => c.id === enrollment.cohort_id)?.name || 'Unknown Cohort';
-     }
-     if (enrollment.course_id) {
-       return courses.find(c => c.id === enrollment.course_id)?.name || 'Unknown Course';
-     }
-     return '-';
-   };
+  const formatPaymentAmount = (amount: number, currency: string) => {
+    const value = amount / 100;
+    if (currency === "INR") return `₹${value.toLocaleString("en-IN")}`;
+    if (currency === "USD") return `$${value.toLocaleString("en-US")}`;
+    return `${value} ${currency}`;
+  };
 
-   const getScoreColor = (score: number) => {
-     if (score >= 80) return 'text-green-600 dark:text-green-400';
-     if (score >= 50) return 'text-yellow-600 dark:text-yellow-400';
-     return 'text-red-600 dark:text-red-400';
-   };
+  const downloadRegistrationsCSV = () => {
+    const header =
+      "Name,Email,Phone,Country,State,Company,Role,Cohort,Capstone Office Hours,Interests,Other Interest,Reason,Additional Info,Status,Registered";
+    const rows = registrations.map(
+      (r) =>
+        `"${(r.name || "").replace(/"/g, '""')}","${r.email}","${r.whatsapp_number}","${(r.country || "").replace(/"/g, '""')}","${(r.state || "").replace(/"/g, '""')}","${(r.company || "").replace(/"/g, '""')}","${(r.role || "").replace(/"/g, '""')}","${(r.cohort || "").replace(/"/g, '""')}","${r.capstone_office_hours ? "Yes" : "No"}","${(r.interests || []).join("; ")}","${(r.other_interest || "").replace(/"/g, '""')}","${(r.reason || "").replace(/"/g, '""')}","${(r.additional_info || "").replace(/"/g, '""')}","${r.status}","${new Date(r.created_at).toLocaleDateString()}"`,
+    );
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `registrations${registrationCohortFilter !== "all" ? "_filtered" : ""}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
-   const getRankBadge = (rank: number) => {
-     if (rank === 1) return <span className="text-amber-500">🥇</span>;
-     if (rank === 2) return <span className="text-slate-400">🥈</span>;
-     if (rank === 3) return <span className="text-amber-700">🥉</span>;
-     return <span className="text-muted-foreground">{rank}</span>;
-   };
+  const fetchUnenrolledUsers = async () => {
+    setUnenrolledLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) return;
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-unenrolled-users`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+      });
+      const result = await response.json();
+      if (response.ok) {
+        setUnenrolledUsers(result.users || []);
+      } else {
+        toast({ title: "Failed to fetch unenrolled users", description: result.error, variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Error fetching unenrolled users", variant: "destructive" });
+    } finally {
+      setUnenrolledLoading(false);
+    }
+  };
+
+  const copyUnenrolledEmails = () => {
+    const emails = unenrolledUsers.map((u) => u.email).join(", ");
+    navigator.clipboard.writeText(emails);
+    toast({ title: `${unenrolledUsers.length} emails copied to clipboard` });
+  };
+
+  const copyUnenrolledPhones = () => {
+    const phones = unenrolledUsers.map((u) => u.whatsapp_number).join(", ");
+    navigator.clipboard.writeText(phones);
+    toast({ title: `${unenrolledUsers.length} phone numbers copied to clipboard` });
+  };
+
+  const handleStatusUpdate = async (registrationId: string, newStatus: string) => {
+    const previous = unenrolledUsers;
+    setUnenrolledUsers((prev) => prev.map((u) => (u.id === registrationId ? { ...u, status: newStatus } : u)));
+    setStatusUpdatingId(registrationId);
+    try {
+      const { data, error } = await supabase.functions.invoke("update-registration-status", {
+        body: { id: registrationId, status: newStatus },
+      });
+      if (error || (data && (data as any).error)) {
+        throw new Error(error?.message || (data as any)?.error || "Update failed");
+      }
+      toast({ title: `Status updated to ${newStatus}` });
+    } catch (err: any) {
+      setUnenrolledUsers(previous);
+      toast({ title: "Failed to update status", description: err.message, variant: "destructive" });
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  };
+
+  const downloadUnenrolledCSV = () => {
+    const header = "Name,Email,Phone,Cohort,Status,Registered";
+    const rows = unenrolledUsers.map(
+      (u) =>
+        `"${(u.name || "").replace(/"/g, '""')}","${u.email}","${u.whatsapp_number}","${u.cohort}","${u.status}","${new Date(u.created_at).toLocaleDateString()}"`,
+    );
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "unenrolled_users.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Fetch enrollments when filter changes
+  const fetchEnrollments = async (filter: string) => {
+    if (!filter) {
+      setEnrollments([]);
+      return;
+    }
+
+    setEnrollmentsLoading(true);
+    try {
+      let queryParam = "";
+      if (filter.startsWith("cohort:")) {
+        queryParam = `cohort_id=${filter.replace("cohort:", "")}`;
+      } else if (filter.startsWith("course:")) {
+        queryParam = `course_id=${filter.replace("course:", "")}`;
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      if (!token) {
+        toast({ title: "Authentication required", variant: "destructive" });
+        setEnrollmentsLoading(false);
+        return;
+      }
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${supabaseUrl}/functions/v1/get-enrollments?${queryParam}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to fetch enrollments");
+      }
+
+      const data = await res.json();
+      setEnrollments(data.enrollments || []);
+    } catch (error) {
+      console.error("Error fetching enrollments:", error);
+      toast({
+        title: "Error fetching enrollments",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+      setEnrollments([]);
+    } finally {
+      setEnrollmentsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (enrollmentFilter) {
+      fetchEnrollments(enrollmentFilter);
+    } else {
+      setEnrollments([]);
+    }
+  }, [enrollmentFilter]);
+
+  // Fetch leaderboard when filter changes
+  const fetchLeaderboard = async (filter: string) => {
+    if (!filter) {
+      setLeaderboard([]);
+      return;
+    }
+
+    setLeaderboardLoading(true);
+    try {
+      let queryParam = "";
+      if (filter.startsWith("cohort:")) {
+        queryParam = `cohort_id=${filter.replace("cohort:", "")}`;
+      } else if (filter.startsWith("course:")) {
+        queryParam = `course_id=${filter.replace("course:", "")}`;
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      if (!token) {
+        toast({ title: "Authentication required", variant: "destructive" });
+        setLeaderboardLoading(false);
+        return;
+      }
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${supabaseUrl}/functions/v1/get-leaderboard?${queryParam}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to fetch leaderboard");
+      }
+
+      const data = await res.json();
+      setLeaderboard(data.leaderboard || []);
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      toast({
+        title: "Error fetching leaderboard",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+      setLeaderboard([]);
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (leaderboardFilter) {
+      fetchLeaderboard(leaderboardFilter);
+    } else {
+      setLeaderboard([]);
+    }
+  }, [leaderboardFilter]);
+
+  // Fetch feedback when filter changes
+  const fetchFeedback = async (filter: string) => {
+    if (!filter) {
+      setFeedbackEntries([]);
+      return;
+    }
+
+    setFeedbackLoading(true);
+    try {
+      let query = supabase.from("feedback").select("*").order("created_at", { ascending: false });
+
+      if (filter.startsWith("cohort:")) {
+        query = query.eq("cohort_id", filter.replace("cohort:", ""));
+      } else if (filter.startsWith("course:")) {
+        query = query.eq("course_id", filter.replace("course:", ""));
+      }
+
+      const { data: feedbackData, error } = await query;
+      if (error) throw error;
+
+      if (!feedbackData || feedbackData.length === 0) {
+        setFeedbackEntries([]);
+        setFeedbackLoading(false);
+        return;
+      }
+
+      // Fetch profile names for each unique user_id
+      const userIds = [...new Set(feedbackData.map((f) => f.user_id))];
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
+
+      const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name]) || []);
+
+      setFeedbackEntries(
+        feedbackData.map((f) => ({
+          ...f,
+          user_name: profileMap.get(f.user_id) || null,
+          user_email: null,
+        })),
+      );
+    } catch (error) {
+      console.error("Error fetching feedback:", error);
+      toast({
+        title: "Error fetching feedback",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+      setFeedbackEntries([]);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (feedbackFilter) {
+      fetchFeedback(feedbackFilter);
+    } else {
+      setFeedbackEntries([]);
+    }
+  }, [feedbackFilter]);
+
+  // Quiz Responses fetcher (single round-trip per cohort/course)
+  const fetchCohortQuizResponses = async (filterValue: string) => {
+    setResponsesLoading(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      const param = filterValue.startsWith("cohort:")
+        ? `cohort_id=${filterValue.replace("cohort:", "")}`
+        : `course_id=${filterValue.replace("course:", "")}`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-quiz-responses?${param}`;
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to fetch responses");
+      }
+      const data = await res.json();
+      setResponsesData({ enrolled: data.enrolled || [], sessions: data.sessions || [] });
+    } catch (error) {
+      console.error("Error fetching quiz responses:", error);
+      toast({
+        title: "Error fetching responses",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+      setResponsesData(null);
+    } finally {
+      setResponsesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (responsesCohortFilter) {
+      fetchCohortQuizResponses(responsesCohortFilter);
+    } else {
+      setResponsesData(null);
+    }
+  }, [responsesCohortFilter]);
+
+  const formatAnswerForCSV = (q: ResponseQuestion, a: number | string | undefined) => {
+    if (a === undefined || a === null || a === "") return "";
+    if ((q.type ?? "mcq") === "subjective") return String(a);
+    const idx = Number(a);
+    return q.options?.[idx] ?? `Option ${idx + 1}`;
+  };
+
+  const downloadResponsesCSV = () => {
+    if (!responsesData) return;
+    const lines: string[] = [];
+    const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+    responsesData.sessions.forEach((sess) => {
+      sess.quizzes.forEach((quiz) => {
+        const header = [
+          "Session",
+          "Quiz",
+          "Learner",
+          "Email",
+          ...quiz.questions.map((q, i) => `Q${i + 1}: ${q.question}`),
+        ];
+        lines.push(header.map(esc).join(","));
+        const subByUser = new Map(quiz.submissions.map((s) => [s.user_id, s]));
+        responsesData.enrolled.forEach((u) => {
+          const sub = subByUser.get(u.user_id);
+          const row = [
+            `${sess.session_order ?? ""} ${sess.title}`.trim(),
+            quiz.title,
+            u.name || "",
+            u.email,
+            ...quiz.questions.map((q) => {
+              if (!sub) return "(no submission)";
+              return formatAnswerForCSV(q, sub.answers?.[q.id] as number | string | undefined);
+            }),
+          ];
+          lines.push(row.map(esc).join(","));
+        });
+        lines.push("");
+      });
+    });
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    const label = responsesCohortFilter.replace(/^(cohort|course):/, "");
+    link.download = `quiz-responses-${label}-${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+  };
+
+  const getEnrollmentParentName = (enrollment: EnrollmentWithUser) => {
+    if (enrollment.cohort_id) {
+      return cohorts.find((c) => c.id === enrollment.cohort_id)?.name || "Unknown Cohort";
+    }
+    if (enrollment.course_id) {
+      return courses.find((c) => c.id === enrollment.course_id)?.name || "Unknown Course";
+    }
+    return "-";
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-green-600 dark:text-green-400";
+    if (score >= 50) return "text-yellow-600 dark:text-yellow-400";
+    return "text-red-600 dark:text-red-400";
+  };
+
+  const getRankBadge = (rank: number) => {
+    if (rank === 1) return <span className="text-amber-500">🥇</span>;
+    if (rank === 2) return <span className="text-slate-400">🥈</span>;
+    if (rank === 3) return <span className="text-amber-700">🥉</span>;
+    return <span className="text-muted-foreground">{rank}</span>;
+  };
 
   if (authLoading) return null;
-  
+
   if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -1165,45 +1263,63 @@ export default function Admin() {
           <p className="text-muted-foreground">Manage cohorts, courses, sessions, and quizzes</p>
         </div>
 
-         <Tabs defaultValue="cohorts" className="space-y-6">
-           <TabsList className="grid w-full grid-cols-12 lg:w-auto lg:inline-grid">
-              <TabsTrigger value="cohorts" className="gap-2">
-                <Users className="h-4 w-4" /> Cohorts
-              </TabsTrigger>
-              <TabsTrigger value="courses" className="gap-2">
-                <BookOpen className="h-4 w-4" /> Courses
-              </TabsTrigger>
-              <TabsTrigger value="sessions" className="gap-2">
-                <GraduationCap className="h-4 w-4" /> Sessions
-              </TabsTrigger>
-              <TabsTrigger value="quizzes" className="gap-2">
-                <ClipboardList className="h-4 w-4" /> Quizzes
-              </TabsTrigger>
-              <TabsTrigger value="responses" className="gap-2">
-                <MessageSquare className="h-4 w-4" /> Quiz Responses
-              </TabsTrigger>
-              <TabsTrigger value="enrollments" className="gap-2">
-                <Users className="h-4 w-4" /> Enrollments
-              </TabsTrigger>
-               <TabsTrigger value="leaderboard" className="gap-2">
-                 <Trophy className="h-4 w-4" /> Leaderboard
-               </TabsTrigger>
-               <TabsTrigger value="feedback" className="gap-2">
-                <MessageSquare className="h-4 w-4" /> Feedback
-                </TabsTrigger>
-                <TabsTrigger value="prompts" className="gap-2">
-                  <FileText className="h-4 w-4" /> Prompts
-                </TabsTrigger>
-                <TabsTrigger value="unenrolled" className="gap-2" onClick={() => { if (unenrolledUsers.length === 0) fetchUnenrolledUsers(); }}>
-                  <UserMinus className="h-4 w-4" /> Unenrolled
-                </TabsTrigger>
-                <TabsTrigger value="registrations" className="gap-2" onClick={() => { if (registrations.length === 0) fetchRegistrations(); }}>
-                  <ClipboardList className="h-4 w-4" /> Registrations
-                </TabsTrigger>
-                <TabsTrigger value="payments" className="gap-2" onClick={() => { if (payments.length === 0) fetchPayments(); }}>
-                  <CreditCard className="h-4 w-4" /> Payments
-                </TabsTrigger>
-             </TabsList>
+        <Tabs defaultValue="cohorts" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-12 lg:w-auto lg:inline-grid">
+            <TabsTrigger value="cohorts" className="gap-2">
+              <Users className="h-4 w-4" /> Cohorts
+            </TabsTrigger>
+            <TabsTrigger value="courses" className="gap-2">
+              <BookOpen className="h-4 w-4" /> Courses
+            </TabsTrigger>
+            <TabsTrigger value="sessions" className="gap-2">
+              <GraduationCap className="h-4 w-4" /> Sessions
+            </TabsTrigger>
+            <TabsTrigger value="quizzes" className="gap-2">
+              <ClipboardList className="h-4 w-4" /> Quizzes
+            </TabsTrigger>
+            <TabsTrigger value="responses" className="gap-2">
+              <MessageSquare className="h-4 w-4" /> Quiz Responses
+            </TabsTrigger>
+            <TabsTrigger value="enrollments" className="gap-2">
+              <Users className="h-4 w-4" /> Enrollments
+            </TabsTrigger>
+            <TabsTrigger value="leaderboard" className="gap-2">
+              <Trophy className="h-4 w-4" /> Leaderboard
+            </TabsTrigger>
+            <TabsTrigger value="feedback" className="gap-2">
+              <MessageSquare className="h-4 w-4" /> Feedback
+            </TabsTrigger>
+            <TabsTrigger value="prompts" className="gap-2">
+              <FileText className="h-4 w-4" /> Prompts
+            </TabsTrigger>
+            <TabsTrigger
+              value="unenrolled"
+              className="gap-2"
+              onClick={() => {
+                if (unenrolledUsers.length === 0) fetchUnenrolledUsers();
+              }}
+            >
+              <UserMinus className="h-4 w-4" /> Unenrolled
+            </TabsTrigger>
+            <TabsTrigger
+              value="registrations"
+              className="gap-2"
+              onClick={() => {
+                if (registrations.length === 0) fetchRegistrations();
+              }}
+            >
+              <ClipboardList className="h-4 w-4" /> Registrations
+            </TabsTrigger>
+            <TabsTrigger
+              value="payments"
+              className="gap-2"
+              onClick={() => {
+                if (payments.length === 0) fetchPayments();
+              }}
+            >
+              <CreditCard className="h-4 w-4" /> Payments
+            </TabsTrigger>
+          </TabsList>
 
           {/* Cohorts Tab */}
           <TabsContent value="cohorts">
@@ -1213,13 +1329,20 @@ export default function Admin() {
                   <CardTitle>Manage Cohorts</CardTitle>
                   <CardDescription>Create, edit, and manage cohort programs</CardDescription>
                 </div>
-                <Button onClick={() => { setEditingCohort(null); setCohortFormOpen(true); }}>
+                <Button
+                  onClick={() => {
+                    setEditingCohort(null);
+                    setCohortFormOpen(true);
+                  }}
+                >
                   <Plus className="mr-2 h-4 w-4" /> Add Cohort
                 </Button>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
                 ) : cohorts.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">No cohorts yet. Create your first one!</p>
                 ) : (
@@ -1237,36 +1360,54 @@ export default function Admin() {
                       {cohorts.map((cohort) => (
                         <TableRow key={cohort.id}>
                           <TableCell className="font-medium">{cohort.name}</TableCell>
-                          <TableCell>{cohort.mentor_name || '-'}</TableCell>
+                          <TableCell>{cohort.mentor_name || "-"}</TableCell>
                           <TableCell>
-                            {cohort.start_date ? new Date(cohort.start_date).toLocaleDateString() : '-'}
+                            {cohort.start_date ? new Date(cohort.start_date).toLocaleDateString() : "-"}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={cohort.is_published ? 'default' : 'secondary'}>
-                              {cohort.is_published ? 'Published' : 'Draft'}
+                            <Badge variant={cohort.is_published ? "default" : "secondary"}>
+                              {cohort.is_published ? "Published" : "Draft"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right space-x-2">
-                            <Button variant="ghost" size="sm" onClick={() => { setEditingCohort(cohort); setCohortFormOpen(true); }} title="Edit">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingCohort(cohort);
+                                setCohortFormOpen(true);
+                              }}
+                              title="Edit"
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleDuplicateCohort(cohort)} title="Duplicate">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDuplicateCohort(cohort)}
+                              title="Duplicate"
+                            >
                               <Copy className="h-4 w-4" />
                             </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" title="Delete"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                <Button variant="ghost" size="sm" title="Delete">
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Cohort?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This will permanently delete "{cohort.name}" and all its sessions. This action cannot be undone.
+                                    This will permanently delete "{cohort.name}" and all its sessions. This action
+                                    cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteCohort(cohort.id)}>Delete</AlertDialogAction>
+                                  <AlertDialogAction onClick={() => handleDeleteCohort(cohort.id)}>
+                                    Delete
+                                  </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -1280,7 +1421,7 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-           {/* Courses Tab */}
+          {/* Courses Tab */}
           <TabsContent value="courses">
             <Card className="card-elevated">
               <CardHeader className="flex flex-row items-center justify-between">
@@ -1300,14 +1441,21 @@ export default function Admin() {
                       <SelectItem value="on-demand">On-Demand Courses</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button onClick={() => { setEditingCourse(null); setCourseFormOpen(true); }}>
+                  <Button
+                    onClick={() => {
+                      setEditingCourse(null);
+                      setCourseFormOpen(true);
+                    }}
+                  >
                     <Plus className="mr-2 h-4 w-4" /> Add Course
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
                 ) : courses.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">No courses yet. Create your first one!</p>
                 ) : (
@@ -1324,46 +1472,66 @@ export default function Admin() {
                     </TableHeader>
                     <TableBody>
                       {courses
-                        .filter(c => courseFilter === 'all' || (courseFilter === 'on-demand' ? c.is_on_demand : !c.is_on_demand))
+                        .filter(
+                          (c) =>
+                            courseFilter === "all" || (courseFilter === "on-demand" ? c.is_on_demand : !c.is_on_demand),
+                        )
                         .map((course) => (
-                        <TableRow key={course.id}>
-                          <TableCell className="font-medium">{course.name}</TableCell>
-                          <TableCell>
-                            <Badge variant={course.is_on_demand ? 'outline' : 'secondary'} className={course.is_on_demand ? 'border-accent text-accent-foreground bg-accent/10' : ''}>
-                              {course.is_on_demand ? 'On-Demand' : 'Live'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{course.mentor_name || '-'}</TableCell>
-                          <TableCell>{course.duration || '-'}</TableCell>
-                          <TableCell>
-                            <Badge variant={course.is_published ? 'default' : 'secondary'}>
-                              {course.is_published ? 'Published' : 'Draft'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right space-x-2">
-                            <Button variant="ghost" size="sm" onClick={() => { setEditingCourse(course); setCourseFormOpen(true); }}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Course?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently delete "{course.name}" and all its sessions. This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteCourse(course.id)}>Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                          <TableRow key={course.id}>
+                            <TableCell className="font-medium">{course.name}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={course.is_on_demand ? "outline" : "secondary"}
+                                className={
+                                  course.is_on_demand ? "border-accent text-accent-foreground bg-accent/10" : ""
+                                }
+                              >
+                                {course.is_on_demand ? "On-Demand" : "Live"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{course.mentor_name || "-"}</TableCell>
+                            <TableCell>{course.duration || "-"}</TableCell>
+                            <TableCell>
+                              <Badge variant={course.is_published ? "default" : "secondary"}>
+                                {course.is_published ? "Published" : "Draft"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingCourse(course);
+                                  setCourseFormOpen(true);
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Course?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently delete "{course.name}" and all its sessions. This action
+                                      cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteCourse(course.id)}>
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </TableCell>
+                          </TableRow>
+                        ))}
                     </TableBody>
                   </Table>
                 )}
@@ -1420,29 +1588,31 @@ export default function Admin() {
               </CardHeader>
               <CardContent>
                 {cohorts.length === 0 && courses.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">Create a cohort or course first to add sessions.</p>
+                  <p className="text-center py-8 text-muted-foreground">
+                    Create a cohort or course first to add sessions.
+                  </p>
                 ) : isLoading ? (
-                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
                 ) : sessions.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">No sessions yet. Create your first one!</p>
                 ) : (
                   (() => {
                     const filteredSessions = sessions.filter((session) => {
-                      if (sessionFilter === 'all') return true;
-                      if (sessionFilter.startsWith('cohort:')) {
-                        return session.cohort_id === sessionFilter.replace('cohort:', '');
+                      if (sessionFilter === "all") return true;
+                      if (sessionFilter.startsWith("cohort:")) {
+                        return session.cohort_id === sessionFilter.replace("cohort:", "");
                       }
-                      if (sessionFilter.startsWith('course:')) {
-                        return session.course_id === sessionFilter.replace('course:', '');
+                      if (sessionFilter.startsWith("course:")) {
+                        return session.course_id === sessionFilter.replace("course:", "");
                       }
                       return true;
                     });
 
                     if (filteredSessions.length === 0) {
                       return (
-                        <p className="text-center py-8 text-muted-foreground">
-                          No sessions found for this filter.
-                        </p>
+                        <p className="text-center py-8 text-muted-foreground">No sessions found for this filter.</p>
                       );
                     }
 
@@ -1460,52 +1630,77 @@ export default function Admin() {
                         </TableHeader>
                         <TableBody>
                           {filteredSessions.map((session) => (
-                        <TableRow key={session.id}>
-                          <TableCell className="font-medium">{session.title}</TableCell>
-                          <TableCell>{getSessionParentName(session)}</TableCell>
-                          <TableCell>
-                            {session.session_date ? new Date(session.session_date).toLocaleDateString() : '-'}
-                          </TableCell>
-                          <TableCell>{session.session_order}</TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={session.is_content_unlocked}
-                              onCheckedChange={async (checked) => {
-                                const { error } = await supabase.from('sessions').update({ is_content_unlocked: checked }).eq('id', session.id);
-                                if (error) {
-                                  toast({ title: 'Error updating session', description: error.message, variant: 'destructive' });
-                                } else {
-                                  setSessions(prev => prev.map(s => s.id === session.id ? { ...s, is_content_unlocked: checked } : s));
-                                  toast({ title: checked ? 'Content unlocked' : 'Content locked' });
-                                }
-                              }}
-                              aria-label="Toggle content visibility"
-                            />
-                          </TableCell>
-                          <TableCell className="text-right space-x-2">
-                            <Button variant="ghost" size="sm" onClick={() => { console.log('[Chapters] clicked for session', session?.id, session?.title); setChaptersSession(session); }}>Chapters</Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleEditSession(session)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Session?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently delete "{session.title}" and its quizzes. This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteSession(session.id)}>Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </TableCell>
-                        </TableRow>
+                            <TableRow key={session.id}>
+                              <TableCell className="font-medium">{session.title}</TableCell>
+                              <TableCell>{getSessionParentName(session)}</TableCell>
+                              <TableCell>
+                                {session.session_date ? new Date(session.session_date).toLocaleDateString() : "-"}
+                              </TableCell>
+                              <TableCell>{session.session_order}</TableCell>
+                              <TableCell>
+                                <Switch
+                                  checked={session.is_content_unlocked}
+                                  onCheckedChange={async (checked) => {
+                                    const { error } = await supabase
+                                      .from("sessions")
+                                      .update({ is_content_unlocked: checked })
+                                      .eq("id", session.id);
+                                    if (error) {
+                                      toast({
+                                        title: "Error updating session",
+                                        description: error.message,
+                                        variant: "destructive",
+                                      });
+                                    } else {
+                                      setSessions((prev) =>
+                                        prev.map((s) =>
+                                          s.id === session.id ? { ...s, is_content_unlocked: checked } : s,
+                                        ),
+                                      );
+                                      toast({ title: checked ? "Content unlocked" : "Content locked" });
+                                    }
+                                  }}
+                                  aria-label="Toggle content visibility"
+                                />
+                              </TableCell>
+                              <TableCell className="text-right space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    console.log("[Chapters] clicked for session", session?.id, session?.title);
+                                    setChaptersSession(session);
+                                  }}
+                                >
+                                  Chapters
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => handleEditSession(session)}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Session?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently delete "{session.title}" and its quizzes. This action
+                                        cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteSession(session.id)}>
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </TableCell>
+                            </TableRow>
                           ))}
                         </TableBody>
                       </Table>
@@ -1524,13 +1719,20 @@ export default function Admin() {
                   <CardTitle>Manage Quizzes</CardTitle>
                   <CardDescription>Create reusable quizzes and assign them to sessions</CardDescription>
                 </div>
-                <Button onClick={() => { setEditingQuiz(null); setQuizFormOpen(true); }}>
+                <Button
+                  onClick={() => {
+                    setEditingQuiz(null);
+                    setQuizFormOpen(true);
+                  }}
+                >
                   <Plus className="mr-2 h-4 w-4" /> Add Quiz
                 </Button>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
                 ) : quizzes.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">No quizzes yet. Create your first one!</p>
                 ) : (
@@ -1548,26 +1750,43 @@ export default function Admin() {
                           <TableCell className="font-medium">{quiz.title}</TableCell>
                           <TableCell>{quiz.questions.length}</TableCell>
                           <TableCell className="text-right space-x-2">
-                            <Button variant="ghost" size="sm" onClick={() => { setEditingQuiz(quiz); setQuizFormOpen(true); }}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingQuiz(quiz);
+                                setQuizFormOpen(true);
+                              }}
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" title="Duplicate" onClick={() => handleDuplicateQuiz(quiz.id)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Duplicate"
+                              onClick={() => handleDuplicateQuiz(quiz.id)}
+                            >
                               <Copy className="h-4 w-4" />
                             </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                <Button variant="ghost" size="sm">
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Quiz?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This will permanently delete "{quiz.title}" and unassign it from all sessions. This action cannot be undone.
+                                    This will permanently delete "{quiz.title}" and unassign it from all sessions. This
+                                    action cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteQuiz(quiz.id)}>Delete</AlertDialogAction>
+                                  <AlertDialogAction onClick={() => handleDeleteQuiz(quiz.id)}>
+                                    Delete
+                                  </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -1605,7 +1824,7 @@ export default function Admin() {
               <CardContent>
                 {(() => {
                   const cohortOptions = cohorts;
-                  const onDemandCourses = courses.filter((c) => c.is_on_demand);
+                  const onDemandCourses = courses;
 
                   return (
                     <div className="space-y-6">
@@ -1658,7 +1877,8 @@ export default function Admin() {
                             <div key={sess.id} className="space-y-4">
                               <div className="flex items-center gap-2">
                                 <h3 className="text-base font-semibold">
-                                  {sess.session_order ? `Session ${sess.session_order}: ` : ''}{sess.title}
+                                  {sess.session_order ? `Session ${sess.session_order}: ` : ""}
+                                  {sess.title}
                                 </h3>
                               </div>
                               {sess.quizzes.map((quiz) => {
@@ -1694,7 +1914,7 @@ export default function Admin() {
                                             return (
                                               <TableRow key={u.user_id}>
                                                 <TableCell className="align-top">
-                                                  <div className="font-medium text-sm">{u.name || 'Unknown'}</div>
+                                                  <div className="font-medium text-sm">{u.name || "Unknown"}</div>
                                                   <div className="text-xs text-muted-foreground">{u.email}</div>
                                                 </TableCell>
                                                 {!sub ? (
@@ -1707,16 +1927,24 @@ export default function Admin() {
                                                 ) : (
                                                   quiz.questions.map((q) => {
                                                     const a = sub.answers?.[q.id];
-                                                    const has = a !== undefined && a !== null && a !== '';
-                                                    let content: React.ReactNode = <span className="text-muted-foreground">—</span>;
+                                                    const has = a !== undefined && a !== null && a !== "";
+                                                    let content: React.ReactNode = (
+                                                      <span className="text-muted-foreground">—</span>
+                                                    );
                                                     if (has) {
-                                                      if ((q.type ?? 'mcq') === 'subjective') {
+                                                      if ((q.type ?? "mcq") === "subjective") {
                                                         content = (
-                                                          <p className="text-sm whitespace-pre-wrap break-words">{String(a)}</p>
+                                                          <p className="text-sm whitespace-pre-wrap break-words">
+                                                            {String(a)}
+                                                          </p>
                                                         );
                                                       } else {
                                                         const idx = Number(a);
-                                                        content = <p className="text-sm">{q.options?.[idx] ?? `Option ${idx + 1}`}</p>;
+                                                        content = (
+                                                          <p className="text-sm">
+                                                            {q.options?.[idx] ?? `Option ${idx + 1}`}
+                                                          </p>
+                                                        );
                                                       }
                                                     }
                                                     return (
@@ -1746,81 +1974,79 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-         {/* Enrollments Tab */}
-         <TabsContent value="enrollments">
-           <Card className="card-elevated">
-             <CardHeader className="flex flex-row items-center justify-between">
-               <div>
-                 <CardTitle>
-                   View Enrollments{enrollments.length > 0 && enrollmentFilter ? ` (${enrollments.length})` : ''}
-                 </CardTitle>
-                 <CardDescription>View student enrollments by cohort or course</CardDescription>
-               </div>
-               <Select value={enrollmentFilter} onValueChange={setEnrollmentFilter}>
-                 <SelectTrigger className="w-[250px]">
-                   <Filter className="h-4 w-4 mr-2" />
-                   <SelectValue placeholder="Select cohort or course" />
-                 </SelectTrigger>
-                 <SelectContent>
-                   {cohorts.length > 0 && (
-                     <SelectGroup>
-                       <SelectLabel>Cohorts</SelectLabel>
-                       {cohorts.map((cohort) => (
-                         <SelectItem key={`cohort-${cohort.id}`} value={`cohort:${cohort.id}`}>
-                           {cohort.name}
-                         </SelectItem>
-                       ))}
-                     </SelectGroup>
-                   )}
-                   {courses.length > 0 && (
-                     <SelectGroup>
-                       <SelectLabel>Courses</SelectLabel>
-                       {courses.map((course) => (
-                         <SelectItem key={`course-${course.id}`} value={`course:${course.id}`}>
-                           {course.name}
-                         </SelectItem>
-                       ))}
-                     </SelectGroup>
-                   )}
-                 </SelectContent>
-               </Select>
-             </CardHeader>
-             <CardContent>
-               {!enrollmentFilter ? (
-                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                   <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                   <p className="text-muted-foreground">Select a cohort or course to view enrollments</p>
-                 </div>
-               ) : enrollmentsLoading ? (
-                 <div className="flex justify-center py-8">
-                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                 </div>
-               ) : enrollments.length === 0 ? (
-                 <p className="text-center py-8 text-muted-foreground">No enrollments found for this selection.</p>
-               ) : (
-                 <Table>
-                   <TableHeader>
-                     <TableRow>
-                       <TableHead>Student Name</TableHead>
-                       <TableHead>Email</TableHead>
-                       <TableHead>Enrolled At</TableHead>
-                     </TableRow>
-                   </TableHeader>
-                   <TableBody>
-                     {enrollments.map((enrollment) => (
-                       <TableRow key={enrollment.id}>
-                         <TableCell className="font-medium">{enrollment.user_name || 'Unknown'}</TableCell>
-                         <TableCell>{enrollment.user_email}</TableCell>
-                         <TableCell>
-                           {new Date(enrollment.enrolled_at).toLocaleDateString()}
-                         </TableCell>
-                       </TableRow>
-                     ))}
-                   </TableBody>
-                 </Table>
-               )}
-             </CardContent>
-           </Card>
+          {/* Enrollments Tab */}
+          <TabsContent value="enrollments">
+            <Card className="card-elevated">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>
+                    View Enrollments{enrollments.length > 0 && enrollmentFilter ? ` (${enrollments.length})` : ""}
+                  </CardTitle>
+                  <CardDescription>View student enrollments by cohort or course</CardDescription>
+                </div>
+                <Select value={enrollmentFilter} onValueChange={setEnrollmentFilter}>
+                  <SelectTrigger className="w-[250px]">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Select cohort or course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cohorts.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>Cohorts</SelectLabel>
+                        {cohorts.map((cohort) => (
+                          <SelectItem key={`cohort-${cohort.id}`} value={`cohort:${cohort.id}`}>
+                            {cohort.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
+                    {courses.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>Courses</SelectLabel>
+                        {courses.map((course) => (
+                          <SelectItem key={`course-${course.id}`} value={`course:${course.id}`}>
+                            {course.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
+                  </SelectContent>
+                </Select>
+              </CardHeader>
+              <CardContent>
+                {!enrollmentFilter ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Select a cohort or course to view enrollments</p>
+                  </div>
+                ) : enrollmentsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : enrollments.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No enrollments found for this selection.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Student Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Enrolled At</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {enrollments.map((enrollment) => (
+                        <TableRow key={enrollment.id}>
+                          <TableCell className="font-medium">{enrollment.user_name || "Unknown"}</TableCell>
+                          <TableCell>{enrollment.user_email}</TableCell>
+                          <TableCell>{new Date(enrollment.enrolled_at).toLocaleDateString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Leaderboard Tab */}
@@ -1829,7 +2055,7 @@ export default function Admin() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>
-                    Leaderboard{leaderboard.length > 0 && leaderboardFilter ? ` (${leaderboard.length} students)` : ''}
+                    Leaderboard{leaderboard.length > 0 && leaderboardFilter ? ` (${leaderboard.length} students)` : ""}
                   </CardTitle>
                   <CardDescription>View student rankings by quiz performance and session completion</CardDescription>
                 </div>
@@ -1873,7 +2099,9 @@ export default function Admin() {
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                   </div>
                 ) : leaderboard.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">No students found or no quiz submissions yet.</p>
+                  <p className="text-center py-8 text-muted-foreground">
+                    No students found or no quiz submissions yet.
+                  </p>
                 ) : (
                   <Table>
                     <TableHeader>
@@ -1889,17 +2117,15 @@ export default function Admin() {
                     <TableBody>
                       {leaderboard.map((entry, index) => (
                         <TableRow key={entry.user_id}>
-                          <TableCell className="font-medium text-lg">
-                            {getRankBadge(index + 1)}
-                          </TableCell>
-                          <TableCell className="font-medium">{entry.user_name || 'Unknown'}</TableCell>
+                          <TableCell className="font-medium text-lg">{getRankBadge(index + 1)}</TableCell>
+                          <TableCell className="font-medium">{entry.user_name || "Unknown"}</TableCell>
                           <TableCell>{entry.user_email}</TableCell>
                           <TableCell className="text-center">
                             <span className={`font-semibold ${getScoreColor(entry.avg_quiz_score)}`}>
                               {entry.avg_quiz_score}%
                             </span>
                             <span className="text-xs text-muted-foreground ml-1">
-                              ({entry.quizzes_attempted} quiz{entry.quizzes_attempted !== 1 ? 'zes' : ''})
+                              ({entry.quizzes_attempted} quiz{entry.quizzes_attempted !== 1 ? "zes" : ""})
                             </span>
                           </TableCell>
                           <TableCell className="text-center">
@@ -1908,9 +2134,7 @@ export default function Admin() {
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Progress value={entry.completion_percentage} className="h-2 w-16" />
-                              <span className="text-sm text-muted-foreground w-10">
-                                {entry.completion_percentage}%
-                              </span>
+                              <span className="text-sm text-muted-foreground w-10">{entry.completion_percentage}%</span>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1928,7 +2152,7 @@ export default function Admin() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>
-                    Feedback{feedbackEntries.length > 0 && feedbackFilter ? ` (${feedbackEntries.length})` : ''}
+                    Feedback{feedbackEntries.length > 0 && feedbackFilter ? ` (${feedbackEntries.length})` : ""}
                   </CardTitle>
                   <CardDescription>View learner feedback by cohort or course</CardDescription>
                 </div>
@@ -1986,7 +2210,7 @@ export default function Admin() {
                     <TableBody>
                       {feedbackEntries.map((entry) => (
                         <TableRow key={entry.id}>
-                          <TableCell className="font-medium">{entry.user_name || 'Unknown'}</TableCell>
+                          <TableCell className="font-medium">{entry.user_name || "Unknown"}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-0.5">
                               {[1, 2, 3, 4, 5].map((star) => {
@@ -1996,18 +2220,38 @@ export default function Admin() {
                                   return (
                                     <svg key={star} viewBox="0 0 24 24" className="h-4 w-4">
                                       <defs>
-                                        <clipPath id={`admin-half-l-${entry.id}-${star}`}><rect x="0" y="0" width="12" height="24" /></clipPath>
-                                        <clipPath id={`admin-half-r-${entry.id}-${star}`}><rect x="12" y="0" width="12" height="24" /></clipPath>
+                                        <clipPath id={`admin-half-l-${entry.id}-${star}`}>
+                                          <rect x="0" y="0" width="12" height="24" />
+                                        </clipPath>
+                                        <clipPath id={`admin-half-r-${entry.id}-${star}`}>
+                                          <rect x="12" y="0" width="12" height="24" />
+                                        </clipPath>
                                       </defs>
-                                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#facc15" stroke="#facc15" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" clipPath={`url(#admin-half-l-${entry.id}-${star})`} />
-                                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="none" stroke="#d4d4d8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" clipPath={`url(#admin-half-r-${entry.id}-${star})`} />
+                                      <path
+                                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                                        fill="#facc15"
+                                        stroke="#facc15"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        clipPath={`url(#admin-half-l-${entry.id}-${star})`}
+                                      />
+                                      <path
+                                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                                        fill="none"
+                                        stroke="#d4d4d8"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        clipPath={`url(#admin-half-r-${entry.id}-${star})`}
+                                      />
                                     </svg>
                                   );
                                 }
                                 return (
                                   <Star
                                     key={star}
-                                    className={`h-4 w-4 ${isFull ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`}
+                                    className={`h-4 w-4 ${isFull ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`}
                                   />
                                 );
                               })}
@@ -2017,9 +2261,7 @@ export default function Admin() {
                           <TableCell className="text-sm text-muted-foreground">
                             {entry.comment || <span className="italic">No comment</span>}
                           </TableCell>
-                          <TableCell className="text-sm">
-                            {new Date(entry.created_at).toLocaleDateString()}
-                          </TableCell>
+                          <TableCell className="text-sm">{new Date(entry.created_at).toLocaleDateString()}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -2055,19 +2297,19 @@ export default function Admin() {
                   <Button
                     onClick={async () => {
                       if (!promptTitle.trim() || !promptContent.trim()) {
-                        toast({ title: 'Please fill in both title and content', variant: 'destructive' });
+                        toast({ title: "Please fill in both title and content", variant: "destructive" });
                         return;
                       }
-                      const { error } = await supabase.from('prompts').insert({
+                      const { error } = await supabase.from("prompts").insert({
                         title: promptTitle.trim(),
                         content: promptContent.trim(),
                       });
                       if (error) {
-                        toast({ title: 'Failed to add prompt', description: error.message, variant: 'destructive' });
+                        toast({ title: "Failed to add prompt", description: error.message, variant: "destructive" });
                       } else {
-                        toast({ title: 'Prompt added!' });
-                        setPromptTitle('');
-                        setPromptContent('');
+                        toast({ title: "Prompt added!" });
+                        setPromptTitle("");
+                        setPromptContent("");
                         fetchPrompts();
                       }
                     }}
@@ -2078,7 +2320,9 @@ export default function Admin() {
 
                 {/* Prompts List */}
                 {promptsLoading ? (
-                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
                 ) : prompts.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">No prompts yet.</p>
                 ) : (
@@ -2096,31 +2340,43 @@ export default function Admin() {
                           <TableCell className="font-medium">{prompt.title}</TableCell>
                           <TableCell className="max-w-md truncate text-muted-foreground">{prompt.content}</TableCell>
                           <TableCell className="text-right flex justify-end gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => {
-                              setEditingPromptId(prompt.id);
-                              setEditPromptTitle(prompt.title);
-                              setEditPromptContent(prompt.content);
-                            }}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingPromptId(prompt.id);
+                                setEditPromptTitle(prompt.title);
+                                setEditPromptContent(prompt.content);
+                              }}
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                <Button variant="ghost" size="sm">
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Prompt?</AlertDialogTitle>
-                                  <AlertDialogDescription>This will permanently delete "{prompt.title}".</AlertDialogDescription>
+                                  <AlertDialogDescription>
+                                    This will permanently delete "{prompt.title}".
+                                  </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={async () => {
-                                    const { error } = await supabase.from('prompts').delete().eq('id', prompt.id);
-                                    if (!error) {
-                                      toast({ title: 'Prompt deleted' });
-                                      fetchPrompts();
-                                    }
-                                  }}>Delete</AlertDialogAction>
+                                  <AlertDialogAction
+                                    onClick={async () => {
+                                      const { error } = await supabase.from("prompts").delete().eq("id", prompt.id);
+                                      if (!error) {
+                                        toast({ title: "Prompt deleted" });
+                                        fetchPrompts();
+                                      }
+                                    }}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -2147,25 +2403,45 @@ export default function Admin() {
                     {unenrolledLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Refresh
                   </Button>
-                  <Button variant="outline" size="sm" onClick={copyUnenrolledEmails} disabled={unenrolledUsers.length === 0}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyUnenrolledEmails}
+                    disabled={unenrolledUsers.length === 0}
+                  >
                     <Copy className="mr-2 h-4 w-4" /> Copy Emails
                   </Button>
-                  <Button variant="outline" size="sm" onClick={copyUnenrolledPhones} disabled={unenrolledUsers.length === 0}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyUnenrolledPhones}
+                    disabled={unenrolledUsers.length === 0}
+                  >
                     <Copy className="mr-2 h-4 w-4" /> Copy Phones
                   </Button>
-                  <Button variant="outline" size="sm" onClick={downloadUnenrolledCSV} disabled={unenrolledUsers.length === 0}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={downloadUnenrolledCSV}
+                    disabled={unenrolledUsers.length === 0}
+                  >
                     <Download className="mr-2 h-4 w-4" /> Download CSV
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 {unenrolledLoading ? (
-                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
                 ) : unenrolledUsers.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">No unenrolled users found.</p>
                 ) : (
                   <>
-                    <p className="text-sm text-muted-foreground mb-4">{unenrolledUsers.length} registration{unenrolledUsers.length !== 1 ? 's' : ''} not enrolled in any cohort</p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {unenrolledUsers.length} registration{unenrolledUsers.length !== 1 ? "s" : ""} not enrolled in any
+                      cohort
+                    </p>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -2219,7 +2495,13 @@ export default function Admin() {
                   <CardDescription>View all cohort registration submissions with full details</CardDescription>
                 </div>
                 <div className="flex gap-2 flex-wrap items-center">
-                  <Select value={registrationCohortFilter} onValueChange={(val) => { setRegistrationCohortFilter(val); fetchRegistrations(val); }}>
+                  <Select
+                    value={registrationCohortFilter}
+                    onValueChange={(val) => {
+                      setRegistrationCohortFilter(val);
+                      fetchRegistrations(val);
+                    }}
+                  >
                     <SelectTrigger className="w-[220px]">
                       <Filter className="mr-2 h-4 w-4" />
                       <SelectValue placeholder="Filter by cohort" />
@@ -2227,27 +2509,43 @@ export default function Admin() {
                     <SelectContent>
                       <SelectItem value="all">All Cohorts</SelectItem>
                       {registrationCohorts.map((c) => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="sm" onClick={() => fetchRegistrations(registrationCohortFilter)} disabled={registrationsLoading}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchRegistrations(registrationCohortFilter)}
+                    disabled={registrationsLoading}
+                  >
                     {registrationsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Refresh
                   </Button>
-                  <Button variant="outline" size="sm" onClick={downloadRegistrationsCSV} disabled={registrations.length === 0}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={downloadRegistrationsCSV}
+                    disabled={registrations.length === 0}
+                  >
                     <Download className="mr-2 h-4 w-4" /> Download CSV
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 {registrationsLoading ? (
-                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
                 ) : registrations.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">No registrations found.</p>
                 ) : (
                   <>
-                    <p className="text-sm text-muted-foreground mb-4">{registrations.length} registration{registrations.length !== 1 ? 's' : ''}</p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {registrations.length} registration{registrations.length !== 1 ? "s" : ""}
+                    </p>
                     <div className="space-y-3">
                       {registrations.map((reg) => (
                         <Card key={reg.id} className="border">
@@ -2262,24 +2560,42 @@ export default function Admin() {
                               <Badge variant="outline">{reg.status}</Badge>
                               {reg.capstone_office_hours && <Badge variant="secondary">Capstone</Badge>}
                             </div>
-                            <span className="text-xs text-muted-foreground">{new Date(reg.created_at).toLocaleDateString()}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(reg.created_at).toLocaleDateString()}
+                            </span>
                           </div>
                           {expandedRegistration === reg.id && (
                             <div className="border-t p-4 space-y-3 text-sm bg-muted/30">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div><span className="font-medium text-muted-foreground">Company:</span> {reg.company}</div>
-                                <div><span className="font-medium text-muted-foreground">Role:</span> {reg.role}</div>
-                                <div><span className="font-medium text-muted-foreground">Country:</span> {reg.country || '—'}</div>
-                                {reg.country === 'India' && (
-                                  <div><span className="font-medium text-muted-foreground">State:</span> {reg.state || '—'}</div>
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Company:</span> {reg.company}
+                                </div>
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Role:</span> {reg.role}
+                                </div>
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Country:</span>{" "}
+                                  {reg.country || "—"}
+                                </div>
+                                {reg.country === "India" && (
+                                  <div>
+                                    <span className="font-medium text-muted-foreground">State:</span> {reg.state || "—"}
+                                  </div>
                                 )}
-                                <div><span className="font-medium text-muted-foreground">Cohort:</span> {reg.cohort}</div>
-                                <div><span className="font-medium text-muted-foreground">Status:</span> {reg.status}</div>
-                                <div><span className="font-medium text-muted-foreground">Capstone Office Hours:</span> {reg.capstone_office_hours ? 'Yes' : 'No'}</div>
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Cohort:</span> {reg.cohort}
+                                </div>
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Status:</span> {reg.status}
+                                </div>
+                                <div>
+                                  <span className="font-medium text-muted-foreground">Capstone Office Hours:</span>{" "}
+                                  {reg.capstone_office_hours ? "Yes" : "No"}
+                                </div>
                               </div>
                               <div>
-                                <span className="font-medium text-muted-foreground">Interests:</span>{' '}
-                                {(reg.interests || []).join(', ')}
+                                <span className="font-medium text-muted-foreground">Interests:</span>{" "}
+                                {(reg.interests || []).join(", ")}
                                 {reg.other_interest && ` (Other: ${reg.other_interest})`}
                               </div>
                               <div>
@@ -2309,7 +2625,9 @@ export default function Admin() {
               <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
                 <div>
                   <CardTitle>Payments</CardTitle>
-                  <CardDescription>Razorpay transactions — use order/payment IDs to verify in Razorpay dashboard</CardDescription>
+                  <CardDescription>
+                    Razorpay transactions — use order/payment IDs to verify in Razorpay dashboard
+                  </CardDescription>
                 </div>
                 <Button variant="outline" size="sm" onClick={fetchPayments} disabled={paymentsLoading}>
                   {paymentsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -2318,12 +2636,16 @@ export default function Admin() {
               </CardHeader>
               <CardContent>
                 {paymentsLoading ? (
-                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
                 ) : payments.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">No payments found.</p>
                 ) : (
                   <>
-                    <p className="text-sm text-muted-foreground mb-4">{payments.length} payment{payments.length !== 1 ? 's' : ''}</p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {payments.length} payment{payments.length !== 1 ? "s" : ""}
+                    </p>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -2351,15 +2673,29 @@ export default function Admin() {
                             <TableCell>{payment.course_name}</TableCell>
                             <TableCell>{formatPaymentAmount(payment.amount, payment.currency)}</TableCell>
                             <TableCell>
-                              <Badge variant={payment.status === 'paid' ? 'default' : payment.status === 'failed' ? 'destructive' : 'secondary'}>
+                              <Badge
+                                variant={
+                                  payment.status === "paid"
+                                    ? "default"
+                                    : payment.status === "failed"
+                                      ? "destructive"
+                                      : "secondary"
+                                }
+                              >
                                 {payment.status}
                               </Badge>
                             </TableCell>
-                            <TableCell className="font-mono text-xs max-w-[140px] truncate" title={payment.razorpay_order_id}>
+                            <TableCell
+                              className="font-mono text-xs max-w-[140px] truncate"
+                              title={payment.razorpay_order_id}
+                            >
                               {payment.razorpay_order_id}
                             </TableCell>
-                            <TableCell className="font-mono text-xs max-w-[140px] truncate" title={payment.razorpay_payment_id || undefined}>
-                              {payment.razorpay_payment_id || '—'}
+                            <TableCell
+                              className="font-mono text-xs max-w-[140px] truncate"
+                              title={payment.razorpay_payment_id || undefined}
+                            >
+                              {payment.razorpay_payment_id || "—"}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -2399,21 +2735,20 @@ export default function Admin() {
         />
         <ChapterManager
           open={!!chaptersSession}
-          onOpenChange={(o) => { if (!o) setChaptersSession(null); }}
-          sessionId={chaptersSession?.id ?? ''}
-          sessionTitle={chaptersSession?.title ?? ''}
+          onOpenChange={(o) => {
+            if (!o) setChaptersSession(null);
+          }}
+          sessionId={chaptersSession?.id ?? ""}
+          sessionTitle={chaptersSession?.title ?? ""}
         />
-        <QuizForm
-          open={quizFormOpen}
-          onOpenChange={setQuizFormOpen}
-          quiz={editingQuiz}
-          onSave={handleSaveQuiz}
-        />
+        <QuizForm open={quizFormOpen} onOpenChange={setQuizFormOpen} quiz={editingQuiz} onSave={handleSaveQuiz} />
 
         {/* Edit Prompt Dialog */}
         <Dialog open={!!editingPromptId} onOpenChange={(open) => !open && setEditingPromptId(null)}>
           <DialogContent className="sm:max-w-lg">
-            <DialogHeader><DialogTitle>Edit Prompt</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Edit Prompt</DialogTitle>
+            </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Title</label>
@@ -2433,24 +2768,33 @@ export default function Admin() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setEditingPromptId(null)}>Cancel</Button>
-              <Button onClick={async () => {
-                if (!editPromptTitle.trim() || !editPromptContent.trim()) {
-                  toast({ title: 'Title and content are required', variant: 'destructive' });
-                  return;
-                }
-                const { error } = await supabase.from('prompts').update({
-                  title: editPromptTitle.trim(),
-                  content: editPromptContent.trim(),
-                }).eq('id', editingPromptId!);
-                if (error) {
-                  toast({ title: 'Failed to update prompt', description: error.message, variant: 'destructive' });
-                } else {
-                  toast({ title: 'Prompt updated!' });
-                  setEditingPromptId(null);
-                  fetchPrompts();
-                }
-              }}>Save</Button>
+              <Button variant="outline" onClick={() => setEditingPromptId(null)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!editPromptTitle.trim() || !editPromptContent.trim()) {
+                    toast({ title: "Title and content are required", variant: "destructive" });
+                    return;
+                  }
+                  const { error } = await supabase
+                    .from("prompts")
+                    .update({
+                      title: editPromptTitle.trim(),
+                      content: editPromptContent.trim(),
+                    })
+                    .eq("id", editingPromptId!);
+                  if (error) {
+                    toast({ title: "Failed to update prompt", description: error.message, variant: "destructive" });
+                  } else {
+                    toast({ title: "Prompt updated!" });
+                    setEditingPromptId(null);
+                    fetchPrompts();
+                  }
+                }}
+              >
+                Save
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
