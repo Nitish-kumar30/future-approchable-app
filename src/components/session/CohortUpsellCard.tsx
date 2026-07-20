@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
-import { COHORT_FORM_URL, COHORT_CONFIG } from '@/lib/constants';
+import { COHORT_FORM_URL, COHORT_CONFIG, localizedCohortPrice } from '@/lib/constants';
+import { usePricingCurrency } from '@/hooks/usePricingCurrency';
 import { Sparkles, Users, CalendarDays } from 'lucide-react';
 
 interface CohortUpsellCardProps {
@@ -27,6 +28,7 @@ const variantContent = {
 export default function CohortUpsellCard({ variant }: CohortUpsellCardProps) {
   const { icon: Icon, heading, subtext } = variantContent[variant];
   const c = COHORT_CONFIG;
+  const { currency } = usePricingCurrency();
 
   return (
     <div className="relative rounded-xl border-2 border-indigo-500/30 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 p-4 space-y-3 overflow-hidden">
@@ -48,7 +50,7 @@ export default function CohortUpsellCard({ variant }: CohortUpsellCardProps) {
           <span>{c.date}</span>
         </div>
         <span className="text-muted-foreground">·</span>
-        <span className="text-muted-foreground">{c.priceIndia} (India) / {c.priceInternational} (Intl)</span>
+        <span className="text-muted-foreground">{localizedCohortPrice(currency)}</span>
       </div>
 
       <p className="text-[11px] text-muted-foreground italic leading-snug">
