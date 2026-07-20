@@ -2,16 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { usePricingCurrency } from '@/hooks/usePricingCurrency';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { loadRazorpayCheckout } from '@/lib/loadRazorpay';
-import {
-  defaultCurrency,
-  priceLabel,
-  type PaymentCurrency,
-} from '@/lib/coursePayment';
 
 type PaymentButtonProps = {
   courseId: string;
@@ -23,7 +19,6 @@ type PaymentButtonProps = {
   size?: 'default' | 'sm' | 'lg' | 'icon';
 };
 
-// Reusable Pay button for paid courses — opens Razorpay checkout and verifies on server
 export default function PaymentButton({
   courseId,
   courseName,
@@ -35,13 +30,12 @@ export default function PaymentButton({
 }: PaymentButtonProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { coursePriceLabel, isLoading: isCurrencyLoading } = usePricingCurrency();
   const { toast } = useToast();
   const [isPaying, setIsPaying] = useState(false);
 
   const course = { price_inr_paise: priceInrPaise, price_usd_cents: priceUsdCents };
-  const hasInr = (priceInrPaise ?? 0) > 0;
-  const hasUsd = (priceUsdCents ?? 0) > 0;
-  const [currency, setCurrency] = useState<PaymentCurrency>(defaultCurrency(course));
+  const label = coursePriceLabel(course);
 
   if (hasPaid) {
     return (
@@ -63,7 +57,7 @@ export default function PaymentButton({
 
       const { data: orderData, error: orderError } = await supabase.functions.invoke(
         'create-razorpay-order',
-        { body: { course_id: courseId, currency } },
+        { body: { course_id: courseId } },
       );
 
       if (orderError || orderData?.error) {
@@ -129,40 +123,18 @@ export default function PaymentButton({
     }
   };
 
-  const label = priceLabel(course, currency);
+  const isBusy = isPaying || isCurrencyLoading;
 
   return (
-    <div className="flex items-center gap-2">
-      {hasInr && hasUsd && (
-        <div className="flex rounded-md border overflow-hidden text-sm">
-          <button
-            type="button"
-            className={`px-2 py-1 ${currency === 'INR' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
-            onClick={() => setCurrency('INR')}
-            disabled={isPaying}
-          >
-            INR
-          </button>
-          <button
-            type="button"
-            className={`px-2 py-1 ${currency === 'USD' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
-            onClick={() => setCurrency('USD')}
-            disabled={isPaying}
-          >
-            USD
-          </button>
-        </div>
+    <Button size={size} onClick={handlePay} disabled={isBusy || !label}>
+      {isBusy ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          {isPaying ? 'Processing...' : 'Loading...'}
+        </>
+      ) : (
+        `Pay ${label}`
       )}
-      <Button size={size} onClick={handlePay} disabled={isPaying || !label}>
-        {isPaying ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          `Pay ${label}`
-        )}
-      </Button>
-    </div>
+    </Button>
   );
 }
