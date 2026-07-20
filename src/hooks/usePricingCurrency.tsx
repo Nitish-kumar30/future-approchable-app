@@ -50,20 +50,17 @@ export function PricingCurrencyProvider({ children }: { children: ReactNode }) {
 
     async function fetchCurrency() {
       const cached = readCache();
-      if (cached) {
-        setCurrency(cached);
-        setIsLoading(false);
-        return;
-      }
+      // Serve cached value instantly, but always revalidate in the background
+      // so VPN / location changes are picked up within the session.
+      if (!cached) setIsLoading(true);
 
-      setIsLoading(true);
       const { data, error } = await supabase.functions.invoke('get-pricing-currency');
 
       if (cancelled) return;
 
       const resolved = !error && data?.currency
         ? parseCurrency(data.currency)
-        : FALLBACK_CURRENCY;
+        : cached ?? FALLBACK_CURRENCY;
 
       writeCache(resolved);
       setCurrency(resolved);
