@@ -12,3 +12,7 @@ export const COHORT_CONFIG = {
   previousCohortDate: "Apr 23",
   socialProof: "Alumni from Adobe, Microsoft, Deloitte",
 };
+
+export function localizedCohortPrice(currency: 'INR' | 'USD'): string {
+  return currency === 'INR' ? COHORT_CONFIG.priceIndia : COHORT_CONFIG.priceInternational;
+}

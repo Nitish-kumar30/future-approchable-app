@@ -37,11 +37,6 @@ export function formatUsdPrice(cents: number): string {
 
 export type PaymentCurrency = 'INR' | 'USD';
 
-export function defaultCurrency(course: CoursePricing): PaymentCurrency {
-  if ((course.price_inr_paise ?? 0) > 0) return 'INR';
-  return 'USD';
-}
-
 export function priceLabel(course: CoursePricing, currency: PaymentCurrency): string {
   if (currency === 'INR' && (course.price_inr_paise ?? 0) > 0) {
     return formatInrPrice(course.price_inr_paise!);
@@ -50,4 +45,10 @@ export function priceLabel(course: CoursePricing, currency: PaymentCurrency): st
     return formatUsdPrice(course.price_usd_cents!);
   }
   return '';
+}
+
+/** @deprecated Use pricing currency from usePricingCurrency instead */
+export function defaultCurrency(course: CoursePricing): PaymentCurrency {
+  if ((course.price_inr_paise ?? 0) > 0) return 'INR';
+  return 'USD';
 }
