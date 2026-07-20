@@ -449,33 +449,19 @@ export default function CourseDetail() {
                   Enrollment Closed
                 </Badge>
               ) : course && isPaidCourse(course) ? (
-                <div className="flex items-center gap-3 flex-wrap">
-                  <PaymentButton
-                    courseId={course.id}
-                    courseName={course.name}
-                    priceInrPaise={course.price_inr_paise}
-                    priceUsdCents={course.price_usd_cents}
-                    hasPaid={hasPaid}
-                    onPaid={handlePaymentSuccess}
-                  />
-                  {isAdmin && (
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      onClick={handleEnroll}
-                      disabled={isEnrolling}
-                    >
-                      {isEnrolling ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Enrolling...
-                        </>
-                      ) : (
-                        'Enroll as admin'
-                      )}
-                    </Button>
-                  )}
-                </div>
+                <PaymentButton
+                  courseId={course.id}
+                  courseName={course.name}
+                  priceInrPaise={course.price_inr_paise}
+                  priceUsdCents={course.price_usd_cents}
+                  hasPaid={hasPaid}
+                  onPaid={handlePaymentSuccess}
+                  adminEnroll={
+                    isAdmin
+                      ? { onEnroll: handleEnroll, isEnrolling }
+                      : undefined
+                  }
+                />
               ) : (
                 <Button size="lg" onClick={handleEnroll} disabled={isEnrolling}>
                   {isEnrolling ? (

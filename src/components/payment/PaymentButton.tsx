@@ -22,6 +22,10 @@ type PaymentButtonProps = {
   hasPaid: boolean;
   onPaid?: () => void;
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  adminEnroll?: {
+    onEnroll: () => void;
+    isEnrolling?: boolean;
+  };
 };
 
 export default function PaymentButton({
@@ -32,6 +36,7 @@ export default function PaymentButton({
   hasPaid,
   onPaid,
   size = 'lg',
+  adminEnroll,
 }: PaymentButtonProps) {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
@@ -141,12 +146,12 @@ export default function PaymentButton({
     return (
       <div className="flex flex-col gap-2">
         <p className="text-xs text-muted-foreground">Admin: test both currencies</p>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {hasInr && (
             <Button
               size={size}
               onClick={() => openCheckout('INR')}
-              disabled={isBusy}
+              disabled={isBusy || adminEnroll?.isEnrolling}
             >
               {payingCurrency === 'INR' ? (
                 <>
@@ -163,7 +168,7 @@ export default function PaymentButton({
               size={size}
               variant="secondary"
               onClick={() => openCheckout('USD')}
-              disabled={isBusy}
+              disabled={isBusy || adminEnroll?.isEnrolling}
             >
               {payingCurrency === 'USD' ? (
                 <>
@@ -172,6 +177,23 @@ export default function PaymentButton({
                 </>
               ) : (
                 `Pay ${formatUsdPrice(priceUsdCents!)}`
+              )}
+            </Button>
+          )}
+          {adminEnroll && (
+            <Button
+              size={size}
+              variant="outline"
+              onClick={adminEnroll.onEnroll}
+              disabled={isBusy || adminEnroll.isEnrolling}
+            >
+              {adminEnroll.isEnrolling ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enrolling...
+                </>
+              ) : (
+                'Enroll as admin'
               )}
             </Button>
           )}
