@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.get-payments]
 verify_jwt = false
+
+[functions.get-pricing-currency]
+verify_jwt = false
