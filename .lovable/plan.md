@@ -1,43 +1,52 @@
-# Sync "AI Mastery for Working Professionals" content: Test → Live
+## Goal
+Improve the payment UX in `PaymentButton` (used in `CourseDetail` and in the footer via `StickyPayBar`) with clearer loading states, a post-payment confirmation step, celebratory confetti on success, and a support-friendly error message.
 
-## Current state (verified)
+## Changes
 
-Course row exists in both Test and Live with the same `id` (`96be8221-…9ee352`). Session IDs also match for the 2 sessions already in Live, so we can upsert by primary key without breaking existing enrollments or progress.
+### 1. `src/components/payment/PaymentButton.tsx`
+- Introduce a single `status` state: `'idle' | 'opening' | 'confirming' | 'success' | 'error'`.
+- Button behavior while any non-idle state is active:
+  - `disabled = true`
+  - Show `<Loader2 className="animate-spin" />` + label:
+    - `opening` → "Processing…"
+    - `confirming` → "Confirming your access…"
+    - `success` → "Enrolled ✓"
+- Flow:
+  1. On click → `opening`; call `create-razorpay-order`, load Razorpay, open checkout.
+  2. On Razorpay `handler` (payment done, before verify response) → `confirming`.
+  3. Call `verify-razorpay-payment`.
+     - Success → `success`, fire confetti, keep the toast, call `onPaid?.()` after a short delay so the confetti is visible.
+     - Failure → `error`, show error toast (see below), reset to `idle` after toast.
+  4. On Razorpay modal dismiss (no payment) → back to `idle`.
+- Keep admin dual-currency block; apply the same status logic per-currency (track which currency is active).
 
-| Entity              | Test | Live |
-| ------------------- | ---- | ---- |
-| sessions            | 5    | 2    |
-| chapters            | 48   | 24   |
-| session_quizzes     | 4    | 2    |
-| quizzes referenced  | 4    | 2    |
-| pre_reading_materials | 5  | 0    |
-| mini_projects       | 3    | 0    |
-| enrollments (Live)  | —    | 4 (preserved) |
+### 2. Confetti
+- Add `canvas-confetti` (tiny, ~2kb) via `bun add canvas-confetti @types/canvas-confetti`.
+- On verify-success, fire a short burst from the button's bounding rect (or center-screen fallback).
 
-## Approach
+### 3. Error toast copy
+Replace the current generic error toasts (both order-create failure and verify failure) with:
 
-Generate a single SQL script that you run once in the Live SQL editor. It performs an idempotent upsert (INSERT … ON CONFLICT (id) DO UPDATE) for every row currently in Test, in FK-safe order:
+> Title: **Payment could not be confirmed**
+> Description: "Something went wrong: {error message}. Please take a screenshot and email it to ranbeer@gmail.com so we can help."
+> Variant: destructive, duration ~10s so it's readable.
 
-1. `UPDATE courses` — sync metadata (name, description, prices, image, is_published, etc.) for the AI Mastery row.
-2. Upsert `sessions` (5 rows) — matches existing session IDs, updates titles/order/urls, inserts the 3 missing.
-3. Upsert `chapters` (48 rows) — safe because `chapter_progress` FKs by chapter_id; existing IDs keep their progress.
-4. Upsert `quizzes` (4 rows) — updates titles/questions of the 2 present, inserts the 2 missing.
-5. Upsert `session_quizzes` (4 rows).
-6. Upsert `pre_reading_materials` (5 rows).
-7. Upsert `mini_projects` (3 rows).
+Apply this same messaging to:
+- `create-razorpay-order` invoke error
+- Razorpay script load failure
+- `verify-razorpay-payment` invoke / signature error
+- Any thrown error in the `try` block
 
-Nothing is deleted. Live-only rows (enrollments, chapter_progress, session_progress, quiz_submissions, course_ratings, payments) are untouched.
+### 4. `StickyPayBar`
+No changes needed — it renders the same `PaymentButton`, so it inherits every improvement automatically. Verified from the current file.
 
-## Deliverable
+## Out of scope
+- No edge function changes.
+- No DB changes.
+- No changes to admin dual-button layout other than the shared status handling.
 
-A file `ai-mastery-live-sync.sql` containing the generated INSERT…ON CONFLICT statements with the exact current Test values baked in. You'll:
+## Files touched
+- `src/components/payment/PaymentButton.tsx` (logic + UI states + confetti trigger + new error copy)
+- `package.json` (add `canvas-confetti`)
 
-1. Open Cloud → SQL editor, switch environment to **Live**.
-2. Paste and run the script.
-3. Verify `learn.approachable.dev/courses/ai-mastery-for-working-professionals` shows all 5 sessions with chapters, quizzes, pre-readings, and mini-projects.
-
-## Notes / caveats
-
-- Chapter `hls_url`s copy over as-is. If any recordings are private/DRM-scoped per environment, they'll need re-issuing; based on schema they appear to be plain HLS URLs so this should just work.
-- Quiz `questions` JSONB is copied verbatim, so existing Live submissions for the 2 shared quizzes remain valid.
-- If you later add more content in Test, re-running the same generated script won't hurt but will overwrite any Live-only edits to these rows — treat Test as the source of truth for this course going forward.
+Confirm and I'll implement.
