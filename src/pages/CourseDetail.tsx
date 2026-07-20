@@ -319,9 +319,8 @@ export default function CourseDetail() {
   const handlePaymentSuccess = () => {
     setHasPaid(true);
     setIsEnrolled(true);
-    if (course) {
-      checkEnrollment(course.id);
-      fetchSessions(course.id);
+    if (slug) {
+      navigate(`/courses/${slug}/learn`);
     }
   };
 
