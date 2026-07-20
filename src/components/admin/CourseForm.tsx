@@ -21,6 +21,8 @@ interface Course {
   is_published: boolean;
   enrollment_disabled: boolean;
   is_on_demand: boolean;
+  price_inr_paise?: number | null;
+  price_usd_cents?: number | null;
 }
 
 interface CourseFormProps {
@@ -42,6 +44,8 @@ const defaultCourse: Course = {
   is_published: false,
   enrollment_disabled: false,
   is_on_demand: false,
+  price_inr_paise: null,
+  price_usd_cents: null,
 };
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -53,6 +57,9 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [priceError, setPriceError] = useState<string | null>(null);
+  const [priceInrRupees, setPriceInrRupees] = useState('');
+  const [priceUsdDollars, setPriceUsdDollars] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,12 +67,17 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
     if (course) {
       setFormData(course);
       setImagePreview(course.image_url || null);
+      setPriceInrRupees(course.price_inr_paise ? String(course.price_inr_paise / 100) : '');
+      setPriceUsdDollars(course.price_usd_cents ? String(course.price_usd_cents / 100) : '');
     } else {
       setFormData(defaultCourse);
       setImagePreview(null);
+      setPriceInrRupees('');
+      setPriceUsdDollars('');
     }
     setImageFile(null);
     setImageError(null);
+    setPriceError(null);
   }, [course, open]);
 
   // Cleanup blob URL on unmount or when preview changes
@@ -151,8 +163,25 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
     return urlData.publicUrl;
   };
 
+  const parsePrice = (value: string): number => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPriceError(null);
+
+    const inrRupees = parsePrice(priceInrRupees);
+    const usdDollars = parsePrice(priceUsdDollars);
+    const hasInr = inrRupees > 0;
+    const hasUsd = usdDollars > 0;
+
+    if (hasInr !== hasUsd) {
+      setPriceError('Paid courses require both INR and USD prices.');
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -165,7 +194,12 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
         setIsUploading(false);
       }
 
-      await onSave({ ...formData, image_url: imageUrl });
+      await onSave({
+        ...formData,
+        image_url: imageUrl,
+        price_inr_paise: hasInr ? Math.round(inrRupees * 100) : null,
+        price_usd_cents: hasUsd ? Math.round(usdDollars * 100) : null,
+      });
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving course:', error);
@@ -325,6 +359,42 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
                 placeholder="Brief introduction about the instructor..."
                 rows={2}
               />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label>Pricing (leave both empty for free courses)</Label>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="price_inr">Price in INR (₹)</Label>
+                  <Input
+                    id="price_inr"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={priceInrRupees}
+                    onChange={(e) => setPriceInrRupees(e.target.value)}
+                    placeholder="e.g., 2999"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="price_usd">Price in USD ($)</Label>
+                  <Input
+                    id="price_usd"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={priceUsdDollars}
+                    onChange={(e) => setPriceUsdDollars(e.target.value)}
+                    placeholder="e.g., 99"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Paid courses must have both INR and USD prices set.
+              </p>
+              {priceError && (
+                <p className="text-sm font-medium text-destructive">{priceError}</p>
+              )}
             </div>
 
             <div className="flex items-center space-x-2 md:col-span-2">

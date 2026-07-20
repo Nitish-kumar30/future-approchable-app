@@ -50,6 +50,8 @@ interface Course {
   is_published: boolean;
   enrollment_disabled: boolean;
   is_on_demand: boolean;
+  price_inr_paise: number | null;
+  price_usd_cents: number | null;
 }
 
 interface Session {
@@ -488,6 +490,8 @@ export default function Admin() {
       is_published: course.is_published,
       is_on_demand: course.is_on_demand ?? false,
       enrollment_disabled: course.is_on_demand ? false : course.enrollment_disabled,
+      price_inr_paise: course.price_inr_paise ?? null,
+      price_usd_cents: course.price_usd_cents ?? null,
     };
     
     if (course.id) {

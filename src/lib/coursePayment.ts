@@ -46,9 +46,3 @@ export function priceLabel(course: CoursePricing, currency: PaymentCurrency): st
   }
   return '';
 }
-
-/** @deprecated Use pricing currency from usePricingCurrency instead */
-export function defaultCurrency(course: CoursePricing): PaymentCurrency {
-  if ((course.price_inr_paise ?? 0) > 0) return 'INR';
-  return 'USD';
-}
