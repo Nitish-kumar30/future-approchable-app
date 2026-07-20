@@ -1,29 +1,43 @@
-## Diagnosis
+# Sync "AI Mastery for Working Professionals" content: Test → Live
 
-The edge function correctly returns `USD` for your VPN'd IP (JP). The UI still shows INR because the browser is serving a stale value from `sessionStorage`.
+## Current state (verified)
 
-In `src/hooks/usePricingCurrency.tsx`:
-- On mount, it reads `sessionStorage['pricing-currency']`. If present and not expired, it uses that and **skips** the edge function call.
-- TTL is 24 hours, so once INR was cached (before you turned on the VPN), it sticks for the whole browser session / 24h.
+Course row exists in both Test and Live with the same `id` (`96be8221-…9ee352`). Session IDs also match for the 2 sessions already in Live, so we can upsert by primary key without breaking existing enrollments or progress.
 
-Quick manual verification: open DevTools → Application → Session Storage → delete `pricing-currency` → reload. Button will flip to USD.
+| Entity              | Test | Live |
+| ------------------- | ---- | ---- |
+| sessions            | 5    | 2    |
+| chapters            | 48   | 24   |
+| session_quizzes     | 4    | 2    |
+| quizzes referenced  | 4    | 2    |
+| pre_reading_materials | 5  | 0    |
+| mini_projects       | 3    | 0    |
+| enrollments (Live)  | —    | 4 (preserved) |
 
-## Fix
+## Approach
 
-Make the cache VPN/location-change resilient without hammering ip-api on every render.
+Generate a single SQL script that you run once in the Live SQL editor. It performs an idempotent upsert (INSERT … ON CONFLICT (id) DO UPDATE) for every row currently in Test, in FK-safe order:
 
-1. **Shorten TTL + move to a background refresh model** in `src/hooks/usePricingCurrency.tsx`:
-   - Serve cached value instantly (stale-while-revalidate) but **always** fire `get-pricing-currency` in the background on mount.
-   - If the server response differs from cache, update state + cache.
-   - Reduce TTL from 24h to ~1h as a safety net.
+1. `UPDATE courses` — sync metadata (name, description, prices, image, is_published, etc.) for the AI Mastery row.
+2. Upsert `sessions` (5 rows) — matches existing session IDs, updates titles/order/urls, inserts the 3 missing.
+3. Upsert `chapters` (48 rows) — safe because `chapter_progress` FKs by chapter_id; existing IDs keep their progress.
+4. Upsert `quizzes` (4 rows) — updates titles/questions of the 2 present, inserts the 2 missing.
+5. Upsert `session_quizzes` (4 rows).
+6. Upsert `pre_reading_materials` (5 rows).
+7. Upsert `mini_projects` (3 rows).
 
-2. Keep `sessionStorage` (clears on tab close) — no schema/db changes, no edge function changes.
+Nothing is deleted. Live-only rows (enrollments, chapter_progress, session_progress, quiz_submissions, course_ratings, payments) are untouched.
 
-### Files touched
-- `src/hooks/usePricingCurrency.tsx` — only file changed.
+## Deliverable
 
-### Out of scope
-- No edge function changes (it's already correct).
-- No new caching layer, no user-facing currency toggle (per product req).
+A file `ai-mastery-live-sync.sql` containing the generated INSERT…ON CONFLICT statements with the exact current Test values baked in. You'll:
 
-Shall I proceed?
+1. Open Cloud → SQL editor, switch environment to **Live**.
+2. Paste and run the script.
+3. Verify `learn.approachable.dev/courses/ai-mastery-for-working-professionals` shows all 5 sessions with chapters, quizzes, pre-readings, and mini-projects.
+
+## Notes / caveats
+
+- Chapter `hls_url`s copy over as-is. If any recordings are private/DRM-scoped per environment, they'll need re-issuing; based on schema they appear to be plain HLS URLs so this should just work.
+- Quiz `questions` JSONB is copied verbatim, so existing Live submissions for the 2 shared quizzes remain valid.
+- If you later add more content in Test, re-running the same generated script won't hurt but will overwrite any Live-only edits to these rows — treat Test as the source of truth for this course going forward.
