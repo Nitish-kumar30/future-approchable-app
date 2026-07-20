@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import confetti from 'canvas-confetti';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePricingCurrency } from '@/hooks/usePricingCurrency';
@@ -28,6 +29,29 @@ type PaymentButtonProps = {
   };
 };
 
+type Status = 'idle' | 'opening' | 'confirming' | 'success';
+
+const SUPPORT_EMAIL = 'ranbeer@gmail.com';
+
+function fireConfetti(el: HTMLElement | null) {
+  const origin = el
+    ? (() => {
+        const r = el.getBoundingClientRect();
+        return {
+          x: (r.left + r.width / 2) / window.innerWidth,
+          y: (r.top + r.height / 2) / window.innerHeight,
+        };
+      })()
+    : { x: 0.5, y: 0.6 };
+  confetti({
+    particleCount: 120,
+    spread: 80,
+    startVelocity: 45,
+    origin,
+    zIndex: 9999,
+  });
+}
+
 export default function PaymentButton({
   courseId,
   courseName,
@@ -42,7 +66,9 @@ export default function PaymentButton({
   const { user, isAdmin } = useAuth();
   const { coursePriceLabel, isLoading: isCurrencyLoading } = usePricingCurrency();
   const { toast } = useToast();
-  const [payingCurrency, setPayingCurrency] = useState<PaymentCurrency | null>(null);
+  const [status, setStatus] = useState<Status>('idle');
+  const [activeCurrency, setActiveCurrency] = useState<PaymentCurrency | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const course = { price_inr_paise: priceInrPaise, price_usd_cents: priceUsdCents };
   const label = coursePriceLabel(course);
@@ -57,20 +83,29 @@ export default function PaymentButton({
     );
   }
 
+  const showError = (err: unknown) => {
+    const message = err instanceof Error ? err.message : String(err ?? 'Something went wrong');
+    toast({
+      title: 'Payment could not be confirmed',
+      description: `Something went wrong: ${message}. Please take a screenshot of this screen and email it to ${SUPPORT_EMAIL} so we can help.`,
+      variant: 'destructive',
+      duration: 10000,
+    });
+  };
+
   const openCheckout = async (currency?: PaymentCurrency) => {
     if (!user) {
       navigate('/auth');
       return;
     }
 
-    setPayingCurrency(currency ?? null);
+    setActiveCurrency(currency ?? null);
+    setStatus('opening');
     try {
       await loadRazorpayCheckout();
 
       const body: { course_id: string; currency?: PaymentCurrency } = { course_id: courseId };
-      if (currency) {
-        body.currency = currency;
-      }
+      if (currency) body.currency = currency;
 
       const { data: orderData, error: orderError } = await supabase.functions.invoke(
         'create-razorpay-order',
@@ -97,50 +132,68 @@ export default function PaymentButton({
           razorpay_payment_id: string;
           razorpay_signature: string;
         }) => {
-          const { data: verifyData, error: verifyError } = await supabase.functions.invoke(
-            'verify-razorpay-payment',
-            {
-              body: {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
+          setStatus('confirming');
+          try {
+            const { data: verifyData, error: verifyError } = await supabase.functions.invoke(
+              'verify-razorpay-payment',
+              {
+                body: {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                },
               },
-            },
-          );
+            );
 
-          if (verifyError || verifyData?.error) {
+            if (verifyError || verifyData?.error) {
+              throw new Error(verifyData?.error || verifyError?.message || 'Verification failed');
+            }
+
+            setStatus('success');
+            fireConfetti(buttonRef.current);
             toast({
-              title: 'Payment verification failed',
-              description: verifyData?.error || verifyError?.message,
-              variant: 'destructive',
+              title: 'Payment successful',
+              description: "You're enrolled in the course.",
             });
-            return;
+            setTimeout(() => {
+              onPaid?.();
+              setStatus('idle');
+              setActiveCurrency(null);
+            }, 1600);
+          } catch (err) {
+            showError(err);
+            setStatus('idle');
+            setActiveCurrency(null);
           }
-
-          toast({
-            title: 'Payment successful',
-            description: "You're enrolled in the course.",
-          });
-          onPaid?.();
         },
         modal: {
-          ondismiss: () => setPayingCurrency(null),
+          ondismiss: () => {
+            // Only reset if the user closed the modal before paying
+            setStatus((s) => (s === 'confirming' || s === 'success' ? s : 'idle'));
+            setActiveCurrency((c) => (status === 'confirming' || status === 'success' ? c : null));
+          },
         },
       });
 
       rzp.open();
     } catch (err) {
-      toast({
-        title: 'Payment failed',
-        description: err instanceof Error ? err.message : 'Something went wrong',
-        variant: 'destructive',
-      });
-    } finally {
-      setPayingCurrency(null);
+      showError(err);
+      setStatus('idle');
+      setActiveCurrency(null);
     }
   };
 
-  const isBusy = payingCurrency !== null || isCurrencyLoading;
+  const isBusy = status !== 'idle' || isCurrencyLoading;
+
+  const renderLabel = (fallback: string, currency?: PaymentCurrency) => {
+    const matchesCurrency = currency ? activeCurrency === currency : true;
+    if (matchesCurrency) {
+      if (status === 'opening') return (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing…</>);
+      if (status === 'confirming') return (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Confirming your access…</>);
+      if (status === 'success') return (<><CheckCircle2 className="mr-2 h-4 w-4" />Enrolled</>);
+    }
+    return fallback;
+  };
 
   if (isAdmin) {
     return (
@@ -153,14 +206,7 @@ export default function PaymentButton({
               onClick={() => openCheckout('INR')}
               disabled={isBusy || adminEnroll?.isEnrolling}
             >
-              {payingCurrency === 'INR' ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                `Pay ${formatInrPrice(priceInrPaise!)}`
-              )}
+              {renderLabel(`Pay ${formatInrPrice(priceInrPaise!)}`, 'INR')}
             </Button>
           )}
           {hasUsd && (
@@ -170,14 +216,7 @@ export default function PaymentButton({
               onClick={() => openCheckout('USD')}
               disabled={isBusy || adminEnroll?.isEnrolling}
             >
-              {payingCurrency === 'USD' ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                `Pay ${formatUsdPrice(priceUsdCents!)}`
-              )}
+              {renderLabel(`Pay ${formatUsdPrice(priceUsdCents!)}`, 'USD')}
             </Button>
           )}
           {adminEnroll && (
@@ -203,14 +242,19 @@ export default function PaymentButton({
   }
 
   return (
-    <Button size={size} onClick={() => openCheckout()} disabled={isBusy || !label}>
-      {isBusy ? (
+    <Button
+      ref={buttonRef}
+      size={size}
+      onClick={() => openCheckout()}
+      disabled={isBusy || !label}
+    >
+      {isCurrencyLoading && status === 'idle' ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          {payingCurrency !== null ? 'Processing...' : 'Loading...'}
+          Loading…
         </>
       ) : (
-        `Pay ${label}`
+        renderLabel(`Pay ${label}`)
       )}
     </Button>
   );
