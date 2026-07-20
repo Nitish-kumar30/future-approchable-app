@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getAuthUser } from "../_shared/auth.ts";
+import { getAuthUser, isAdminUser } from "../_shared/auth.ts";
 import { jsonResponse, optionsResponse } from "../_shared/cors.ts";
 import { resolveCurrencyFromRequest } from "../_shared/geoip.ts";
 import { createRazorpayOrder, getRazorpayKeyId } from "../_shared/razorpay.ts";
@@ -46,12 +46,18 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "course_id is required" }, 400);
     }
 
-    const { currency } = await resolveCurrencyFromRequest(req);
-
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    let currency = (await resolveCurrencyFromRequest(req)).currency;
+    const requested = body?.currency;
+    if (requested === "INR" || requested === "USD") {
+      if (await isAdminUser(supabaseAdmin, user.userId)) {
+        currency = requested;
+      }
+    }
 
     const { data: course, error: courseError } = await supabaseAdmin
       .from("courses")

@@ -8,6 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { loadRazorpayCheckout } from '@/lib/loadRazorpay';
+import {
+  formatInrPrice,
+  formatUsdPrice,
+  type PaymentCurrency,
+} from '@/lib/coursePayment';
 
 type PaymentButtonProps = {
   courseId: string;
@@ -29,13 +34,15 @@ export default function PaymentButton({
   size = 'lg',
 }: PaymentButtonProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { coursePriceLabel, isLoading: isCurrencyLoading } = usePricingCurrency();
   const { toast } = useToast();
-  const [isPaying, setIsPaying] = useState(false);
+  const [payingCurrency, setPayingCurrency] = useState<PaymentCurrency | null>(null);
 
   const course = { price_inr_paise: priceInrPaise, price_usd_cents: priceUsdCents };
   const label = coursePriceLabel(course);
+  const hasInr = (priceInrPaise ?? 0) > 0;
+  const hasUsd = (priceUsdCents ?? 0) > 0;
 
   if (hasPaid) {
     return (
@@ -45,19 +52,24 @@ export default function PaymentButton({
     );
   }
 
-  const handlePay = async () => {
+  const openCheckout = async (currency?: PaymentCurrency) => {
     if (!user) {
       navigate('/auth');
       return;
     }
 
-    setIsPaying(true);
+    setPayingCurrency(currency ?? null);
     try {
       await loadRazorpayCheckout();
 
+      const body: { course_id: string; currency?: PaymentCurrency } = { course_id: courseId };
+      if (currency) {
+        body.currency = currency;
+      }
+
       const { data: orderData, error: orderError } = await supabase.functions.invoke(
         'create-razorpay-order',
-        { body: { course_id: courseId } },
+        { body },
       );
 
       if (orderError || orderData?.error) {
@@ -107,7 +119,7 @@ export default function PaymentButton({
           onPaid?.();
         },
         modal: {
-          ondismiss: () => setIsPaying(false),
+          ondismiss: () => setPayingCurrency(null),
         },
       });
 
@@ -119,18 +131,61 @@ export default function PaymentButton({
         variant: 'destructive',
       });
     } finally {
-      setIsPaying(false);
+      setPayingCurrency(null);
     }
   };
 
-  const isBusy = isPaying || isCurrencyLoading;
+  const isBusy = payingCurrency !== null || isCurrencyLoading;
+
+  if (isAdmin) {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="text-xs text-muted-foreground">Admin: test both currencies</p>
+        <div className="flex flex-wrap gap-2">
+          {hasInr && (
+            <Button
+              size={size}
+              onClick={() => openCheckout('INR')}
+              disabled={isBusy}
+            >
+              {payingCurrency === 'INR' ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                `Pay ${formatInrPrice(priceInrPaise!)}`
+              )}
+            </Button>
+          )}
+          {hasUsd && (
+            <Button
+              size={size}
+              variant="secondary"
+              onClick={() => openCheckout('USD')}
+              disabled={isBusy}
+            >
+              {payingCurrency === 'USD' ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                `Pay ${formatUsdPrice(priceUsdCents!)}`
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <Button size={size} onClick={handlePay} disabled={isBusy || !label}>
+    <Button size={size} onClick={() => openCheckout()} disabled={isBusy || !label}>
       {isBusy ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          {isPaying ? 'Processing...' : 'Loading...'}
+          {payingCurrency !== null ? 'Processing...' : 'Loading...'}
         </>
       ) : (
         `Pay ${label}`

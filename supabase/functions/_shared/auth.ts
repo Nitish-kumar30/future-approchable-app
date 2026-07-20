@@ -1,9 +1,23 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export type AuthUser = {
   userId: string;
   email?: string;
 };
+
+export async function isAdminUser(
+  supabaseAdmin: SupabaseClient,
+  userId: string,
+): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+
+  return !error && !!data;
+}
 
 // Validates Bearer JWT and returns user id from claims
 export async function getAuthUser(req: Request): Promise<AuthUser | null> {

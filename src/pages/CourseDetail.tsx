@@ -448,15 +448,34 @@ export default function CourseDetail() {
                 <Badge variant="secondary" className="text-base px-4 py-2">
                   Enrollment Closed
                 </Badge>
-              ) : course && isPaidCourse(course) && !isAdmin ? (
-                <PaymentButton
-                  courseId={course.id}
-                  courseName={course.name}
-                  priceInrPaise={course.price_inr_paise}
-                  priceUsdCents={course.price_usd_cents}
-                  hasPaid={hasPaid}
-                  onPaid={handlePaymentSuccess}
-                />
+              ) : course && isPaidCourse(course) ? (
+                <div className="flex items-center gap-3 flex-wrap">
+                  <PaymentButton
+                    courseId={course.id}
+                    courseName={course.name}
+                    priceInrPaise={course.price_inr_paise}
+                    priceUsdCents={course.price_usd_cents}
+                    hasPaid={hasPaid}
+                    onPaid={handlePaymentSuccess}
+                  />
+                  {isAdmin && (
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={handleEnroll}
+                      disabled={isEnrolling}
+                    >
+                      {isEnrolling ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Enrolling...
+                        </>
+                      ) : (
+                        'Enroll as admin'
+                      )}
+                    </Button>
+                  )}
+                </div>
               ) : (
                 <Button size="lg" onClick={handleEnroll} disabled={isEnrolling}>
                   {isEnrolling ? (
@@ -558,7 +577,7 @@ export default function CourseDetail() {
 
         </div>
       </div>
-      {course && isPaidCourse(course) && !isAdmin && !isEnrolled && !course.enrollment_disabled && (
+      {course && isPaidCourse(course) && !isEnrolled && !course.enrollment_disabled && (
         <StickyPayBar
           courseId={course.id}
           courseName={course.name}
