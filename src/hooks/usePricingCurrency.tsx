@@ -7,7 +7,7 @@ import {
 } from '@/lib/coursePayment';
 
 const CACHE_KEY = 'pricing-currency';
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const FALLBACK_CURRENCY: PaymentCurrency = 'INR';
 
 type CacheEntry = { currency: PaymentCurrency; expiresAt: number };
@@ -50,20 +50,17 @@ export function PricingCurrencyProvider({ children }: { children: ReactNode }) {
 
     async function fetchCurrency() {
       const cached = readCache();
-      if (cached) {
-        setCurrency(cached);
-        setIsLoading(false);
-        return;
-      }
+      // Serve cached value instantly, but always revalidate in the background
+      // so VPN / location changes are picked up within the session.
+      if (!cached) setIsLoading(true);
 
-      setIsLoading(true);
       const { data, error } = await supabase.functions.invoke('get-pricing-currency');
 
       if (cancelled) return;
 
       const resolved = !error && data?.currency
         ? parseCurrency(data.currency)
-        : FALLBACK_CURRENCY;
+        : cached ?? FALLBACK_CURRENCY;
 
       writeCache(resolved);
       setCurrency(resolved);
