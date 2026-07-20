@@ -1,27 +1,29 @@
-## Goal
-Add a "Duplicate" action for quizzes in the Admin → Quizzes tab so admins can clone a quiz's definition (title + questions) without copying any submissions/responses.
+## Diagnosis
 
-## Scope
-- Only clones the row in `quizzes` (title, questions JSON).
-- Does NOT copy `quiz_submissions`.
-- Does NOT copy `session_quizzes` mappings — the duplicate starts unattached, so admins can assign it to sessions as needed.
-- New quiz title = `"<original title> (Copy)"`.
+The edge function correctly returns `USD` for your VPN'd IP (JP). The UI still shows INR because the browser is serving a stale value from `sessionStorage`.
 
-## UX
-- In `src/pages/Admin.tsx` Quizzes list, add a "Duplicate" button next to Edit/Delete on each quiz row.
-- On click → confirm → call edge function → toast success → refresh list.
-- The duplicated quiz appears in the list, ready to edit or attach to sessions.
+In `src/hooks/usePricingCurrency.tsx`:
+- On mount, it reads `sessionStorage['pricing-currency']`. If present and not expired, it uses that and **skips** the edge function call.
+- TTL is 24 hours, so once INR was cached (before you turned on the VPN), it sticks for the whole browser session / 24h.
 
-## Backend (per project rule: DB writes go through edge functions)
-New edge function `supabase/functions/duplicate-quiz/index.ts`:
-- Auth: verify caller JWT, require `admin` role via `user_roles`.
-- Input: `{ quiz_id: string }` (validated).
-- Reads original quiz via service role, inserts a new row with the same `questions` and title suffixed `(Copy)`.
-- Returns the new `{ id, title }`.
+Quick manual verification: open DevTools → Application → Session Storage → delete `pricing-currency` → reload. Button will flip to USD.
 
-## Technical Details
-- Files:
-  - New: `supabase/functions/duplicate-quiz/index.ts`
-  - Edit: `src/pages/Admin.tsx` (add button + handler in the Quizzes tab)
-- No schema/migration changes; no new tables; existing `quizzes` grants and RLS remain unchanged.
-- Session mappings and prior submissions are intentionally untouched.
+## Fix
+
+Make the cache VPN/location-change resilient without hammering ip-api on every render.
+
+1. **Shorten TTL + move to a background refresh model** in `src/hooks/usePricingCurrency.tsx`:
+   - Serve cached value instantly (stale-while-revalidate) but **always** fire `get-pricing-currency` in the background on mount.
+   - If the server response differs from cache, update state + cache.
+   - Reduce TTL from 24h to ~1h as a safety net.
+
+2. Keep `sessionStorage` (clears on tab close) — no schema/db changes, no edge function changes.
+
+### Files touched
+- `src/hooks/usePricingCurrency.tsx` — only file changed.
+
+### Out of scope
+- No edge function changes (it's already correct).
+- No new caching layer, no user-facing currency toggle (per product req).
+
+Shall I proceed?

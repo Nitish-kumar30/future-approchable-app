@@ -7,7 +7,7 @@ import {
 } from '@/lib/coursePayment';
 
 const CACHE_KEY = 'pricing-currency';
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const FALLBACK_CURRENCY: PaymentCurrency = 'INR';
 
 type CacheEntry = { currency: PaymentCurrency; expiresAt: number };
