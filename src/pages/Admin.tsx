@@ -1847,7 +1847,7 @@ export default function Admin() {
                             )}
                             {onDemandCourses.length > 0 && (
                               <SelectGroup>
-                                <SelectLabel>On-demand courses</SelectLabel>
+                                <SelectLabel>Courses</SelectLabel>
                                 {onDemandCourses.map((c) => (
                                   <SelectItem key={c.id} value={`course:${c.id}`}>
                                     {c.name}
