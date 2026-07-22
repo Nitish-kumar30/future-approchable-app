@@ -1,52 +1,27 @@
 ## Goal
-Improve the payment UX in `PaymentButton` (used in `CourseDetail` and in the footer via `StickyPayBar`) with clearer loading states, a post-payment confirmation step, celebratory confetti on success, and a support-friendly error message.
+Serve the Apple Pay domain verification file at `/.well-known/apple-developer-merchantid-domain-association` on all published domains (`approachable.lovable.app`, `learn.approachable.dev`) so Razorpay can enable Apple Pay in checkout.
 
-## Changes
+## Steps
 
-### 1. `src/components/payment/PaymentButton.tsx`
-- Introduce a single `status` state: `'idle' | 'opening' | 'confirming' | 'success' | 'error'`.
-- Button behavior while any non-idle state is active:
-  - `disabled = true`
-  - Show `<Loader2 className="animate-spin" />` + label:
-    - `opening` → "Processing…"
-    - `confirming` → "Confirming your access…"
-    - `success` → "Enrolled ✓"
-- Flow:
-  1. On click → `opening`; call `create-razorpay-order`, load Razorpay, open checkout.
-  2. On Razorpay `handler` (payment done, before verify response) → `confirming`.
-  3. Call `verify-razorpay-payment`.
-     - Success → `success`, fire confetti, keep the toast, call `onPaid?.()` after a short delay so the confetti is visible.
-     - Failure → `error`, show error toast (see below), reset to `idle` after toast.
-  4. On Razorpay modal dismiss (no payment) → back to `idle`.
-- Keep admin dual-currency block; apply the same status logic per-currency (track which currency is active).
+1. **Copy the uploaded file into `public/.well-known/`**
+   - Path: `public/.well-known/apple-developer-merchantid-domain-association` (no file extension — required by Apple).
+   - Vite serves everything under `public/` at the site root, so it will be reachable at:
+     - `https://approachable.lovable.app/.well-known/apple-developer-merchantid-domain-association`
+     - `https://learn.approachable.dev/.well-known/apple-developer-merchantid-domain-association`
+   - The SPA fallback only kicks in for unknown routes; real static files under `public/` are served as-is with `Content-Type: application/octet-stream` (or text) and a `200`, which is what Apple/Razorpay require.
 
-### 2. Confetti
-- Add `canvas-confetti` (tiny, ~2kb) via `bun add canvas-confetti @types/canvas-confetti`.
-- On verify-success, fire a short burst from the button's bounding rect (or center-screen fallback).
+2. **Publish**
+   - This is a frontend/static asset change, so it only goes live after clicking **Publish → Update** in Lovable.
 
-### 3. Error toast copy
-Replace the current generic error toasts (both order-create failure and verify failure) with:
-
-> Title: **Payment could not be confirmed**
-> Description: "Something went wrong: {error message}. Please take a screenshot and email it to ranbeer@gmail.com so we can help."
-> Variant: destructive, duration ~10s so it's readable.
-
-Apply this same messaging to:
-- `create-razorpay-order` invoke error
-- Razorpay script load failure
-- `verify-razorpay-payment` invoke / signature error
-- Any thrown error in the `try` block
-
-### 4. `StickyPayBar`
-No changes needed — it renders the same `PaymentButton`, so it inherits every improvement automatically. Verified from the current file.
-
-## Out of scope
-- No edge function changes.
-- No DB changes.
-- No changes to admin dual-button layout other than the shared status handling.
+3. **Register the domain in Razorpay dashboard**
+   - After publish, in the Razorpay dashboard → Apple Pay → add domain → enter `learn.approachable.dev` (and any other domain you want Apple Pay on).
+   - Razorpay will fetch the file from `/.well-known/...` and mark the domain verified. No code changes needed on the checkout side — once verified, Razorpay auto-shows Apple Pay on Safari/iOS for eligible users.
 
 ## Files touched
-- `src/components/payment/PaymentButton.tsx` (logic + UI states + confetti trigger + new error copy)
-- `package.json` (add `canvas-confetti`)
+- `public/.well-known/apple-developer-merchantid-domain-association` (new, copied verbatim from your upload)
+
+## Out of scope
+- No changes to `PaymentButton`, edge functions, or Razorpay order creation — Apple Pay rides on the existing Razorpay checkout once the domain is verified.
+- Custom domain `learn.approachable.dev` must already be Active (it is). If you also want Apple Pay on the raw `.lovable.app` subdomain, register that in Razorpay too — same file serves both.
 
 Confirm and I'll implement.
