@@ -15,7 +15,6 @@ import {
   LayoutDashboard, 
   Users, 
   BookOpen, 
-  Settings, 
   LogOut, 
   User,
   Loader2,
@@ -135,12 +134,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 <Link to="/profile" className="flex items-center cursor-pointer">
                   <User className="mr-2 h-4 w-4" />
                   Profile
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/settings" className="flex items-center cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

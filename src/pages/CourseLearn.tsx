@@ -68,6 +68,8 @@ interface MiniProject {
   display_order: number;
 }
 
+type CurriculumItem = { kind: "chapter" | "session" | "quiz"; id: string; sessionId: string };
+
 async function invokeFn(name: string, opts: { body?: any; method?: string; query?: Record<string, string> } = {}) {
   const {
     data: { session },
@@ -117,13 +119,13 @@ export default function CourseLearn() {
   const [myComment, setMyComment] = useState<string>("");
   const [rateOpen, setRateOpen] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!slug) return;
-    setLoading(true);
+    if (!opts?.silent) setLoading(true);
     const data = await invokeFn("get-course-learn", { query: { slug } });
     if (data.error) {
       toast({ title: "Failed to load course", description: data.error, variant: "destructive" });
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
       return;
     }
     setCourse(data.course);
@@ -141,32 +143,41 @@ export default function CourseLearn() {
     setQuizSubmissions(Object.fromEntries((data.quiz_submissions ?? []).map((q: any) => [q.quiz_id, q.score])));
     setMyRating(data.my_rating?.rating ?? 0);
     setMyComment(data.my_rating?.comment ?? "");
-    setLoading(false);
+    if (!opts?.silent) setLoading(false);
   }, [slug, toast]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  // Ordered playable items (chapters and no-chapter sessions), for prev/next + auto-advance.
-  const playable = useMemo(() => {
-    const items: { kind: "chapter" | "session"; id: string; sessionId: string }[] = [];
-    for (const s of sessions) {
-      const chs = chapters.filter((c) => c.session_id === s.id).sort((a, b) => a.chapter_order - b.chapter_order);
+  // Ordered curriculum items (chapters, session videos, quizzes) for prev/next + auto-advance.
+  const curriculum = useMemo(() => {
+    const items: CurriculumItem[] = [];
+    const sortedSessions = [...sessions].sort((a, b) => a.session_order - b.session_order);
+    for (const s of sortedSessions) {
+      const chs = chapters
+        .filter((c) => c.session_id === s.id)
+        .sort((a, b) => a.chapter_order - b.chapter_order);
       if (chs.length === 0 && s.video_url) {
         items.push({ kind: "session", id: s.id, sessionId: s.id });
       } else {
         for (const c of chs) items.push({ kind: "chapter", id: c.id, sessionId: s.id });
       }
+      const qs = sessionQuizzes
+        .filter((q) => q.session_id === s.id && q.quiz)
+        .sort((a, b) => a.display_order - b.display_order);
+      for (const sq of qs) {
+        items.push({ kind: "quiz", id: sq.quiz!.id, sessionId: s.id });
+      }
     }
     return items;
-  }, [sessions, chapters]);
+  }, [sessions, chapters, sessionQuizzes]);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Default selection: honor ?chapter= / ?quiz= deep link, else first unwatched.
   useEffect(() => {
-    if (selected || playable.length === 0) return;
+    if (selected || curriculum.length === 0) return;
     const qpChapter = searchParams.get("chapter");
     const qpQuiz = searchParams.get("quiz");
 
@@ -182,13 +193,14 @@ export default function CourseLearn() {
       }
     }
 
-    let target = qpChapter ? playable.find((it) => it.kind === "chapter" && it.id === qpChapter) : undefined;
+    let target = qpChapter ? curriculum.find((it) => it.kind === "chapter" && it.id === qpChapter) : undefined;
     if (!target) {
       target =
-        playable.find((it) => {
+        curriculum.find((it) => {
           if (it.kind === "chapter") return !chapterProgress[it.id]?.is_completed;
+          if (it.kind === "quiz") return quizSubmissions[it.id] == null;
           return !sessionProgress[it.id];
-        }) ?? playable[0];
+        }) ?? curriculum[0];
     }
     setSelected({ kind: target.kind, id: target.id });
     setCurrentSessionId(target.sessionId);
@@ -197,15 +209,26 @@ export default function CourseLearn() {
       next.delete("chapter");
       setSearchParams(next, { replace: true });
     }
-  }, [playable, selected, chapterProgress, sessionProgress, sessionQuizzes, searchParams, setSearchParams]);
+  }, [curriculum, selected, chapterProgress, sessionProgress, quizSubmissions, sessionQuizzes, searchParams, setSearchParams]);
 
   const currentChapter = selected?.kind === "chapter" ? (chapters.find((c) => c.id === selected.id) ?? null) : null;
-  const currentSession =
-    selected?.kind === "session"
-      ? (sessions.find((s) => s.id === selected.id) ?? null)
-      : currentChapter
-        ? (sessions.find((s) => s.id === currentChapter.session_id) ?? null)
-        : null;
+  const currentSession = useMemo(() => {
+    if (!selected) return null;
+    if (selected.kind === "session") return sessions.find((s) => s.id === selected.id) ?? null;
+    if (selected.kind === "chapter") {
+      const ch = chapters.find((c) => c.id === selected.id);
+      return ch ? (sessions.find((s) => s.id === ch.session_id) ?? null) : null;
+    }
+    if (selected.kind === "quiz") {
+      const sq = sessionQuizzes.find((q) => q.quiz?.id === selected.id);
+      return sq ? (sessions.find((s) => s.id === sq.session_id) ?? null) : null;
+    }
+    if (selected.kind === "mini_project") {
+      const mp = miniProjects.find((m) => m.id === selected.id);
+      return mp ? (sessions.find((s) => s.id === mp.session_id) ?? null) : null;
+    }
+    return null;
+  }, [selected, sessions, chapters, sessionQuizzes, miniProjects]);
 
   const nextSession = useMemo(() => {
     if (!currentSession) return null;
@@ -236,14 +259,17 @@ export default function CourseLearn() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const currentIdx = selected ? playable.findIndex((p) => p.kind === selected.kind && p.id === selected.id) : -1;
+  const currentIdx = selected ? curriculum.findIndex((p) => p.kind === selected.kind && p.id === selected.id) : -1;
 
-  const nextItem = currentIdx >= 0 ? playable[currentIdx + 1] : undefined;
+  const nextItem = currentIdx >= 0 ? curriculum[currentIdx + 1] : undefined;
   const nextItemTitle = useMemo(() => {
     if (!nextItem) return null;
     if (nextItem.kind === "chapter") return chapters.find((c) => c.id === nextItem.id)?.title ?? null;
+    if (nextItem.kind === "quiz") {
+      return sessionQuizzes.find((q) => q.quiz?.id === nextItem.id)?.quiz?.title ?? "Quiz";
+    }
     return sessions.find((s) => s.id === nextItem.id)?.title ?? null;
-  }, [nextItem, chapters, sessions]);
+  }, [nextItem, chapters, sessions, sessionQuizzes]);
 
   const clearCountdown = () => {
     if (countdownRef.current) {
@@ -255,11 +281,16 @@ export default function CourseLearn() {
 
   const go = (delta: number) => {
     if (currentIdx < 0) return;
-    const next = playable[currentIdx + delta];
+    const next = curriculum[currentIdx + delta];
     if (!next) return;
     clearCountdown();
     setSelected({ kind: next.kind, id: next.id });
     setCurrentSessionId(next.sessionId);
+  };
+
+  const handleQuizCompleted = () => {
+    load({ silent: true });
+    if (curriculum[currentIdx + 1]) startAutoAdvance();
   };
 
   const startAutoAdvance = () => {
@@ -361,7 +392,7 @@ export default function CourseLearn() {
             variant="ghost"
             size="icon"
             onClick={() => go(1)}
-            disabled={currentIdx < 0 || currentIdx >= playable.length - 1}
+            disabled={currentIdx < 0 || currentIdx >= curriculum.length - 1}
             aria-label="Next"
           >
             <ChevronRight className="h-4 w-4" />
@@ -391,6 +422,7 @@ export default function CourseLearn() {
             let sid: string | undefined;
             if (sel.kind === "chapter") sid = chapters.find((c) => c.id === sel.id)?.session_id;
             else if (sel.kind === "mini_project") sid = miniProjects.find((m) => m.id === sel.id)?.session_id;
+            else if (sel.kind === "quiz") sid = sessionQuizzes.find((q) => q.quiz?.id === sel.id)?.session_id;
             else sid = sel.id;
             if (sid) setCurrentSessionId(sid);
           }}
@@ -420,7 +452,49 @@ export default function CourseLearn() {
         />
 
         {/* Main viewer */}
-        <main className="min-h-0 h-full overflow-hidden">
+        <main className="min-h-0 h-full overflow-hidden relative">
+          {countdown !== null && nextItem && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+              <div className="text-center px-8 py-6 max-w-sm w-full">
+                <div className="relative w-16 h-16 mx-auto mb-5">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="hsl(var(--muted))" strokeWidth="4" />
+                    <circle
+                      cx="32"
+                      cy="32"
+                      r="28"
+                      fill="none"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth="4"
+                      strokeDasharray={`${(countdown / 5) * 175.9} 175.9`}
+                      strokeLinecap="round"
+                      className="transition-all duration-1000"
+                    />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center text-white text-xl font-bold">
+                    {countdown}
+                  </span>
+                </div>
+                <p className="text-white/60 text-xs uppercase tracking-widest mb-2">Up next</p>
+                <h3 className="text-white font-semibold text-base mb-6 leading-snug line-clamp-2">
+                  {nextItemTitle}
+                </h3>
+                <div className="flex gap-3 justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearCountdown}
+                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+                  >
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={() => go(1)}>
+                    {nextItem.kind === "quiz" ? "Start now" : "Play now"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="h-full overflow-y-auto">
             <div className="max-w-5xl mx-auto p-4 space-y-4">
               {selected?.kind === "quiz" ? (
@@ -428,7 +502,12 @@ export default function CourseLearn() {
                   const sq = sessionQuizzes.find((q) => q.quiz?.id === selected.id);
                   const title = sq?.quiz?.title ?? "Quiz";
                   return (
-                    <InlineQuiz key={selected.id} quizId={selected.id} quizTitle={title} onCompleted={() => load()} />
+                    <InlineQuiz
+                      key={selected.id}
+                      quizId={selected.id}
+                      quizTitle={title}
+                      onCompleted={handleQuizCompleted}
+                    />
                   );
                 })()
               ) : selected?.kind === "mini_project" ? (
@@ -505,49 +584,6 @@ export default function CourseLearn() {
                         {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
                       </button>
                     ) : null}
-
-                    {countdown !== null && nextItem && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-10">
-                        <div className="text-center px-8 py-6 max-w-sm w-full">
-                          <div className="relative w-16 h-16 mx-auto mb-5">
-                            <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
-                              <circle cx="32" cy="32" r="28" fill="none" stroke="hsl(var(--muted))" strokeWidth="4" />
-                              <circle
-                                cx="32"
-                                cy="32"
-                                r="28"
-                                fill="none"
-                                stroke="hsl(var(--primary))"
-                                strokeWidth="4"
-                                strokeDasharray={`${(countdown / 5) * 175.9} 175.9`}
-                                strokeLinecap="round"
-                                className="transition-all duration-1000"
-                              />
-                            </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-white text-xl font-bold">
-                              {countdown}
-                            </span>
-                          </div>
-                          <p className="text-white/60 text-xs uppercase tracking-widest mb-2">Up next</p>
-                          <h3 className="text-white font-semibold text-base mb-6 leading-snug line-clamp-2">
-                            {nextItemTitle}
-                          </h3>
-                          <div className="flex gap-3 justify-center">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={clearCountdown}
-                              className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
-                            >
-                              Cancel
-                            </Button>
-                            <Button size="sm" onClick={() => go(1)}>
-                              Play now
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className="space-y-3">

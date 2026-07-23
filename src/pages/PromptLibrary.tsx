@@ -51,12 +51,12 @@ function PromptCard({ prompt, canEdit, onEdit, onDelete }: {
   return (
     <Card
       className={cn(
-        "cursor-pointer transition-all duration-200 hover:shadow-md border-border/60",
+        "min-w-0 overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md border-border/60",
         expanded && "ring-1 ring-primary/20"
       )}
       onClick={() => setExpanded(!expanded)}
     >
-      <div className="flex items-center justify-between p-4 gap-3">
+      <div className="flex items-center justify-between p-4 gap-3 min-w-0">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <ChevronDown className={cn(
             "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
@@ -82,7 +82,7 @@ function PromptCard({ prompt, canEdit, onEdit, onDelete }: {
       </div>
       {expanded && (
         <CardContent className="pt-0 pb-4 px-4">
-          <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-mono bg-muted/50 rounded-md p-4">
+          <pre className="whitespace-pre-wrap break-words text-sm text-muted-foreground font-mono bg-muted/50 rounded-md p-4 max-w-full overflow-x-auto">
             {prompt.content}
           </pre>
         </CardContent>
@@ -161,13 +161,13 @@ export default function PromptLibrary() {
 
   return (
     <MainLayout>
-      <div className="space-y-8 animate-fade-in">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
+      <div className="space-y-8 animate-fade-in min-w-0 max-w-full">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1 min-w-0">
             <h1 className="text-3xl font-display font-bold text-foreground">Prompt Library</h1>
             <p className="text-muted-foreground">Browse shared prompts and manage your own collection</p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:w-auto">
             <Button variant="outline" onClick={() => setGuideOpen(true)} className="gap-2">
               <GraduationCap className="h-4 w-4" /> Prompting Guide
             </Button>
@@ -182,9 +182,9 @@ export default function PromptLibrary() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="space-y-10">
+          <div className="space-y-10 min-w-0">
             {/* Published Prompts */}
-            <section className="space-y-4">
+            <section className="space-y-4 min-w-0">
               <div className="flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-primary" />
                 <h2 className="text-xl font-semibold text-foreground">Published Prompts</h2>
@@ -193,7 +193,7 @@ export default function PromptLibrary() {
               {publishedPrompts.length === 0 ? (
                 <Card><CardContent className="py-8 text-center text-muted-foreground">No published prompts yet.</CardContent></Card>
               ) : (
-                <div className="grid gap-2">
+                <div className="grid gap-2 min-w-0">
                   {publishedPrompts.map(p => (
                     <PromptCard key={p.id} prompt={p} canEdit={false} onEdit={openEditDialog} onDelete={setDeleteId} />
                   ))}
@@ -202,7 +202,7 @@ export default function PromptLibrary() {
             </section>
 
             {/* My Prompts */}
-            <section className="space-y-4">
+            <section className="space-y-4 min-w-0">
               <div className="flex items-center gap-2">
                 <User className="h-5 w-5 text-primary" />
                 <h2 className="text-xl font-semibold text-foreground">My Prompts</h2>
@@ -211,7 +211,7 @@ export default function PromptLibrary() {
               {myPrompts.length === 0 ? (
                 <Card><CardContent className="py-8 text-center text-muted-foreground">You haven't added any prompts yet. Click "Add Prompt" to get started.</CardContent></Card>
               ) : (
-                <div className="grid gap-2">
+                <div className="grid gap-2 min-w-0">
                   {myPrompts.map(p => (
                     <PromptCard key={p.id} prompt={p} canEdit onEdit={openEditDialog} onDelete={setDeleteId} />
                   ))}
