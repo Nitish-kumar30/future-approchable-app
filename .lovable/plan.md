@@ -1,27 +1,31 @@
-## Goal
-Serve the Apple Pay domain verification file at `/.well-known/apple-developer-merchantid-domain-association` on all published domains (`approachable.lovable.app`, `learn.approachable.dev`) so Razorpay can enable Apple Pay in checkout.
+# Fix: Cohorts not visible in production
 
-## Steps
+## Root cause (verified in Live)
 
-1. **Copy the uploaded file into `public/.well-known/`**
-   - Path: `public/.well-known/apple-developer-merchantid-domain-association` (no file extension — required by Apple).
-   - Vite serves everything under `public/` at the site root, so it will be reachable at:
-     - `https://approachable.lovable.app/.well-known/apple-developer-merchantid-domain-association`
-     - `https://learn.approachable.dev/.well-known/apple-developer-merchantid-domain-association`
-   - The SPA fallback only kicks in for unknown routes; real static files under `public/` are served as-is with `Content-Type: application/octet-stream` (or text) and a `200`, which is what Apple/Razorpay require.
+`/cohorts` reads from the `public.cohorts_public` view. In Live:
 
-2. **Publish**
-   - This is a frontend/static asset change, so it only goes live after clicking **Publish → Update** in Lovable.
+- The view exists.
+- It has **zero GRANTs** — neither `anon` nor `authenticated` can read it.
+- Underlying `cohorts` table's only SELECT policy is "Enrolled users and admins", so the base table also returns nothing.
 
-3. **Register the domain in Razorpay dashboard**
-   - After publish, in the Razorpay dashboard → Apple Pay → add domain → enter `learn.approachable.dev` (and any other domain you want Apple Pay on).
-   - Razorpay will fetch the file from `/.well-known/...` and mark the domain verified. No code changes needed on the checkout side — once verified, Razorpay auto-shows Apple Pay on Safari/iOS for eligible users.
+Result: signed-in users see an empty list, even though Cohort 6 (Jul 23, 2026) is `is_published=true`, `enrollment_disabled=false`.
 
-## Files touched
-- `public/.well-known/apple-developer-merchantid-domain-association` (new, copied verbatim from your upload)
+Test DB already has the grant, which is why it works there. This is a Test→Live sync gap.
 
-## Out of scope
-- No changes to `PaymentButton`, edge functions, or Razorpay order creation — Apple Pay rides on the existing Razorpay checkout once the domain is verified.
-- Custom domain `learn.approachable.dev` must already be Active (it is). If you also want Apple Pay on the raw `.lovable.app` subdomain, register that in Razorpay too — same file serves both.
+## Fix
 
-Confirm and I'll implement.
+One-line migration, auth-only per your choice:
+
+```sql
+GRANT SELECT ON public.cohorts_public TO authenticated;
+```
+
+No `anon` grant — logged-out visitors won't see cohorts; they must sign in first.
+
+## Verification
+
+After publish applies the migration to Live:
+1. Sign in on `https://learn.approachable.dev`, open `/cohorts` — Cohort 6 shows under active, older ones under Past Cohorts.
+2. Incognito (logged out) `/cohorts` — remains empty (expected).
+
+No frontend changes.
