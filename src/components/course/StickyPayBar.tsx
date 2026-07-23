@@ -42,7 +42,7 @@ export default function StickyPayBar({
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 transition-transform duration-300 ${
+      className={`fixed inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 transition-transform duration-300 bottom-[var(--mobile-nav-height)] md:bottom-0 ${
         visible ? 'translate-y-0' : 'translate-y-full'
       }`}
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
@@ -53,7 +53,7 @@ export default function StickyPayBar({
           <p className="truncate text-sm font-medium text-foreground">
             {courseName}
           </p>
-          <p className="text-xs text-muted-foreground hidden sm:block">
+          <p className="text-xs text-muted-foreground">
             One-time payment · Lifetime access
           </p>
         </div>

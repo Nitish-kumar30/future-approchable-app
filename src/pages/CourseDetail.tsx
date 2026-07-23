@@ -400,9 +400,11 @@ export default function CourseDetail() {
     );
   }
 
+  const showStickyPay = course && isPaidCourse(course) && !isEnrolled && !course.enrollment_disabled;
+
   return (
     <MainLayout>
-      <div className="space-y-8 animate-fade-in">
+      <div className={`space-y-8 animate-fade-in ${showStickyPay ? 'pb-20 md:pb-0' : ''}`}>
         {/* Back Button */}
         <Button variant="ghost" size="sm" onClick={() => navigate('/courses')} className="gap-2">
           <ArrowLeft className="h-4 w-4" /> Back to Courses
@@ -562,7 +564,7 @@ export default function CourseDetail() {
 
         </div>
       </div>
-      {course && isPaidCourse(course) && !isEnrolled && !course.enrollment_disabled && (
+      {showStickyPay && (
         <StickyPayBar
           courseId={course.id}
           courseName={course.name}
