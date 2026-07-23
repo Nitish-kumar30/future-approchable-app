@@ -1,0 +1,1 @@
+GRANT SELECT ON public.cohorts_public TO authenticated;
