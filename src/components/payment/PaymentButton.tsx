@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { loadRazorpayCheckout } from '@/lib/loadRazorpay';
+import { isIOS } from '@/lib/platform';
 import {
   formatInrPrice,
   formatUsdPrice,
@@ -64,7 +65,7 @@ export default function PaymentButton({
 }: PaymentButtonProps) {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
-  const { coursePriceLabel, isLoading: isCurrencyLoading } = usePricingCurrency();
+  const { currency, coursePriceLabel, isLoading: isCurrencyLoading } = usePricingCurrency();
   const { toast } = useToast();
   const [status, setStatus] = useState<Status>('idle');
   const [activeCurrency, setActiveCurrency] = useState<PaymentCurrency | null>(null);
@@ -127,6 +128,11 @@ export default function PaymentButton({
           email: user.email,
           name: user.user_metadata?.full_name as string | undefined,
         },
+        // iOS Safari can't open UPI app deep links (Intent flow), so fall back to
+        // UPI Collect (VPA entry) there. Android keeps the app-icon Intent flow.
+        ...(isIOS() && orderData.currency === 'INR'
+          ? { config: { display: { hide: [{ method: 'upi', flows: ['intent'] }] } } }
+          : {}),
         handler: async (response: {
           razorpay_order_id: string;
           razorpay_payment_id: string;
@@ -169,10 +175,21 @@ export default function PaymentButton({
         modal: {
           ondismiss: () => {
             // Only reset if the user closed the modal before paying
-            setStatus((s) => (s === 'confirming' || s === 'success' ? s : 'idle'));
-            setActiveCurrency((c) => (status === 'confirming' || status === 'success' ? c : null));
+            setStatus((s) => {
+              if (s === 'confirming' || s === 'success') return s;
+              setActiveCurrency(null);
+              return 'idle';
+            });
           },
         },
+      });
+
+      // Payment failures inside Razorpay (wrong PIN, declined, cancelled) would
+      // otherwise leave the button stuck on "Processing…" with no feedback.
+      rzp.on('payment.failed', (response) => {
+        showError(new Error(response?.error?.description || 'Payment failed. Please try again.'));
+        setStatus('idle');
+        setActiveCurrency(null);
       });
 
       rzp.open();
@@ -242,20 +259,27 @@ export default function PaymentButton({
   }
 
   return (
-    <Button
-      ref={buttonRef}
-      size={size}
-      onClick={() => openCheckout()}
-      disabled={isBusy || !label}
-    >
-      {isCurrencyLoading && status === 'idle' ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Loading…
-        </>
-      ) : (
-        renderLabel(`Pay ${label}`)
+    <div className="flex flex-col gap-2">
+      {isIOS() && currency === 'INR' && (
+        <p className="text-xs text-muted-foreground">
+          On iPhone, enter your UPI ID (e.g. name@oksbi) to pay via UPI.
+        </p>
       )}
-    </Button>
+      <Button
+        ref={buttonRef}
+        size={size}
+        onClick={() => openCheckout()}
+        disabled={isBusy || !label}
+      >
+        {isCurrencyLoading && status === 'idle' ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading…
+          </>
+        ) : (
+          renderLabel(`Pay ${label}`)
+        )}
+      </Button>
+    </div>
   );
 }
