@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import MainLayout from '@/components/layout/MainLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { BookOpen, Clock, Calendar, GraduationCap, ArrowRight, Image as ImageIcon } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import MainLayout from "@/components/layout/MainLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BookOpen, Clock, Calendar, GraduationCap, ArrowRight, Image as ImageIcon } from "lucide-react";
 
 interface Course {
   id: string;
@@ -36,11 +36,11 @@ export default function Courses() {
 
   const fetchCourses = async () => {
     const { data, error } = await supabase
-      .from('courses')
-      .select('id, slug, name, description, mentor_name, duration, image_url, start_date, enrollment_disabled')
-      .eq('is_published', true)
-      .eq('is_on_demand', false)
-      .order('start_date', { ascending: false });
+      .from("courses")
+      .select("id, slug, name, description, mentor_name, duration, image_url, start_date, enrollment_disabled")
+      .eq("is_published", true)
+      .eq("is_on_demand", false)
+      .order("start_date", { ascending: false });
 
     if (!error && data) {
       setCourses(data);
@@ -50,13 +50,13 @@ export default function Courses() {
 
   const fetchEnrollments = async () => {
     const { data, error } = await supabase
-      .from('enrollments')
-      .select('course_id')
-      .eq('user_id', user?.id)
-      .not('course_id', 'is', null);
+      .from("enrollments")
+      .select("course_id")
+      .eq("user_id", user?.id)
+      .not("course_id", "is", null);
 
     if (!error && data) {
-      setEnrolledCourseIds(data.map(e => e.course_id as string));
+      setEnrolledCourseIds(data.map((e) => e.course_id as string));
     }
   };
 
@@ -68,9 +68,7 @@ export default function Courses() {
         {/* Header */}
         <div className="space-y-2">
           <h1 className="text-3xl font-display font-bold text-foreground">Courses</h1>
-          <p className="text-muted-foreground">
-            Instructor-led courses with live sessions.
-          </p>
+          <p className="text-muted-foreground">Instructor-led courses.</p>
         </div>
 
         {/* Courses Grid */}
@@ -94,9 +92,7 @@ export default function Courses() {
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No Courses Available</h3>
-              <p className="text-muted-foreground">
-                Check back soon for new courses.
-              </p>
+              <p className="text-muted-foreground">Check back soon for new courses.</p>
             </CardContent>
           </Card>
         ) : (
@@ -107,8 +103,8 @@ export default function Courses() {
                   {/* Course Image */}
                   <div className="relative h-40 bg-muted overflow-hidden">
                     {course.image_url ? (
-                      <img 
-                        src={course.image_url} 
+                      <img
+                        src={course.image_url}
                         alt={course.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
@@ -127,14 +123,12 @@ export default function Courses() {
                       </Badge>
                     ) : null}
                   </div>
-                  
+
                   <CardHeader>
                     <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-2">
                       {course.name}
                     </CardTitle>
-                    <CardDescription className="line-clamp-2">
-                      {course.description}
-                    </CardDescription>
+                    <CardDescription className="line-clamp-2">{course.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
@@ -147,12 +141,12 @@ export default function Courses() {
                       {course.start_date && (
                         <span className="flex items-center gap-1.5">
                           <Calendar className="h-4 w-4" />
-                          {new Date(course.start_date).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
+                          {new Date(course.start_date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
                           })}
                         </span>
                       )}
