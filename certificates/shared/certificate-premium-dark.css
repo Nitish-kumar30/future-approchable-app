@@ -1,0 +1,127 @@
+/* =========================================================================
+   Approachable — Certificate — PREMIUM DARK theme overrides (Sample 3)
+   Load AFTER certificate-base.css AND certificate-dark-theme.css.
+   Scoped entirely to [data-theme="premium-dark"].
+   Adds: guilloche-style double border + corner ornaments, embossed medallion,
+   QR code layout in the verify bar.
+   ========================================================================= */
+
+[data-theme="premium-dark"] .certificate {
+  background: linear-gradient(165deg, #171b23, #030405);
+}
+
+/* ---- Guilloche-style inner frame (double-ruled border + corner ornaments) --- */
+
+[data-theme="premium-dark"] .certificate::after {
+  content: "";
+  position: absolute;
+  inset: 13px;
+  z-index: 0;
+  border: 1.5px solid var(--tier-500);
+  border-radius: 20px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+[data-theme="premium-dark"] .corner-ornament {
+  position: absolute;
+  z-index: 0;
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid var(--tier-400);
+  transform: rotate(45deg);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+[data-theme="premium-dark"] .corner-ornament.top-left { top: 21px; left: 21px; }
+[data-theme="premium-dark"] .corner-ornament.top-right { top: 21px; right: 21px; }
+[data-theme="premium-dark"] .corner-ornament.bottom-left { bottom: 21px; left: 21px; }
+[data-theme="premium-dark"] .corner-ornament.bottom-right { bottom: 21px; right: 21px; }
+
+/* ---- Embossed / foiled medallion seal ---------------------------------- */
+
+[data-theme="premium-dark"] .medallion {
+  background: radial-gradient(circle at 30% 25%, #3a3f4c 0%, #14171d 55%, #05070a 100%);
+  border-color: transparent;
+  box-shadow:
+    0 8px 18px -4px rgb(0 0 0 / 0.7),
+    inset 0 2px 3px rgb(255 255 255 / 0.12),
+    inset 0 -3px 5px rgb(0 0 0 / 0.6);
+}
+
+/* Metallic conic-gradient ring around the medallion, built as a masked
+   "donut" layer so it renders correctly on a circle (border-image does not
+   respect border-radius reliably). */
+[data-theme="premium-dark"] .medallion::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  padding: 4px;
+  background: conic-gradient(
+    from 220deg,
+    var(--tier-700),
+    var(--tier-400),
+    var(--tier-600),
+    var(--tier-400),
+    var(--tier-700)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+[data-theme="premium-dark"] .medallion svg.medallion-icon {
+  filter:
+    drop-shadow(1px 1px 0.5px rgb(0 0 0 / 0.7))
+    drop-shadow(-0.5px -0.5px 0.5px rgb(255 255 255 / 0.25));
+}
+
+[data-theme="premium-dark"] .medallion .medallion-star {
+  box-shadow:
+    inset 0 1px 1px rgb(255 255 255 / 0.3),
+    inset 0 -1px 2px rgb(0 0 0 / 0.5),
+    0 2px 4px rgb(0 0 0 / 0.5);
+}
+
+/* ---- Verify bar: QR code layout ---------------------------------------- */
+
+[data-theme="premium-dark"] .verify-bar {
+  justify-content: space-between;
+  padding: 12px 40px;
+  gap: 0;
+}
+
+[data-theme="premium-dark"] .verify-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+[data-theme="premium-dark"] .qr-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+[data-theme="premium-dark"] .qr-wrap img {
+  width: 46px;
+  height: 46px;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 3px;
+  box-shadow: 0 2px 8px -2px rgb(0 0 0 / 0.5);
+}
+
+[data-theme="premium-dark"] .qr-caption {
+  font-size: 9px;
+  color: var(--dt-muted-soft);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: right;
+  line-height: 1.4;
+}

@@ -51,6 +51,9 @@
 
     --radius: 0.75rem;
 
+    /* Mobile bottom nav height (used for sticky bars and main padding) */
+    --mobile-nav-height: 4.5rem;
+
     /* Success state */
     --success: 152 60% 42%;
     --success-foreground: 0 0% 100%;
