@@ -198,8 +198,8 @@ export default function CertificatePanel({ cohortId, courseId, programName }: Pr
                 </SelectTrigger>
                 <SelectContent>
                   {availableTiers.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {tierLabel(t)}
+                    <SelectItem key={t} value={t} disabled={isTierDisabled(t)}>
+                      {tierLabel(t)}{isTierDisabled(t) ? " (requires 100% progress)" : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
