@@ -1,5 +1,10 @@
 import type { CertificateTier } from "./certificates.ts";
 import { formatCompletionDate } from "./certificates.ts";
+import { certificateBaseCss } from "./certificate-assets/certificate-base.css.ts";
+import { certificateDarkThemeCss } from "./certificate-assets/certificate-dark-theme.css.ts";
+import { expertCertificateHtml } from "./certificate-assets/expert-certificate.html.ts";
+import { foundationCertificateHtml } from "./certificate-assets/foundation-certificate.html.ts";
+import { practitionerCertificateHtml } from "./certificate-assets/practitioner-certificate.html.ts";
 
 export type CertificateRenderData = {
   tier: CertificateTier;
@@ -19,29 +24,14 @@ const TIER_TAG: Record<CertificateTier, string> = {
   expert: "EXPERT",
 };
 
-const TEMPLATE_FILE: Record<CertificateTier, string> = {
-  foundation: "foundation-certificate.html",
-  practitioner: "practitioner-certificate.html",
-  expert: "expert-certificate.html",
+const TIER_TEMPLATE: Record<CertificateTier, string> = {
+  foundation: foundationCertificateHtml,
+  practitioner: practitionerCertificateHtml,
+  expert: expertCertificateHtml,
 };
 
-let cachedBaseCss: string | null = null;
-let cachedDarkCss: string | null = null;
-
-async function loadStyles(): Promise<{ base: string; dark: string }> {
-  if (!cachedBaseCss || !cachedDarkCss) {
-    const dir = new URL("./certificate-assets/", import.meta.url);
-    cachedBaseCss = await Deno.readTextFile(new URL("certificate-base.css", dir));
-    cachedDarkCss = await Deno.readTextFile(new URL("certificate-dark-theme.css", dir));
-  }
-  return { base: cachedBaseCss!, dark: cachedDarkCss! };
-}
-
 export async function buildCertificateHtml(data: CertificateRenderData): Promise<string> {
-  const dir = new URL("./certificate-assets/", import.meta.url);
-  const templatePath = new URL(TEMPLATE_FILE[data.tier], dir);
-  let html = await Deno.readTextFile(templatePath);
-  const { base, dark } = await loadStyles();
+  let html = TIER_TEMPLATE[data.tier];
 
   const logoUrl = data.logoUrl ??
     Deno.env.get("CERTIFICATE_LOGO_URL") ??
@@ -50,11 +40,11 @@ export async function buildCertificateHtml(data: CertificateRenderData): Promise
   html = html
     .replace(
       /<link rel="stylesheet" href="\.\/shared\/certificate-base\.css" \/>/,
-      `<style>${base}</style>`,
+      `<style>${certificateBaseCss}</style>`,
     )
     .replace(
       /<link rel="stylesheet" href="\.\/shared\/certificate-dark-theme\.css" \/>/,
-      `<style>${dark}</style>`,
+      `<style>${certificateDarkThemeCss}</style>`,
     )
     .replace('src="./shared/assets/logo-icon.png"', `src="${logoUrl}"`)
     .replaceAll("{{RECIPIENT_NAME}}", escapeHtml(data.recipientName))
