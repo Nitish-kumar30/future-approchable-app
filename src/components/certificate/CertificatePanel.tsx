@@ -118,6 +118,8 @@ export default function CertificatePanel({ cohortId, courseId, programName }: Pr
   const issuedTiers = new Set(eligibility.existing_certificates.map((c) => c.tier));
   const pendingTiers = new Set(eligibility.pending_requests.map((r) => r.tier));
   const availableTiers = TIERS.filter((t) => !issuedTiers.has(t) && !pendingTiers.has(t));
+  const isTierDisabled = (t: CertificateTier) =>
+    t === "foundation" && !eligibility.foundation_requestable;
   const canRequestAny = availableTiers.length > 0;
 
   const openRequestModal = () => {
@@ -196,8 +198,8 @@ export default function CertificatePanel({ cohortId, courseId, programName }: Pr
                 </SelectTrigger>
                 <SelectContent>
                   {availableTiers.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {tierLabel(t)}
+                    <SelectItem key={t} value={t} disabled={isTierDisabled(t)}>
+                      {tierLabel(t)}{isTierDisabled(t) ? " (requires 100% progress)" : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -205,13 +207,19 @@ export default function CertificatePanel({ cohortId, courseId, programName }: Pr
             </div>
             {tier === "foundation" && (
               <div className="space-y-2">
-                <Label htmlFor="linkedin">LinkedIn post URL</Label>
+                <Label htmlFor="linkedin">
+                  LinkedIn post URL <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="linkedin"
                   placeholder="https://linkedin.com/posts/..."
                   value={linkedinUrl}
                   onChange={(e) => setLinkedinUrl(e.target.value)}
+                  required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Share a LinkedIn post about your learning to unlock the Submit button.
+                </p>
               </div>
             )}
             <div className="space-y-2">
@@ -232,7 +240,7 @@ export default function CertificatePanel({ cohortId, courseId, programName }: Pr
             </Button>
             <Button
               onClick={handleRequest}
-              disabled={submitting || (tier === "foundation" && !linkedinUrl.trim())}
+              disabled={submitting || isTierDisabled(tier) || (tier === "foundation" && !linkedinUrl.trim())}
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit Request"}
             </Button>

@@ -511,7 +511,7 @@ export default function CourseDetail() {
         )}
 
         {isEnrolled && course && (
-          <CertificatePanel courseId={course.id} programName={course.title} />
+          <CertificatePanel courseId={course.id} programName={course.name} />
         )}
 
         {/* Description */}
