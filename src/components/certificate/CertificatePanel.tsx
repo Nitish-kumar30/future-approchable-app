@@ -207,13 +207,19 @@ export default function CertificatePanel({ cohortId, courseId, programName }: Pr
             </div>
             {tier === "foundation" && (
               <div className="space-y-2">
-                <Label htmlFor="linkedin">LinkedIn post URL</Label>
+                <Label htmlFor="linkedin">
+                  LinkedIn post URL <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="linkedin"
                   placeholder="https://linkedin.com/posts/..."
                   value={linkedinUrl}
                   onChange={(e) => setLinkedinUrl(e.target.value)}
+                  required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Share a LinkedIn post about your learning to unlock the Submit button.
+                </p>
               </div>
             )}
             <div className="space-y-2">
