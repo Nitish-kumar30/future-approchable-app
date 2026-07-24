@@ -21,6 +21,7 @@ const ASSETS = [
   { source: "expert-certificate.html", exportName: "expertCertificateHtml" },
   { source: "certificate-base.css", exportName: "certificateBaseCss" },
   { source: "certificate-dark-theme.css", exportName: "certificateDarkThemeCss" },
+  { source: "certificate-dark-v2.css", exportName: "certificateDarkV2Css" },
 ];
 
 const HEADER =
@@ -71,4 +72,4 @@ mkdirSync(LOGO_PREVIEW_DIR, { recursive: true });
 copyFileSync(LOGO_SOURCE, LOGO_PREVIEW);
 console.log("Copied logo-icon.png for local preview");
 
-console.log("Done — bundled 5 certificate assets + logo.");
+console.log("Done — bundled 6 certificate assets + logo.");

@@ -19,6 +19,7 @@ const ASSETS: Array<{ source: string; exportName: string }> = [
   { source: "expert-certificate.html", exportName: "expertCertificateHtml" },
   { source: "certificate-base.css", exportName: "certificateBaseCss" },
   { source: "certificate-dark-theme.css", exportName: "certificateDarkThemeCss" },
+  { source: "certificate-dark-v2.css", exportName: "certificateDarkV2Css" },
 ];
 
 const HEADER =
@@ -68,4 +69,4 @@ await Deno.mkdir(LOGO_PREVIEW_DIR, { recursive: true });
 await Deno.copyFile(LOGO_SOURCE, LOGO_PREVIEW);
 console.log("Copied logo-icon.png for local preview");
 
-console.log("Done — bundled 5 certificate assets + logo.");
+console.log("Done — bundled 6 certificate assets + logo.");

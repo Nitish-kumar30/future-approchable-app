@@ -3,6 +3,7 @@ import { formatCompletionDate } from "./certificates.ts";
 import { logoIconDataUri } from "./certificate-assets/logo-icon.base64.ts";
 import { certificateBaseCss } from "./certificate-assets/certificate-base.css.ts";
 import { certificateDarkThemeCss } from "./certificate-assets/certificate-dark-theme.css.ts";
+import { certificateDarkV2Css } from "./certificate-assets/certificate-dark-v2.css.ts";
 import { expertCertificateHtml } from "./certificate-assets/expert-certificate.html.ts";
 import { foundationCertificateHtml } from "./certificate-assets/foundation-certificate.html.ts";
 import { practitionerCertificateHtml } from "./certificate-assets/practitioner-certificate.html.ts";
@@ -46,6 +47,10 @@ export async function buildCertificateHtml(data: CertificateRenderData): Promise
     .replace(
       /<link rel="stylesheet" href="\.\/shared\/certificate-dark-theme\.css" \/>/,
       `<style>${certificateDarkThemeCss}</style>`,
+    )
+    .replace(
+      /<link rel="stylesheet" href="\.\/shared\/certificate-dark-v2\.css" \/>/,
+      `<style>${certificateDarkV2Css}</style>`,
     )
     .replace('src="./shared/assets/logo-icon.png"', `src="${logoUrl}"`)
     .replaceAll("{{RECIPIENT_NAME}}", escapeHtml(data.recipientName))
