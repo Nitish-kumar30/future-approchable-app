@@ -234,7 +234,7 @@ export default function CertificatePanel({ cohortId, courseId, programName }: Pr
             </Button>
             <Button
               onClick={handleRequest}
-              disabled={submitting || (tier === "foundation" && !linkedinUrl.trim())}
+              disabled={submitting || isTierDisabled(tier) || (tier === "foundation" && !linkedinUrl.trim())}
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit Request"}
             </Button>
