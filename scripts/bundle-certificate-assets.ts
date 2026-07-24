@@ -9,6 +9,9 @@ const ASSETS_DIR = new URL(
   "../supabase/functions/_shared/certificate-assets/",
   import.meta.url,
 );
+const LOGO_SOURCE = new URL("../src/assets/icon.png", import.meta.url);
+const LOGO_PREVIEW_DIR = new URL("../certificates/shared/assets/", import.meta.url);
+const LOGO_PREVIEW = new URL("logo-icon.png", LOGO_PREVIEW_DIR);
 
 const ASSETS: Array<{ source: string; exportName: string }> = [
   { source: "foundation-certificate.html", exportName: "foundationCertificateHtml" },
@@ -43,4 +46,26 @@ for (const { source, exportName } of ASSETS) {
   console.log(`Wrote ${outName}`);
 }
 
-console.log("Done — bundled 5 certificate assets.");
+// Bundle logo as base64 data URI for PDF rendering (no external fetch)
+let logoBytes: Uint8Array;
+try {
+  logoBytes = await Deno.readFile(LOGO_SOURCE);
+} catch {
+  console.error(`Missing logo file: ${LOGO_SOURCE.pathname}`);
+  Deno.exit(1);
+}
+
+const logoDataUri = `data:image/png;base64,${btoa(String.fromCharCode(...logoBytes))}`;
+const logoOutPath = new URL("logo-icon.base64.ts", ASSETS_DIR);
+await Deno.writeTextFile(
+  logoOutPath,
+  `${HEADER}export const logoIconDataUri = ${JSON.stringify(logoDataUri)};\n`,
+);
+console.log("Wrote logo-icon.base64.ts");
+
+// Copy logo for local HTML preview
+await Deno.mkdir(LOGO_PREVIEW_DIR, { recursive: true });
+await Deno.copyFile(LOGO_SOURCE, LOGO_PREVIEW);
+console.log("Copied logo-icon.png for local preview");
+
+console.log("Done — bundled 5 certificate assets + logo.");

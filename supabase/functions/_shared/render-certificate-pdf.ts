@@ -1,5 +1,6 @@
 import type { CertificateTier } from "./certificates.ts";
 import { formatCompletionDate } from "./certificates.ts";
+import { logoIconDataUri } from "./certificate-assets/logo-icon.base64.ts";
 import { certificateBaseCss } from "./certificate-assets/certificate-base.css.ts";
 import { certificateDarkThemeCss } from "./certificate-assets/certificate-dark-theme.css.ts";
 import { expertCertificateHtml } from "./certificate-assets/expert-certificate.html.ts";
@@ -35,7 +36,7 @@ export async function buildCertificateHtml(data: CertificateRenderData): Promise
 
   const logoUrl = data.logoUrl ??
     Deno.env.get("CERTIFICATE_LOGO_URL") ??
-    "https://approachable.dev/logo-icon.png";
+    logoIconDataUri;
 
   html = html
     .replace(

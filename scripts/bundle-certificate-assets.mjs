@@ -5,12 +5,15 @@
  * Usage: node scripts/bundle-certificate-assets.mjs
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ASSETS_DIR = join(__dirname, "../supabase/functions/_shared/certificate-assets");
+const LOGO_SOURCE = join(__dirname, "../src/assets/icon.png");
+const LOGO_PREVIEW_DIR = join(__dirname, "../certificates/shared/assets");
+const LOGO_PREVIEW = join(LOGO_PREVIEW_DIR, "logo-icon.png");
 
 const ASSETS = [
   { source: "foundation-certificate.html", exportName: "foundationCertificateHtml" },
@@ -45,4 +48,27 @@ for (const { source, exportName } of ASSETS) {
   console.log(`Wrote ${outName}`);
 }
 
-console.log("Done — bundled 5 certificate assets.");
+// Bundle logo as base64 data URI for PDF rendering (no external fetch)
+let logoBytes;
+try {
+  logoBytes = readFileSync(LOGO_SOURCE);
+} catch {
+  console.error(`Missing logo file: ${LOGO_SOURCE}`);
+  process.exit(1);
+}
+
+const logoDataUri = `data:image/png;base64,${logoBytes.toString("base64")}`;
+const logoOutPath = join(ASSETS_DIR, "logo-icon.base64.ts");
+writeFileSync(
+  logoOutPath,
+  `${HEADER}export const logoIconDataUri = ${JSON.stringify(logoDataUri)};\n`,
+  "utf8",
+);
+console.log("Wrote logo-icon.base64.ts");
+
+// Copy logo for local HTML preview
+mkdirSync(LOGO_PREVIEW_DIR, { recursive: true });
+copyFileSync(LOGO_SOURCE, LOGO_PREVIEW);
+console.log("Copied logo-icon.png for local preview");
+
+console.log("Done — bundled 5 certificate assets + logo.");
