@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Navigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useSyncMobileNavHeight } from '@/hooks/useSyncMobileNavHeight';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -45,6 +46,7 @@ const adminNavItems = [
 export default function MainLayout({ children }: MainLayoutProps) {
   const { user, isLoading, isAdmin, signOut } = useAuth();
   const location = useLocation();
+  const mobileNavRef = useSyncMobileNavHeight([isAdmin]);
 
   if (isLoading) {
     return (
@@ -147,7 +149,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </header>
 
       {/* Mobile Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-sm">
+      <nav
+        ref={mobileNavRef}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card backdrop-blur-sm pb-[env(safe-area-inset-bottom)]"
+      >
         <div className="grid grid-cols-5 gap-1 p-2">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path || 
@@ -181,7 +186,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </nav>
 
       {/* Main Content */}
-      <main className="container py-6 pb-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom))] md:pb-6 flex-1">
+      <main className="container py-6 pb-[var(--mobile-nav-height)] md:pb-6 flex-1">
         {children}
         <div className="md:hidden mt-8 border-t border-border pt-6">
           <Footer variant="inline" />

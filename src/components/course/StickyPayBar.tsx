@@ -42,7 +42,7 @@ export default function StickyPayBar({
 
   return (
     <div
-      className={`fixed inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 transition-transform duration-300 bottom-[var(--mobile-nav-height)] md:bottom-0 md:pb-[env(safe-area-inset-bottom)] ${
+      className={`fixed inset-x-0 z-40 border-t bg-background md:bg-background/95 md:backdrop-blur md:supports-[backdrop-filter]:bg-background/80 transition-transform duration-300 bottom-[var(--mobile-nav-height)] md:bottom-0 md:pb-[env(safe-area-inset-bottom)] ${
         visible ? 'translate-y-0' : 'translate-y-full'
       }`}
       aria-hidden={!visible}

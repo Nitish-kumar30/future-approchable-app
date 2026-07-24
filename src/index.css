@@ -51,8 +51,8 @@
 
     --radius: 0.75rem;
 
-    /* Mobile bottom nav height (used for sticky bars and main padding) */
-    --mobile-nav-height: 4.5rem;
+    /* Mobile bottom nav height — fallback until MainLayout measures the real nav */
+    --mobile-nav-height: 4rem;
 
     /* Success state */
     --success: 152 60% 42%;
