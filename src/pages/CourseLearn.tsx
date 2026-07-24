@@ -137,6 +137,9 @@ export default function CourseLearn() {
     setMiniProjects(data.mini_projects ?? []);
 
     setChapterProgress(Object.fromEntries((data.chapter_progress ?? []).map((p: any) => [p.chapter_id, p])));
+    completedChapterRef.current = new Set(
+      (data.chapter_progress ?? []).filter((p: any) => p.is_completed).map((p: any) => p.chapter_id),
+    );
     setSessionProgress(
       Object.fromEntries((data.session_progress ?? []).map((p: any) => [p.session_id, p.is_completed])),
     );
@@ -239,6 +242,7 @@ export default function CourseLearn() {
 
   // Throttle progress writes without triggering re-renders of the player.
   const lastSavedSecRef = useRef<Record<string, number>>({});
+  const completedChapterRef = useRef<Set<string>>(new Set());
 
   // Fullscreen wrapper (contains video + countdown overlay)
   const playerWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -326,13 +330,23 @@ export default function CourseLearn() {
 
   const markChapterComplete = async (chapterId: string, watched: number, completed: boolean) => {
     if (!user) return;
-    setChapterProgress((prev) => ({
-      ...prev,
+    if (completed) completedChapterRef.current.add(chapterId);
+    const prev = chapterProgress[chapterId];
+    setChapterProgress((p) => ({
+      ...p,
       [chapterId]: { is_completed: completed, watched_seconds: watched },
     }));
-    await invokeFn("update-chapter-progress", {
+    const res = await invokeFn("update-chapter-progress", {
       body: { chapter_id: chapterId, watched_seconds: watched, is_completed: completed },
     });
+    if (res?.error) {
+      if (completed) completedChapterRef.current.delete(chapterId);
+      setChapterProgress((p) => ({
+        ...p,
+        [chapterId]: prev ?? { is_completed: false, watched_seconds: 0 },
+      }));
+      toast({ title: "Failed to save progress", description: res.error, variant: "destructive" });
+    }
   };
 
   const submitRating = async (rating: number, comment: string) => {
@@ -547,8 +561,7 @@ export default function CourseLearn() {
                           if (nextItem) startAutoAdvance();
                         }}
                         onProgress={(t) => {
-                          // Don't clobber a completed chapter back to false
-                          if (chapterProgress[currentChapter.id]?.is_completed) return;
+                          if (completedChapterRef.current.has(currentChapter.id)) return;
                           const floor = Math.floor(t);
                           const prev = lastSavedSecRef.current[currentChapter.id] ?? 0;
                           if (floor - prev >= 15) {

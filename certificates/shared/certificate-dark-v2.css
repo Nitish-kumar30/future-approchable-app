@@ -1,0 +1,107 @@
+/* =========================================================================
+   Approachable — Certificate — DARK THEME v2 accent pass
+   Opt-in only via data-variant="v2" on <html>. Loaded AFTER
+   certificate-dark-theme.css. Does not affect existing templates
+   (foundation/practitioner/expert-certificate.html) since they do not
+   set data-variant.
+
+   Purpose: give Foundation (blue) and Practitioner (purple) their own
+   brighter, dark-mode-tuned accent color + glow treatment instead of
+   reusing the light-theme tier-400/500/600/700 swatches, which read
+   flat/muddy on dark backgrounds compared to gold.
+   ========================================================================= */
+
+[data-theme*="dark"][data-variant="v2"][data-tier="foundation"] {
+  --dtv2-accent-soft: #bae6fd;
+  --dtv2-accent: #38bdf8;
+  --dtv2-accent-strong: #0ea5e9;
+  --dtv2-glow: rgb(56 189 248 / 0.45);
+}
+
+[data-theme*="dark"][data-variant="v2"][data-tier="practitioner"] {
+  --dtv2-accent-soft: #e9d5ff;
+  --dtv2-accent: #c084fc;
+  --dtv2-accent-strong: #a855f7;
+  --dtv2-glow: rgb(192 132 252 / 0.45);
+}
+
+/* Card: brighter border + soft outer glow (mirrors gold's natural glow) */
+[data-theme*="dark"][data-variant="v2"] .certificate {
+  border-color: var(--dtv2-accent);
+  box-shadow:
+    0 24px 70px -12px rgb(0 0 0 / 0.65),
+    0 0 46px -10px var(--dtv2-glow),
+    0 0 0 1px rgb(255 255 255 / 0.04) inset;
+}
+
+/* Watermark + corner rings: use the brighter accent, slightly more visible */
+[data-theme*="dark"][data-variant="v2"] .watermark {
+  opacity: 0.4;
+  background-image: radial-gradient(circle at 1px 1px, var(--dtv2-accent) 1.4px, transparent 2px);
+}
+
+[data-theme*="dark"][data-variant="v2"] .certificate::before {
+  background: repeating-radial-gradient(
+    circle at center,
+    transparent 0px,
+    transparent 14px,
+    var(--dtv2-accent) 15px,
+    transparent 16px
+  );
+  opacity: 0.18;
+}
+
+/* Subtitle text (OF COMPLETION) was inheriting the light-theme tier-600,
+   which is too dark to read well here. */
+[data-theme*="dark"][data-variant="v2"] .cert-subtitle {
+  color: var(--dtv2-accent-soft);
+}
+
+/* Recipient name: blend cream ink -> bright accent instead of tier-500->700,
+   which trended darker/muddier toward the bottom. */
+[data-theme*="dark"][data-variant="v2"] .recipient-name {
+  background: linear-gradient(180deg, var(--dt-ink) 0%, var(--dtv2-accent-soft) 45%, var(--dtv2-accent-strong) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 10px var(--dtv2-glow));
+}
+
+/* Ribbon: brighter gradient + glow instead of flat tier-400/700 */
+[data-theme*="dark"][data-variant="v2"] .ribbon {
+  background: linear-gradient(160deg, var(--dtv2-accent-soft), var(--dtv2-accent-strong));
+  box-shadow:
+    inset 10px 0 14px -10px rgb(255 255 255 / 0.45),
+    0 8px 20px -6px var(--dtv2-glow);
+}
+
+/* Medallion: brighter ring, icon, star + soft outer glow */
+[data-theme*="dark"][data-variant="v2"] .medallion {
+  border-color: var(--dtv2-accent);
+  box-shadow:
+    0 0 0 2px var(--dtv2-glow),
+    0 6px 18px -4px rgb(0 0 0 / 0.6),
+    inset 0 0 0 2px rgb(255 255 255 / 0.08);
+}
+
+[data-theme*="dark"][data-variant="v2"] .medallion::before {
+  border-color: var(--dtv2-accent-soft);
+  opacity: 0.7;
+}
+
+[data-theme*="dark"][data-variant="v2"] .medallion svg.medallion-icon {
+  color: var(--dtv2-accent-soft);
+}
+
+[data-theme*="dark"][data-variant="v2"] .medallion .medallion-star {
+  color: var(--dtv2-accent-strong);
+}
+
+/* Footer icons + verify label pick up the brighter accent */
+[data-theme*="dark"][data-variant="v2"] .footer-icon {
+  color: var(--dtv2-accent-soft);
+}
+
+[data-theme*="dark"][data-variant="v2"] .verify-label {
+  color: var(--dtv2-accent-soft);
+}

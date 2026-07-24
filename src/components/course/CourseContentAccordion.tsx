@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BookOpen, ClipboardList, ExternalLink, FolderKanban, Lock, Minus, Plus } from "lucide-react";
+import { BookOpen, CheckCircle2, ClipboardList, ExternalLink, FolderKanban, Lock, Minus, Plus } from "lucide-react";
 import ChapterPreviewDialog from "./ChapterPreviewDialog";
 import { cn } from "@/lib/utils";
 
@@ -47,9 +47,17 @@ interface Props {
   slug: string;
   isEnrolled: boolean;
   sessions: CurriculumSession[];
+  completedChapterIds?: Set<string>;
+  completedQuizIds?: Set<string>;
 }
 
-export default function CourseContentAccordion({ slug, isEnrolled, sessions }: Props) {
+export default function CourseContentAccordion({
+  slug,
+  isEnrolled,
+  sessions,
+  completedChapterIds,
+  completedQuizIds,
+}: Props) {
   const navigate = useNavigate();
   const [preview, setPreview] = useState<{ title: string; hlsUrl: string | null } | null>(null);
   const [mp, setMp] = useState<CurriculumMiniProject | null>(null);
@@ -101,6 +109,7 @@ export default function CourseContentAccordion({ slug, isEnrolled, sessions }: P
               <ul className="divide-y divide-border">
                 {s.chapters.map((c, idx) => {
                   const clickable = isEnrolled || c.is_preview;
+                  const done = completedChapterIds?.has(c.id);
                   return (
                     <li
                       key={c.id}
@@ -111,7 +120,13 @@ export default function CourseContentAccordion({ slug, isEnrolled, sessions }: P
                       onClick={() => clickable && openChapter(c)}
                     >
                       <div className="flex min-w-0 items-center gap-3">
-                        <span className="w-6 shrink-0 text-sm tabular-nums text-muted-foreground">{idx + 1}</span>
+                        <span className="flex w-6 shrink-0 items-center justify-center">
+                          {done ? (
+                            <CheckCircle2 className="h-4 w-4 text-white fill-green-500" />
+                          ) : (
+                            <span className="text-sm tabular-nums text-muted-foreground">{idx + 1}</span>
+                          )}
+                        </span>
                         {!clickable && <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
                         <span className="truncate text-sm">{c.title}</span>
                       </div>
@@ -130,7 +145,9 @@ export default function CourseContentAccordion({ slug, isEnrolled, sessions }: P
                     </li>
                   );
                 })}
-                {s.quizzes.map((q) => (
+                {s.quizzes.map((q) => {
+                  const quizDone = completedQuizIds?.has(q.id);
+                  return (
                   <li
                     key={q.id}
                     className={cn(
@@ -139,7 +156,11 @@ export default function CourseContentAccordion({ slug, isEnrolled, sessions }: P
                     )}
                     onClick={() => isEnrolled && openQuiz(q)}
                   >
-                    <span className="w-6 shrink-0" />
+                    <span className="flex w-6 shrink-0 items-center justify-center">
+                      {quizDone && (
+                        <CheckCircle2 className="h-4 w-4 text-white fill-green-500" />
+                      )}
+                    </span>
                     {isEnrolled ? (
                       <ClipboardList className="h-4 w-4 shrink-0 text-muted-foreground" />
                     ) : (
@@ -147,7 +168,8 @@ export default function CourseContentAccordion({ slug, isEnrolled, sessions }: P
                     )}
                     <span className="truncate text-sm">Quiz: {q.title}</span>
                   </li>
-                ))}
+                  );
+                })}
                 {preReadings.map((p) => (
                   <li
                     key={p.id}

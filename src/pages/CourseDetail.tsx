@@ -375,6 +375,10 @@ export default function CourseDetail() {
       ),
     [curriculumSessions, completedChapterIds],
   );
+  const completedQuizIds = useMemo(
+    () => new Set(quizSubmissions.map((s) => s.quizId)),
+    [quizSubmissions],
+  );
   const overallProgress =
     totalChapters > 0 ? Math.round((completedChapters / totalChapters) * 100) : 0;
 
@@ -564,6 +568,8 @@ export default function CourseDetail() {
               slug={slug!}
               isEnrolled={isEnrolled}
               sessions={curriculumSessions}
+              completedChapterIds={completedChapterIds}
+              completedQuizIds={completedQuizIds}
             />
           )}
 
