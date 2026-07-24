@@ -48,9 +48,9 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none p-0 flex flex-col">
-        <div className="p-4 sm:p-6 pb-0 sm:pb-0 space-y-2">
-          <DialogHeader>
+      <DialogContent className="fixed inset-0 left-0 top-0 z-50 flex h-[100dvh] w-screen max-w-none max-h-none translate-x-0 translate-y-0 flex-col rounded-none border-0 p-0 sm:rounded-none [&>button]:top-[max(1rem,env(safe-area-inset-top))]">
+        <div className="shrink-0 space-y-2 px-4 pb-0 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6 sm:pt-6">
+          <DialogHeader className="pr-10 text-left">
             <DialogTitle className="text-xl font-display">Prompting Guide</DialogTitle>
             <DialogDescription className="sr-only">Interactive prompting guide with tips and exercises</DialogDescription>
           </DialogHeader>
@@ -76,7 +76,7 @@ export default function PromptingGuideModal({ open, onOpenChange }: PromptingGui
         </div>
 
         {/* Scrollable content area */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-2 sm:pt-2">
+        <div className="flex-1 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 sm:px-6">
           <PromptFlipCard
             key={`${activeCategory}-${currentStep}`}
             badPrompt={step.badPrompt}
