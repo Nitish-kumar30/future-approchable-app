@@ -137,9 +137,13 @@ export default function CourseLearn() {
     setMiniProjects(data.mini_projects ?? []);
 
     setChapterProgress(Object.fromEntries((data.chapter_progress ?? []).map((p: any) => [p.chapter_id, p])));
-    completedChapterRef.current = new Set(
-      (data.chapter_progress ?? []).filter((p: any) => p.is_completed).map((p: any) => p.chapter_id),
-    );
+    // Union with whatever is already in the ref instead of replacing it —
+    // a completion write may still be in flight server-side when a silent
+    // reload (e.g. after a quiz) refetches, and we don't want to drop it.
+    const serverCompleted: string[] = (data.chapter_progress ?? [])
+      .filter((p: any) => p.is_completed)
+      .map((p: any) => p.chapter_id);
+    completedChapterRef.current = new Set([...completedChapterRef.current, ...serverCompleted]);
     setSessionProgress(
       Object.fromEntries((data.session_progress ?? []).map((p: any) => [p.session_id, p.is_completed])),
     );
@@ -243,6 +247,9 @@ export default function CourseLearn() {
   // Throttle progress writes without triggering re-renders of the player.
   const lastSavedSecRef = useRef<Record<string, number>>({});
   const completedChapterRef = useRef<Set<string>>(new Set());
+  // Latest known playhead per chapter, updated on every onProgress tick
+  // (not just the throttled 15s saves) so we can flush on switch/unmount.
+  const currentTimeRef = useRef<Record<string, number>>({});
 
   // Fullscreen wrapper (contains video + countdown overlay)
   const playerWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -328,23 +335,42 @@ export default function CourseLearn() {
     clearCountdown(); /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [selected?.id]);
 
+  // Flush any unsaved watch time for the chapter being left, whether the
+  // user switches chapters or navigates away entirely — otherwise up to
+  // 14s of progress since the last throttled save is lost.
+  useEffect(() => {
+    return () => {
+      if (selected?.kind !== "chapter") return;
+      const chapterId = selected.id;
+      if (completedChapterRef.current.has(chapterId)) return;
+      const t = currentTimeRef.current[chapterId];
+      if (t == null) return;
+      const floor = Math.floor(t);
+      const lastSaved = lastSavedSecRef.current[chapterId] ?? 0;
+      if (floor <= lastSaved) return;
+      lastSavedSecRef.current[chapterId] = floor;
+      invokeFn("update-chapter-progress", {
+        body: { chapter_id: chapterId, watched_seconds: floor, is_completed: false },
+      });
+    }; /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [selected]);
+
   const markChapterComplete = async (chapterId: string, watched: number, completed: boolean) => {
     if (!user) return;
     if (completed) completedChapterRef.current.add(chapterId);
+    const optimistic = { is_completed: completed, watched_seconds: watched };
     const prev = chapterProgress[chapterId];
-    setChapterProgress((p) => ({
-      ...p,
-      [chapterId]: { is_completed: completed, watched_seconds: watched },
-    }));
+    setChapterProgress((p) => ({ ...p, [chapterId]: optimistic }));
     const res = await invokeFn("update-chapter-progress", {
       body: { chapter_id: chapterId, watched_seconds: watched, is_completed: completed },
     });
     if (res?.error) {
       if (completed) completedChapterRef.current.delete(chapterId);
-      setChapterProgress((p) => ({
-        ...p,
-        [chapterId]: prev ?? { is_completed: false, watched_seconds: 0 },
-      }));
+      setChapterProgress((p) => {
+        // Only roll back if a newer call hasn't already superseded this one.
+        if (p[chapterId] !== optimistic) return p;
+        return { ...p, [chapterId]: prev ?? { is_completed: false, watched_seconds: 0 } };
+      });
       toast({ title: "Failed to save progress", description: res.error, variant: "destructive" });
     }
   };
@@ -553,14 +579,18 @@ export default function CourseLearn() {
                         key={currentChapter.id}
                         src={currentChapter.hls_url}
                         autoPlay
-                        onNearEnd={() =>
-                          markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true)
-                        }
-                        onEnded={() => {
+                        onNearEnd={() => {
+                          if (completedChapterRef.current.has(currentChapter.id)) return;
                           markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true);
+                        }}
+                        onEnded={() => {
+                          if (!completedChapterRef.current.has(currentChapter.id)) {
+                            markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true);
+                          }
                           if (nextItem) startAutoAdvance();
                         }}
                         onProgress={(t) => {
+                          currentTimeRef.current[currentChapter.id] = t;
                           if (completedChapterRef.current.has(currentChapter.id)) return;
                           const floor = Math.floor(t);
                           const prev = lastSavedSecRef.current[currentChapter.id] ?? 0;

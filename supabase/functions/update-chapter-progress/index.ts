@@ -57,30 +57,15 @@ Deno.serve(async (req) => {
     }
     if (!allowed) return json({ error: "Forbidden" }, 403);
 
-    const { data: existing } = await admin
-      .from("chapter_progress")
-      .select("is_completed, watched_seconds, completed_at")
-      .eq("user_id", userId)
-      .eq("chapter_id", chapter_id)
-      .maybeSingle();
-
-    const finalCompleted = existing?.is_completed || is_completed;
-    const finalWatched = Math.max(existing?.watched_seconds ?? 0, Math.max(0, Math.floor(watched_seconds)));
-
-    const { error } = await admin
-      .from("chapter_progress")
-      .upsert(
-        {
-          user_id: userId,
-          chapter_id,
-          watched_seconds: finalWatched,
-          is_completed: finalCompleted,
-          completed_at: finalCompleted
-            ? existing?.completed_at ?? new Date().toISOString()
-            : null,
-        },
-        { onConflict: "user_id,chapter_id" }
-      );
+    // Atomic upsert (INSERT ... ON CONFLICT DO UPDATE inside the RPC) — avoids
+    // the read-modify-write race a SELECT-then-UPSERT would have between the
+    // throttled onProgress writes and onNearEnd/onEnded completion writes.
+    const { error } = await admin.rpc("upsert_chapter_progress", {
+      _chapter_id: chapter_id,
+      _user_id: userId,
+      _watched_seconds: Math.floor(watched_seconds),
+      _is_completed: is_completed,
+    });
     if (error) return json({ error: error.message }, 500);
 
     return json({ ok: true });
