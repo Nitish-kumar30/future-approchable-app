@@ -1101,6 +1101,30 @@ export type Database = {
           submission_id: string
         }[]
       }
+      upsert_chapter_progress: {
+        Args: {
+          _chapter_id: string
+          _is_completed: boolean
+          _user_id: string
+          _watched_seconds: number
+        }
+        Returns: {
+          chapter_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          is_completed: boolean
+          updated_at: string
+          user_id: string
+          watched_seconds: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "chapter_progress"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       app_role: "admin" | "learner"
