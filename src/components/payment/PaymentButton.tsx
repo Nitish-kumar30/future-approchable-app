@@ -304,11 +304,6 @@ export default function PaymentButton({
 
   return (
     <div className="flex flex-col gap-2">
-      {isIOS() && currency === "INR" && (
-        <p className="text-xs text-muted-foreground">
-          On iPhone, enter your UPI ID (e.g. name@oksbi) to pay via UPI.
-        </p>
-      )}
       <Button
         ref={buttonRef}
         size={size}
