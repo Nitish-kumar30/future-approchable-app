@@ -1,31 +1,21 @@
-# Fix: Cohorts not visible in production
+# Review of last 2 commits
 
-## Root cause (verified in Live)
+## `c460cd4` — fix pdf render issue
+Bundles certificate HTML/CSS assets as `.ts` modules and rewrites `issue-certificate` + `render-certificate-pdf.ts` to import them (no more `Deno.readTextFile` on unbundled assets — that was the source of the earlier crash the user hit).
 
-`/cohorts` reads from the `public.cohorts_public` view. In Live:
+**Action needed:** redeploy the edge function `issue-certificate` so the new code goes live.
 
-- The view exists.
-- It has **zero GRANTs** — neither `anon` nor `authenticated` can read it.
-- Underlying `cohorts` table's only SELECT policy is "Enrolled users and admins", so the base table also returns nothing.
+## `c0a2a73` — merge (adds migration `20260724040542_836fd3e5...sql` + minor UI/types changes)
+Migration re-creates the certificates schema (tables, indexes, RLS, `compute_enrollment_progress_percent`, `get_certificate_eligibility`). It uses `IF NOT EXISTS` / `DO $$ ... EXCEPTION` guards. Checked Test DB — tables and both functions already exist (applied earlier as `20260724120000_certificates.sql`).
 
-Result: signed-in users see an empty list, even though Cohort 6 (Jul 23, 2026) is `is_published=true`, `enrollment_disabled=false`.
+**Action needed:** none for DB on Test. It will no-op on Live too when Publish runs.
 
-Test DB already has the grant, which is why it works there. This is a Test→Live sync gap.
+## Heads-up (not from these commits, but blocks the fix from actually working)
+`renderCertificatePdf` requires the `BROWSERLESS_API_KEY` secret; it is **not** in the project secrets. Without it, `issue-certificate` will now return a clean 500 `"BROWSERLESS_API_KEY is not configured"` instead of crashing. If you want PDF issuance to work end-to-end, we need to add that secret (and optional `BROWSERLESS_URL`).
 
-## Fix
+# Plan
 
-One-line migration, auth-only per your choice:
-
-```sql
-GRANT SELECT ON public.cohorts_public TO authenticated;
-```
-
-No `anon` grant — logged-out visitors won't see cohorts; they must sign in first.
-
-## Verification
-
-After publish applies the migration to Live:
-1. Sign in on `https://learn.approachable.dev`, open `/cohorts` — Cohort 6 shows under active, older ones under Past Cohorts.
-2. Incognito (logged out) `/cohorts` — remains empty (expected).
-
-No frontend changes.
+1. Deploy edge function: `issue-certificate` (picks up bundled asset imports).
+2. Skip DB migration run — already applied on Test; will no-op on Live at publish.
+3. Ask you whether to request the `BROWSERLESS_API_KEY` secret now so PDF rendering actually succeeds after deploy (or defer).
+4. Remind you to click **Publish → Update** to push the merged frontend + migration to Live.
