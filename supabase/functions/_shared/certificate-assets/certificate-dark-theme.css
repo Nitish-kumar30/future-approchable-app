@@ -1,0 +1,162 @@
+/* =========================================================================
+   Approachable — Certificate — DARK THEME overrides (Sample 2)
+   Load AFTER certificate-base.css. Scoped entirely to [data-theme*="dark"]
+   so it never affects the official light certificates.
+   Pair with data-tier="expert" on <html> to reuse the gold --tier-* variables.
+   ========================================================================= */
+
+[data-theme*="dark"] {
+  --dt-page-bg: #05070a;
+  --dt-card-bg-1: #14181f;
+  --dt-card-bg-2: #05070a;
+  --dt-ink: #f5f1e6;
+  --dt-ink-soft: #e7e1d0;
+  --dt-muted: #a8a394;
+  --dt-muted-soft: #7d7868;
+  --dt-border-soft: rgb(255 255 255 / 0.12);
+}
+
+[data-theme*="dark"] body {
+  background: var(--dt-page-bg);
+}
+
+[data-theme*="dark"] .certificate {
+  background: linear-gradient(165deg, var(--dt-card-bg-1), var(--dt-card-bg-2));
+  border-color: var(--tier-500);
+  box-shadow:
+    0 24px 70px -12px rgb(0 0 0 / 0.65),
+    0 0 0 1px rgb(255 255 255 / 0.04) inset;
+}
+
+/* Watermark + corner rings: gold, dimmer against dark background */
+[data-theme*="dark"] .watermark {
+  opacity: 0.35;
+  background-image: radial-gradient(circle at 1px 1px, var(--tier-400) 1.4px, transparent 2px);
+}
+
+[data-theme*="dark"] .certificate::before {
+  background: repeating-radial-gradient(
+    circle at center,
+    transparent 0px,
+    transparent 14px,
+    var(--tier-400) 15px,
+    transparent 16px
+  );
+  opacity: 0.14;
+}
+
+/* Header */
+[data-theme*="dark"] .brand-name {
+  color: var(--dt-ink);
+}
+
+[data-theme*="dark"] .brand-tagline {
+  color: var(--dt-muted-soft);
+}
+
+/* Title block */
+[data-theme*="dark"] .cert-title {
+  color: var(--dt-ink);
+}
+
+[data-theme*="dark"] .cert-subtitle .line,
+[data-theme*="dark"] .certify-line .line {
+  background: var(--dt-border-soft);
+}
+
+[data-theme*="dark"] .certify-line {
+  color: var(--dt-muted-soft);
+}
+
+/* Recipient name: brighter gold gradient for legibility on dark bg */
+[data-theme*="dark"] .recipient-name {
+  background: linear-gradient(180deg, var(--tier-400), var(--tier-600));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Body copy */
+[data-theme*="dark"] .cert-body {
+  color: var(--dt-muted);
+}
+
+[data-theme*="dark"] .cert-body strong {
+  color: var(--dt-ink);
+}
+
+/* Footer */
+[data-theme*="dark"] .cert-footer {
+  border-top-color: var(--dt-border-soft);
+}
+
+[data-theme*="dark"] .footer-col.signature-col {
+  border-left-color: var(--dt-border-soft);
+  border-right-color: var(--dt-border-soft);
+}
+
+[data-theme*="dark"] .footer-label {
+  color: var(--dt-muted-soft);
+}
+
+[data-theme*="dark"] .footer-value {
+  color: var(--dt-ink);
+}
+
+[data-theme*="dark"] .footer-icon {
+  color: var(--tier-400);
+}
+
+[data-theme*="dark"] .signature {
+  color: var(--dt-ink-soft);
+}
+
+[data-theme*="dark"] .signature-name {
+  color: var(--dt-ink);
+  border-top-color: var(--dt-border-soft);
+}
+
+[data-theme*="dark"] .signature-title {
+  color: var(--dt-muted-soft);
+}
+
+/* Medallion: dark glass badge with gold ring instead of white circle */
+[data-theme*="dark"] .medallion {
+  background: radial-gradient(circle at 32% 28%, #2a2f3a, #0c0e12 70%);
+  border-color: var(--tier-500);
+  box-shadow:
+    0 6px 16px -4px rgb(0 0 0 / 0.6),
+    inset 0 0 0 2px rgb(255 255 255 / 0.06);
+}
+
+[data-theme*="dark"] .medallion::before {
+  border-color: var(--tier-400);
+  opacity: 0.5;
+}
+
+[data-theme*="dark"] .medallion svg.medallion-icon {
+  color: var(--tier-400);
+}
+
+[data-theme*="dark"] .medallion .medallion-star {
+  background: #0c0e12;
+  color: var(--tier-400);
+}
+
+/* Verify bar */
+[data-theme*="dark"] .verify-bar {
+  background: rgb(255 255 255 / 0.04);
+  border-top-color: var(--dt-border-soft);
+}
+
+[data-theme*="dark"] .verify-label {
+  color: var(--tier-400);
+}
+
+[data-theme*="dark"] .verify-divider {
+  background: var(--dt-border-soft);
+}
+
+[data-theme*="dark"] .verify-url {
+  color: var(--dt-muted-soft);
+}

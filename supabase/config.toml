@@ -38,3 +38,27 @@ verify_jwt = false
 
 [functions.get-pricing-currency]
 verify_jwt = false
+
+[functions.get-certificate-eligibility]
+verify_jwt = false
+
+[functions.request-certificate]
+verify_jwt = false
+
+[functions.get-certificate-requests]
+verify_jwt = false
+
+[functions.review-certificate-request]
+verify_jwt = false
+
+[functions.issue-certificate]
+verify_jwt = false
+
+[functions.get-my-certificates]
+verify_jwt = false
+
+[functions.download-certificate]
+verify_jwt = false
+
+[functions.verify-certificate]
+verify_jwt = false
