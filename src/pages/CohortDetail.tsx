@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import CertificatePanel from "@/components/certificate/CertificatePanel";
 import { Markdown } from "@/components/ui/markdown";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -645,6 +646,10 @@ export default function CohortDetail() {
                     </div>
                   </CardContent>
                 </Card>
+              )}
+
+              {isEnrolled && cohort && (
+                <CertificatePanel cohortId={cohort.id} programName={cohort.name} />
               )}
 
               <Card className="card-elevated">

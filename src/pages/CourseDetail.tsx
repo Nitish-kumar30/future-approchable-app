@@ -16,6 +16,7 @@ import PaymentButton from '@/components/payment/PaymentButton';
 import { isPaidCourse } from '@/lib/coursePayment';
 import CourseContentAccordion, { CurriculumSession } from '@/components/course/CourseContentAccordion';
 import StickyPayBar from '@/components/course/StickyPayBar';
+import CertificatePanel from '@/components/certificate/CertificatePanel';
 import { 
   Clock, 
   GraduationCap, 
@@ -507,6 +508,10 @@ export default function CourseDetail() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {isEnrolled && course && (
+          <CertificatePanel courseId={course.id} programName={course.title} />
         )}
 
         {/* Description */}

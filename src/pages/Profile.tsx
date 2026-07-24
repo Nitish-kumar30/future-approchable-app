@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, Save, User } from 'lucide-react';
+import MyCertificatesSection from '@/components/certificate/MyCertificatesSection';
 
 interface Profile {
   id: string;
@@ -181,6 +182,8 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+
+        <MyCertificatesSection />
       </div>
     </MainLayout>
   );

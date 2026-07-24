@@ -23,6 +23,7 @@ import OnDemandCourseDetail from "./pages/OnDemandCourseDetail";
 import PromptLibrary from "./pages/PromptLibrary";
 import Registration from "./pages/Registration";
 import NotFound from "./pages/NotFound";
+import VerifyCertificate from "./pages/VerifyCertificate";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/registration" element={<Registration />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify/:certificateId" element={<VerifyCertificate />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
