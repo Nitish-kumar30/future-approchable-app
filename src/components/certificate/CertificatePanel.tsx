@@ -117,11 +117,9 @@ export default function CertificatePanel({ cohortId, courseId, programName }: Pr
 
   const issuedTiers = new Set(eligibility.existing_certificates.map((c) => c.tier));
   const pendingTiers = new Set(eligibility.pending_requests.map((r) => r.tier));
-  const availableTiers = TIERS.filter((t) => {
-    if (issuedTiers.has(t) || pendingTiers.has(t)) return false;
-    if (t === "foundation" && !eligibility.foundation_requestable) return false;
-    return true;
-  });
+  const availableTiers = TIERS.filter((t) => !issuedTiers.has(t) && !pendingTiers.has(t));
+  const isTierDisabled = (t: CertificateTier) =>
+    t === "foundation" && !eligibility.foundation_requestable;
   const canRequestAny = availableTiers.length > 0;
 
   const openRequestModal = () => {
