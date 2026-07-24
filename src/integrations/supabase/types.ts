@@ -108,6 +108,114 @@ export type Database = {
           },
         ]
       }
+      certificate_requests: {
+        Row: {
+          admin_note: string | null
+          cohort_id: string | null
+          course_id: string | null
+          created_at: string
+          id: string
+          learner_note: string | null
+          linkedin_post_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["certificate_request_status"]
+          tier: Database["public"]["Enums"]["certificate_tier"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          cohort_id?: string | null
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          learner_note?: string | null
+          linkedin_post_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["certificate_request_status"]
+          tier: Database["public"]["Enums"]["certificate_tier"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          cohort_id?: string | null
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          learner_note?: string | null
+          linkedin_post_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["certificate_request_status"]
+          tier?: Database["public"]["Enums"]["certificate_tier"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      certificates: {
+        Row: {
+          certificate_id: string
+          cohort_id: string | null
+          completion_date: string
+          course_id: string | null
+          created_at: string
+          id: string
+          instructor_name: string
+          instructor_title: string
+          issued_at: string
+          issued_by: string | null
+          pdf_storage_path: string
+          program_name: string
+          recipient_name: string
+          request_id: string | null
+          tier: Database["public"]["Enums"]["certificate_tier"]
+          user_id: string
+          verify_url: string
+        }
+        Insert: {
+          certificate_id: string
+          cohort_id?: string | null
+          completion_date: string
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          instructor_name?: string
+          instructor_title?: string
+          issued_at?: string
+          issued_by?: string | null
+          pdf_storage_path: string
+          program_name: string
+          recipient_name: string
+          request_id?: string | null
+          tier: Database["public"]["Enums"]["certificate_tier"]
+          user_id: string
+          verify_url: string
+        }
+        Update: {
+          certificate_id?: string
+          cohort_id?: string | null
+          completion_date?: string
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          instructor_name?: string
+          instructor_title?: string
+          issued_at?: string
+          issued_by?: string | null
+          pdf_storage_path?: string
+          program_name?: string
+          recipient_name?: string
+          request_id?: string | null
+          tier?: Database["public"]["Enums"]["certificate_tier"]
+          user_id?: string
+          verify_url?: string
+        }
+        Relationships: []
+      }
       cohort_registrations: {
         Row: {
           additional_info: string | null
@@ -898,6 +1006,22 @@ export type Database = {
       }
     }
     Functions: {
+      compute_enrollment_progress_percent: {
+        Args: {
+          p_cohort_id?: string | null
+          p_course_id?: string | null
+          p_user_id: string
+        }
+        Returns: number
+      }
+      get_certificate_eligibility: {
+        Args: {
+          p_cohort_id?: string | null
+          p_course_id?: string | null
+          p_user_id: string
+        }
+        Returns: Json
+      }
       generate_slug: { Args: { input_text: string }; Returns: string }
       get_cohort_enrollment_count: {
         Args: { _cohort_id: string }
@@ -937,6 +1061,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "learner"
+      certificate_request_status: "pending" | "approved" | "rejected" | "issued"
+      certificate_tier: "foundation" | "practitioner" | "expert"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1065,6 +1191,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "learner"],
+      certificate_request_status: ["pending", "approved", "rejected", "issued"],
+      certificate_tier: ["foundation", "practitioner", "expert"],
     },
   },
 } as const
