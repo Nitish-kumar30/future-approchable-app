@@ -135,14 +135,14 @@ body {
 .ribbon-wrap {
   position: absolute;
   top: 0;
-  left: 38px;
-  width: 78px;
+  left: 30px;
+  width: 108px;
   z-index: 2;
 }
 
 .ribbon {
-  width: 78px;
-  height: 198px;
+  width: 108px;
+  height: 220px;
   background: var(--tier-gradient);
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
   box-shadow: inset 10px 0 14px -10px rgb(255 255 255 / 0.35), 0 8px 16px -6px rgb(15 23 42 / 0.25);
@@ -150,14 +150,14 @@ body {
 
 .ribbon-tag {
   position: absolute;
-  bottom: 44px;
+  bottom: 48px;
   left: 0;
   width: 100%;
   text-align: center;
   color: #ffffff;
-  font-size: 8.5px;
+  font-size: 12.5px;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   font-family: "Plus Jakarta Sans", sans-serif;
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
   white-space: nowrap;
