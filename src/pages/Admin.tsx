@@ -40,6 +40,7 @@ import {
   UserMinus,
   Download,
   CreditCard,
+  Award,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -56,6 +57,7 @@ import { CourseForm } from "@/components/admin/CourseForm";
 import { SessionForm } from "@/components/admin/SessionForm";
 import { ChapterManager } from "@/components/admin/ChapterManager";
 import { QuizForm } from "@/components/admin/QuizForm";
+import CertificatesAdminTab from "@/components/admin/CertificatesAdminTab";
 
 interface Cohort {
   id: string;
@@ -1264,7 +1266,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="cohorts" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-12 lg:w-auto lg:inline-grid">
+          <TabsList className="flex flex-wrap h-auto w-full gap-1 lg:w-auto">
             <TabsTrigger value="cohorts" className="gap-2">
               <Users className="h-4 w-4" /> Cohorts
             </TabsTrigger>
@@ -1318,6 +1320,9 @@ export default function Admin() {
               }}
             >
               <CreditCard className="h-4 w-4" /> Payments
+            </TabsTrigger>
+            <TabsTrigger value="certificates" className="gap-2">
+              <Award className="h-4 w-4" /> Certificates
             </TabsTrigger>
           </TabsList>
 
@@ -2705,6 +2710,10 @@ export default function Admin() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="certificates">
+            <CertificatesAdminTab />
           </TabsContent>
         </Tabs>
 
