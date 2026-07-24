@@ -1,4 +1,4 @@
-import { jsonResponse, optionsResponse } from "../_shared/cors.ts";
+import { corsHeaders, jsonResponse, optionsResponse } from "../_shared/cors.ts";
 import { isAdminUser } from "../_shared/auth.ts";
 import { getServiceClient, requireAuth } from "../_shared/supabase-clients.ts";
 
@@ -32,14 +32,20 @@ Deno.serve(async (req) => {
     if (!admin) return jsonResponse({ error: "Forbidden" }, 403);
   }
 
-  const { data: signed, error: signError } = await supabase.storage
+  const { data: fileData, error: downloadError } = await supabase.storage
     .from("certificates")
-    .createSignedUrl(cert.pdf_storage_path, 3600);
+    .download(cert.pdf_storage_path);
 
-  if (signError || !signed?.signedUrl) {
-    console.error(signError);
-    return jsonResponse({ error: "Failed to generate download URL" }, 500);
+  if (downloadError || !fileData) {
+    console.error(downloadError);
+    return jsonResponse({ error: "Failed to fetch certificate" }, 500);
   }
 
-  return jsonResponse({ download_url: signed.signedUrl, expires_in: 3600 });
+  return new Response(fileData, {
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${cert.certificate_id}.pdf"`,
+    },
+  });
 });

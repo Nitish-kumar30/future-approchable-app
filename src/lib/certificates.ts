@@ -96,10 +96,30 @@ export async function fetchMyCertificates(params?: { cohortId?: string; courseId
 }
 
 export async function downloadCertificate(certificateId: string) {
-  const data = await callFunction<{ download_url: string }>("download-certificate", {
-    query: { certificate_id: certificateId },
+  const token = await getAuthToken();
+  if (!token) throw new Error("Not authenticated");
+
+  const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-certificate`);
+  url.searchParams.set("certificate_id", certificateId);
+
+  const response = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${token}` },
   });
-  window.open(data.download_url, "_blank", "noopener,noreferrer");
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Download failed");
+  }
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = `${certificateId}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(objectUrl);
 }
 
 export async function verifyCertificatePublic(certificateId: string) {

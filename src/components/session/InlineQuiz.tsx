@@ -146,11 +146,13 @@ export default function InlineQuiz({ quizId, quizTitle, onCompleted }: InlineQui
     return (
       <button
         onClick={() => setIsExpanded(true)}
-        className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted transition-colors text-left"
+        className="w-full flex items-center gap-3 p-3 rounded-lg border border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-colors text-left"
       >
         <ClipboardList className="h-5 w-5 text-primary shrink-0" />
         <span className="font-medium text-sm flex-1">{quizTitle}</span>
-        <Badge variant="secondary">Take Quiz</Badge>
+        <span className="shrink-0 rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm">
+          Take Quiz
+        </span>
       </button>
     );
   }
