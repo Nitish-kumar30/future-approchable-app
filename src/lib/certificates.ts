@@ -68,6 +68,12 @@ export async function fetchCertificateEligibility(params: { cohortId?: string; c
   return callFunction<CertificateEligibility>("get-certificate-eligibility", { query });
 }
 
+export type RequestCertificateResult = {
+  success: boolean;
+  request?: { id: string; tier: CertificateTier; status: string; created_at: string };
+  certificate?: { id: string; certificate_id: string; tier: CertificateTier; verify_url: string; issued_at: string };
+};
+
 export async function requestCertificate(payload: {
   cohortId?: string;
   courseId?: string;
@@ -75,7 +81,7 @@ export async function requestCertificate(payload: {
   linkedinPostUrl?: string;
   learnerNote?: string;
 }) {
-  return callFunction<{ success: boolean }>("request-certificate", {
+  return callFunction<RequestCertificateResult>("request-certificate", {
     method: "POST",
     body: {
       cohort_id: payload.cohortId,

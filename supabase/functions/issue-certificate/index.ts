@@ -1,11 +1,6 @@
 import { jsonResponse, optionsResponse } from "../_shared/cors.ts";
-import {
-  buildVerifyUrl,
-  DEFAULT_INSTRUCTOR,
-  generateCertificateId,
-  type CertificateTier,
-} from "../_shared/certificates.ts";
-import { buildCertificateHtml, renderCertificatePdf } from "../_shared/render-certificate-pdf.ts";
+import { issueCertificateForRequest } from "../_shared/issue-certificate-core.ts";
+import type { CertificateTier } from "../_shared/certificates.ts";
 import { getServiceClient, requireAdmin } from "../_shared/supabase-clients.ts";
 
 Deno.serve(async (req) => {
@@ -48,113 +43,29 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Cannot issue a rejected request" }, 400);
     }
 
-    const { data: existingCert } = await supabase
-      .from("certificates")
-      .select("id")
-      .eq("user_id", request.user_id)
-      .eq("tier", request.tier)
-      .eq(request.cohort_id ? "cohort_id" : "course_id", request.cohort_id ?? request.course_id)
-      .maybeSingle();
-
-    if (existingCert) {
-      return jsonResponse({ error: "Certificate already exists for this tier" }, 409);
-    }
-
-    let programName = "AI Program";
-    if (request.cohort_id) {
-      const { data: cohort } = await supabase.from("cohorts").select("name").eq("id", request.cohort_id).single();
-      programName = cohort?.name ?? programName;
-    } else if (request.course_id) {
-      const { data: course } = await supabase.from("courses").select("title").eq("id", request.course_id).single();
-      programName = course?.title ?? programName;
-    }
-
-    let resolvedRecipientName = recipient_name;
-    if (!resolvedRecipientName) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("user_id", request.user_id)
-        .maybeSingle();
-      resolvedRecipientName = profile?.full_name ?? "Certificate Recipient";
-    }
-
-    const tier = request.tier as CertificateTier;
-    const certificateId = generateCertificateId(tier);
-    const verifyUrl = buildVerifyUrl(certificateId);
-    const resolvedCompletionDate = completion_date ?? new Date().toISOString().slice(0, 10);
-    const resolvedInstructorName = instructor_name ?? DEFAULT_INSTRUCTOR.name;
-    const resolvedInstructorTitle = instructor_title ?? DEFAULT_INSTRUCTOR.title;
-
-    const html = await buildCertificateHtml({
-      tier,
-      recipientName: resolvedRecipientName,
-      programName,
-      completionDate: resolvedCompletionDate,
-      certificateId,
-      verifyUrl,
-      instructorName: resolvedInstructorName,
-      instructorTitle: resolvedInstructorTitle,
-    });
-
-    let pdfBytes: Uint8Array;
-    try {
-      pdfBytes = await renderCertificatePdf(html);
-    } catch (err) {
-      console.error("PDF render error:", err);
-      return jsonResponse({ error: err instanceof Error ? err.message : "PDF generation failed" }, 500);
-    }
-
-    const storagePath = `${request.user_id}/${certificateId}.pdf`;
-    const { error: uploadError } = await supabase.storage
-      .from("certificates")
-      .upload(storagePath, pdfBytes, {
-        contentType: "application/pdf",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error(uploadError);
-      return jsonResponse({ error: "Failed to store certificate PDF" }, 500);
-    }
-
-    const { data: certificate, error: certError } = await supabase
-      .from("certificates")
-      .insert({
-        certificate_id: certificateId,
+    const result = await issueCertificateForRequest(
+      supabase,
+      {
+        id: request.id,
         user_id: request.user_id,
+        tier: request.tier as CertificateTier,
         cohort_id: request.cohort_id,
         course_id: request.course_id,
-        tier,
-        request_id: request.id,
-        recipient_name: resolvedRecipientName,
-        program_name: programName,
-        completion_date: resolvedCompletionDate,
-        instructor_name: resolvedInstructorName,
-        instructor_title: resolvedInstructorTitle,
-        pdf_storage_path: storagePath,
-        verify_url: verifyUrl,
-        issued_by: auth.user.userId,
-      })
-      .select("id, certificate_id, tier, verify_url, issued_at")
-      .single();
+      },
+      {
+        issuedBy: auth.user.userId,
+        recipientName: recipient_name,
+        completionDate: completion_date,
+        instructorName: instructor_name,
+        instructorTitle: instructor_title,
+      },
+    );
 
-    if (certError) {
-      console.error(certError);
-      await supabase.storage.from("certificates").remove([storagePath]);
-      return jsonResponse({ error: "Failed to save certificate record" }, 500);
+    if (result.error) {
+      return jsonResponse({ error: result.error.message }, result.error.status);
     }
 
-    await supabase
-      .from("certificate_requests")
-      .update({
-        status: "issued",
-        reviewed_by: auth.user.userId,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", request.id);
-
-    return jsonResponse({ success: true, certificate });
+    return jsonResponse({ success: true, certificate: result.certificate });
   } catch (err) {
     console.error("issue-certificate error:", err);
     return jsonResponse(

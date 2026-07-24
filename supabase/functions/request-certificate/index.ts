@@ -1,5 +1,6 @@
 import { jsonResponse, optionsResponse } from "../_shared/cors.ts";
 import type { CertificateTier } from "../_shared/certificates.ts";
+import { issueCertificateForRequest } from "../_shared/issue-certificate-core.ts";
 import { getServiceClient, requireAuth } from "../_shared/supabase-clients.ts";
 
 const TIERS: CertificateTier[] = ["foundation", "practitioner", "expert"];
@@ -75,6 +76,31 @@ Deno.serve(async (req) => {
   if (insertError) {
     console.error(insertError);
     return jsonResponse({ error: "Failed to submit certificate request" }, 500);
+  }
+
+  // Foundation is self-serve: at 100% progress the learner has already met the
+  // bar, so issue immediately instead of waiting on admin review.
+  if (tier === "foundation") {
+    const result = await issueCertificateForRequest(
+      supabase,
+      {
+        id: inserted.id,
+        user_id: userId,
+        tier: "foundation",
+        cohort_id: cohort_id ?? null,
+        course_id: course_id ?? null,
+      },
+      { issuedBy: null },
+    );
+
+    if (result.error) {
+      // Let the learner retry cleanly instead of getting stuck behind a
+      // "pending" row that will never be issued.
+      await supabase.from("certificate_requests").delete().eq("id", inserted.id);
+      return jsonResponse({ error: result.error.message }, result.error.status);
+    }
+
+    return jsonResponse({ success: true, certificate: result.certificate });
   }
 
   return jsonResponse({ success: true, request: inserted });

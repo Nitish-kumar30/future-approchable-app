@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Award, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -39,7 +39,7 @@ type Props = {
 
 const TIERS: CertificateTier[] = ["foundation", "practitioner", "expert"];
 
-export default function CertificatePanel({ cohortId, courseId, programName }: Props) {
+export default function CertificatePanel({ cohortId, courseId }: Props) {
   const { toast } = useToast();
   const [eligibility, setEligibility] = useState<CertificateEligibility | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,14 +68,23 @@ export default function CertificatePanel({ cohortId, courseId, programName }: Pr
   const handleRequest = async () => {
     setSubmitting(true);
     try {
-      await requestCertificate({
+      const result = await requestCertificate({
         cohortId,
         courseId,
         tier,
         linkedinPostUrl: tier === "foundation" ? linkedinUrl : undefined,
         learnerNote: note || undefined,
       });
-      toast({ title: "Certificate requested", description: "An admin will review your request." });
+
+      if (result.certificate) {
+        toast({ title: "Certificate issued!", description: "Your certificate is ready — downloading now." });
+        await downloadCertificate(result.certificate.certificate_id).catch(() => {
+          // Download can be retried from the certificate list below; issuance already succeeded.
+        });
+      } else {
+        toast({ title: "Certificate requested", description: "An admin will review your request." });
+      }
+
       setModalOpen(false);
       setLinkedinUrl("");
       setNote("");
@@ -135,10 +144,6 @@ export default function CertificatePanel({ cohortId, courseId, programName }: Pr
             <Award className="h-5 w-5" />
             Certificates
           </CardTitle>
-          <CardDescription>
-            {programName ? `${programName} — ` : ""}
-            {eligibility.progress_percent}% complete
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {eligibility.existing_certificates.length > 0 && (
@@ -186,7 +191,9 @@ export default function CertificatePanel({ cohortId, courseId, programName }: Pr
           <DialogHeader>
             <DialogTitle>Request Certificate</DialogTitle>
             <DialogDescription>
-              Choose the certificate tier you are applying for. An admin will verify and issue your certificate.
+              {tier === "foundation"
+                ? "At 100% progress your Foundation certificate is issued instantly — no admin review needed."
+                : "Choose the certificate tier you are applying for. An admin will verify and issue your certificate."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -242,7 +249,13 @@ export default function CertificatePanel({ cohortId, courseId, programName }: Pr
               onClick={handleRequest}
               disabled={submitting || isTierDisabled(tier) || (tier === "foundation" && !linkedinUrl.trim())}
             >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit Request"}
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : tier === "foundation" ? (
+                "Get Certificate"
+              ) : (
+                "Submit Request"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

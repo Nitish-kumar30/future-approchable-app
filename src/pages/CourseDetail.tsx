@@ -379,8 +379,16 @@ export default function CourseDetail() {
     () => new Set(quizSubmissions.map((s) => s.quizId)),
     [quizSubmissions],
   );
+  const totalQuizzes = useMemo(
+    () =>
+      Object.values(sessionQuizzes).reduce((n, arr) => n + arr.length, 0) +
+      courseQuizzes.length,
+    [sessionQuizzes, courseQuizzes],
+  );
+  const totalItems = totalChapters + totalQuizzes;
+  const completedItems = completedChapters + completedQuizIds.size;
   const overallProgress =
-    totalChapters > 0 ? Math.round((completedChapters / totalChapters) * 100) : 0;
+    totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
   if (isLoading) {
     return (
@@ -495,7 +503,7 @@ export default function CourseDetail() {
         <Separator />
 
         {/* Overall Progress - Only for enrolled users */}
-        {isEnrolled && totalChapters > 0 && (
+        {isEnrolled && totalItems > 0 && (
           <Card className="card-elevated border-primary/20 bg-primary/5">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Your Progress</CardTitle>
@@ -504,7 +512,7 @@ export default function CourseDetail() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">
-                    {completedChapters} of {totalChapters} lessons completed
+                    {completedItems} of {totalItems} lessons & quizzes completed
                   </span>
                   <span className="font-medium">{overallProgress}%</span>
                 </div>
