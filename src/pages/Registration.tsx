@@ -20,7 +20,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { COUNTRIES, INDIA_STATES, PRIORITY_COUNTRIES } from "@/lib/locations";
 import { COHORT_CONFIG } from "@/lib/constants";
 
-const COHORT_OPTIONS = ["Cohort 6: Master the Claude Ecosystem - July 23rd 7:30PM/10AM Eastern"];
+const COHORT_OPTIONS = ["Cohort Next: Waitlist"];
 
 const INTEREST_OPTIONS = [
   "Claude Overview",
