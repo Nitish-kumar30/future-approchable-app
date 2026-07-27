@@ -40,12 +40,12 @@ Deno.serve(async (req) => {
   const [{ data: profiles }, { data: cohorts }, { data: courses }] = await Promise.all([
     supabase.from("profiles").select("user_id, full_name").in("user_id", userIds),
     cohortIds.length ? supabase.from("cohorts").select("id, name").in("id", cohortIds) : Promise.resolve({ data: [] }),
-    courseIds.length ? supabase.from("courses").select("id, title").in("id", courseIds) : Promise.resolve({ data: [] }),
+    courseIds.length ? supabase.from("courses").select("id, name").in("id", courseIds) : Promise.resolve({ data: [] }),
   ]);
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p.full_name]));
   const cohortMap = new Map((cohorts ?? []).map((c) => [c.id, c.name]));
-  const courseMap = new Map((courses ?? []).map((c) => [c.id, c.title]));
+  const courseMap = new Map((courses ?? []).map((c) => [c.id, c.name]));
 
   const emailMap = new Map<string, string>();
   for (const uid of userIds) {

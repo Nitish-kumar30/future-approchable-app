@@ -522,8 +522,8 @@ export default function CourseDetail() {
           </Card>
         )}
 
-        {isEnrolled && course && (
-          <CertificatePanel courseId={course.id} programName={course.name} />
+        {isEnrolled && course && isPaidCourse(course) && (
+          <CertificatePanel courseId={course.id} variant="course" />
         )}
 
         {/* Description */}

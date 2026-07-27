@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Award, Download, Loader2 } from "lucide-react";
+import { Award, Download, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ import {
   CertificateTier,
   downloadCertificate,
   fetchCertificateEligibility,
+  regenerateCertificate,
   requestCertificate,
   tierLabel,
 } from "@/lib/certificates";
@@ -35,11 +36,13 @@ type Props = {
   cohortId?: string;
   courseId?: string;
   programName?: string;
+  variant?: "course" | "cohort";
 };
 
 const TIERS: CertificateTier[] = ["foundation", "practitioner", "expert"];
 
-export default function CertificatePanel({ cohortId, courseId }: Props) {
+export default function CertificatePanel({ cohortId, courseId, variant }: Props) {
+  const isCourseMode = variant === "course" || (!!courseId && !cohortId);
   const { toast } = useToast();
   const [eligibility, setEligibility] = useState<CertificateEligibility | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,6 +51,7 @@ export default function CertificatePanel({ cohortId, courseId }: Props) {
   const [tier, setTier] = useState<CertificateTier>("foundation");
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [note, setNote] = useState("");
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -65,14 +69,15 @@ export default function CertificatePanel({ cohortId, courseId }: Props) {
     load();
   }, [cohortId, courseId]);
 
-  const handleRequest = async () => {
+  const handleRequest = async (requestTier?: CertificateTier) => {
+    const selectedTier = requestTier ?? tier;
     setSubmitting(true);
     try {
       const result = await requestCertificate({
         cohortId,
         courseId,
-        tier,
-        linkedinPostUrl: tier === "foundation" ? linkedinUrl : undefined,
+        tier: selectedTier,
+        linkedinPostUrl: !isCourseMode && selectedTier === "foundation" ? linkedinUrl : undefined,
         learnerNote: note || undefined,
       });
 
@@ -112,6 +117,49 @@ export default function CertificatePanel({ cohortId, courseId }: Props) {
     }
   };
 
+  const handleRegenerate = async (certificateId: string) => {
+    setRegeneratingId(certificateId);
+    try {
+      await regenerateCertificate(certificateId);
+      toast({
+        title: "Certificate updated",
+        description: "Your certificate has been refreshed — downloading now.",
+      });
+      await downloadCertificate(certificateId).catch(() => {});
+      await load();
+    } catch (err) {
+      toast({
+        title: "Regenerate failed",
+        description: err instanceof Error ? err.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setRegeneratingId(null);
+    }
+  };
+
+  const renderCertActions = (certificateId: string) => (
+    <div className="flex items-center gap-2">
+      <Button size="sm" variant="outline" onClick={() => handleDownload(certificateId)}>
+        <Download className="h-4 w-4 mr-1" />
+        PDF
+      </Button>
+      <Button
+        size="icon"
+        variant="outline"
+        title="Regenerate certificate"
+        onClick={() => handleRegenerate(certificateId)}
+        disabled={regeneratingId === certificateId}
+      >
+        {regeneratingId === certificateId ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <RefreshCw className="h-4 w-4" />
+        )}
+      </Button>
+    </div>
+  );
+
   if (loading) {
     return (
       <Card>
@@ -123,6 +171,52 @@ export default function CertificatePanel({ cohortId, courseId }: Props) {
   }
 
   if (!eligibility?.enrolled) return null;
+
+  if (isCourseMode) {
+    const foundationCert = eligibility.existing_certificates.find((c) => c.tier === "foundation");
+    const canDownload = eligibility.foundation_requestable && !foundationCert;
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Award className="h-5 w-5" />
+            Certificate
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {foundationCert && (
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="flex items-center gap-2">
+                <Badge>{tierLabel(foundationCert.tier)}</Badge>
+                <span className="text-sm text-muted-foreground">{foundationCert.certificate_id}</span>
+              </div>
+              {renderCertActions(foundationCert.certificate_id)}
+            </div>
+          )}
+
+          {canDownload && (
+            <Button onClick={() => handleRequest("foundation")} disabled={submitting}>
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Certificate
+                </>
+              )}
+            </Button>
+          )}
+
+          {!foundationCert && !canDownload && (
+            <p className="text-sm text-muted-foreground">
+              Complete 100% of lessons and quizzes to unlock your certificate.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
   const issuedTiers = new Set(eligibility.existing_certificates.map((c) => c.tier));
   const pendingTiers = new Set(eligibility.pending_requests.map((r) => r.tier));
@@ -154,10 +248,7 @@ export default function CertificatePanel({ cohortId, courseId }: Props) {
                     <Badge>{tierLabel(cert.tier)}</Badge>
                     <span className="text-sm text-muted-foreground">{cert.certificate_id}</span>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => handleDownload(cert.certificate_id)}>
-                    <Download className="h-4 w-4 mr-1" />
-                    PDF
-                  </Button>
+                  {renderCertActions(cert.certificate_id)}
                 </div>
               ))}
             </div>
@@ -246,7 +337,7 @@ export default function CertificatePanel({ cohortId, courseId }: Props) {
               Cancel
             </Button>
             <Button
-              onClick={handleRequest}
+              onClick={() => handleRequest()}
               disabled={submitting || isTierDisabled(tier) || (tier === "foundation" && !linkedinUrl.trim())}
             >
               {submitting ? (

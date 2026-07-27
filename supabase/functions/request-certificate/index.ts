@@ -25,6 +25,22 @@ Deno.serve(async (req) => {
   const supabase = getServiceClient();
   const userId = auth.user.userId;
 
+  if (course_id) {
+    const { data: isPaid, error: paidError } = await supabase.rpc("is_paid_course", {
+      _course_id: course_id,
+    });
+    if (paidError) {
+      console.error(paidError);
+      return jsonResponse({ error: "Failed to verify course" }, 500);
+    }
+    if (!isPaid) {
+      return jsonResponse({ error: "Certificates are not available for free courses" }, 403);
+    }
+    if (tier !== "foundation") {
+      return jsonResponse({ error: "Only Foundation certificates are available for courses" }, 400);
+    }
+  }
+
   const { data: eligibility, error: eligError } = await supabase.rpc("get_certificate_eligibility", {
     p_user_id: userId,
     p_cohort_id: cohort_id ?? null,
@@ -54,7 +70,7 @@ Deno.serve(async (req) => {
     if (!eligibility.foundation_requestable) {
       return jsonResponse({ error: "Complete 100% of the program before requesting a Foundation certificate" }, 400);
     }
-    if (!linkedin_post_url || typeof linkedin_post_url !== "string") {
+    if (cohort_id && (!linkedin_post_url || typeof linkedin_post_url !== "string")) {
       return jsonResponse({ error: "LinkedIn post URL is required for Foundation certificates" }, 400);
     }
   }
@@ -67,7 +83,7 @@ Deno.serve(async (req) => {
       course_id: course_id ?? null,
       tier,
       status: "pending",
-      linkedin_post_url: tier === "foundation" ? linkedin_post_url : null,
+      linkedin_post_url: cohort_id && tier === "foundation" ? linkedin_post_url : null,
       learner_note: learner_note ?? null,
     })
     .select("id, tier, status, created_at")

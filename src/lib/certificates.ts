@@ -128,6 +128,25 @@ export async function downloadCertificate(certificateId: string) {
   URL.revokeObjectURL(objectUrl);
 }
 
+export type RegenerateCertificateResult = {
+  success: boolean;
+  certificate?: {
+    id: string;
+    certificate_id: string;
+    tier: CertificateTier;
+    verify_url: string;
+    issued_at: string;
+    program_name: string;
+  };
+};
+
+export async function regenerateCertificate(certificateId: string) {
+  return callFunction<RegenerateCertificateResult>("regenerate-certificate", {
+    method: "POST",
+    body: { certificate_id: certificateId },
+  });
+}
+
 export async function verifyCertificatePublic(certificateId: string) {
   const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-certificate`);
   url.searchParams.set("certificate_id", certificateId);
