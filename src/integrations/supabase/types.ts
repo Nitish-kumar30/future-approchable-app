@@ -1090,6 +1090,7 @@ export type Database = {
         Args: { _course_id: string; _user_id: string }
         Returns: boolean
       }
+      is_paid_course: { Args: { _course_id: string }; Returns: boolean }
       recompute_session_completion: {
         Args: { _session_id: string; _user_id: string }
         Returns: undefined
