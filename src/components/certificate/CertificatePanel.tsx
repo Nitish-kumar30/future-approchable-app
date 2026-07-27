@@ -77,7 +77,7 @@ export default function CertificatePanel({ cohortId, courseId, variant }: Props)
         cohortId,
         courseId,
         tier: selectedTier,
-        linkedinPostUrl: !isCourseMode && selectedTier === "foundation" ? linkedinUrl : undefined,
+        linkedinPostUrl: !isCourseMode ? linkedinUrl : undefined,
         learnerNote: note || undefined,
       });
 
@@ -303,7 +303,7 @@ export default function CertificatePanel({ cohortId, courseId, variant }: Props)
                 </SelectContent>
               </Select>
             </div>
-            {tier === "foundation" && (
+            {!isCourseMode && (
               <div className="space-y-2">
                 <Label htmlFor="linkedin">
                   LinkedIn post URL <span className="text-destructive">*</span>
@@ -316,7 +316,7 @@ export default function CertificatePanel({ cohortId, courseId, variant }: Props)
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Share a LinkedIn post about your learning to unlock the Submit button.
+                  Share a LinkedIn post about your learning to submit your request.
                 </p>
               </div>
             )}
@@ -338,7 +338,7 @@ export default function CertificatePanel({ cohortId, courseId, variant }: Props)
             </Button>
             <Button
               onClick={() => handleRequest()}
-              disabled={submitting || isTierDisabled(tier) || (tier === "foundation" && !linkedinUrl.trim())}
+              disabled={submitting || isTierDisabled(tier) || (!isCourseMode && !linkedinUrl.trim())}
             >
               {submitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

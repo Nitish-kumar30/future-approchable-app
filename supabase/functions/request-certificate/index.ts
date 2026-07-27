@@ -66,12 +66,15 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "A request for this tier is already pending" }, 409);
   }
 
+  if (cohort_id) {
+    if (!linkedin_post_url || typeof linkedin_post_url !== "string" || !linkedin_post_url.trim()) {
+      return jsonResponse({ error: "LinkedIn post URL is required for certificate requests" }, 400);
+    }
+  }
+
   if (tier === "foundation") {
     if (!eligibility.foundation_requestable) {
       return jsonResponse({ error: "Complete 100% of the program before requesting a Foundation certificate" }, 400);
-    }
-    if (cohort_id && (!linkedin_post_url || typeof linkedin_post_url !== "string")) {
-      return jsonResponse({ error: "LinkedIn post URL is required for Foundation certificates" }, 400);
     }
   }
 
@@ -83,7 +86,7 @@ Deno.serve(async (req) => {
       course_id: course_id ?? null,
       tier,
       status: "pending",
-      linkedin_post_url: cohort_id && tier === "foundation" ? linkedin_post_url : null,
+      linkedin_post_url: cohort_id ? linkedin_post_url.trim() : null,
       learner_note: learner_note ?? null,
     })
     .select("id, tier, status, created_at")
