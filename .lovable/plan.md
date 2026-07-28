@@ -1,23 +1,23 @@
-## Review of commits since the last Test sync (`f128c44` → `4663f95`)
+## Publish to Live
 
-Verified against the Test database directly.
+### Pre-check status
+- Test DB verified current: `is_paid_course`, `upsert_chapter_progress`, `compute_enrollment_progress_percent` all present; `cohorts_public` view exists.
+- `cohorts` policies contain only the admin policies and `Enrolled users and admins can view cohorts` — the broad authenticated-read policy is gone.
+- Recent commits (`26c02a9` → `4663f95`) are frontend-only; no pending edge function or migration changes.
+- `BROWSERLESS_API_KEY` is now configured, so certificate PDF issuance should work.
 
-### Nothing new on the backend
-The four commits since the last sync (`26c02a9`, `9065d9f`, `0282912`, `b944b70`, `ec1664a`, `4663f95`) touch **frontend files only** — no new files under `supabase/migrations/` and no changes under `supabase/functions/`.
+### Blocker to clear first
+The security scan still lists one **error**-level finding, `cohorts_meeting_link_exposure` (scanner `supabase_lov`), which blocks publishing. This is stale — the leaky policy was already dropped on Test. Step 1 marks it as fixed with that explanation.
 
-Changed: `index.html` + og-image/meta tags, `Auth.tsx` and new `src/lib/authRedirect.ts` (login `next` param redirect), `HlsPlayer.tsx` / `VimeoPlayer.tsx` + new `src/lib/videoPlaybackPrefs.ts` (persisted volume and playback speed), plus small layout/header/payment-button tweaks and two new test files.
+Remaining findings are all `warn` level and do not block: quiz answer-key exposure in the client payload, enrollment capacity not enforced server-side, leaked-password protection disabled, SECURITY DEFINER function execute grants, public bucket listing. None of these are new to this release.
 
-### Database state confirmed current on Test
-- `is_paid_course`, `upsert_chapter_progress`, `compute_enrollment_progress_percent` all present.
-- `cohorts` policies: only the admin policies and `Enrolled users and admins can view cohorts` — the broad authenticated-read policy is gone, so the meeting/group link finding stays fixed.
-- `cohorts_public` view exists for browsing.
+### Steps
+1. Mark `cohorts_meeting_link_exposure` as fixed, noting the policy removal and the `cohorts_public` view as the browsing path.
+2. Publish to Live.
 
-### What I'd do if you approve
-1. Redeploy edge functions that read shared code, purely as a no-op refresh — or skip entirely, since none changed. My recommendation: skip.
-2. Confirm the frontend changes on the Test preview (login redirect with `?next=`, video volume/speed persistence).
+### What publishing pushes
+- Frontend: login `?next=` redirect, video volume/speed persistence, og/meta tag updates, layout/header/payment-button tweaks.
+- Backend: the certificate schema, the `cohorts` policy fix, `is_paid_course`, and the atomic chapter-progress migration reach Live with this publish.
 
-### Known gap (unchanged)
-`BROWSERLESS_API_KEY` is still not configured, so certificate PDF issuance keeps returning the "not configured" error. Say the word and I'll open the secure form to add it.
-
-### Live
-Frontend changes require **Publish → Update** to reach Live. Live also still needs the two migrations and the cohorts policy fix pushed via that same publish, since those only applied to Test.
+### After publish
+Live database **data** is not copied from Test — any Live-side content (courses, cohorts, chapters) still needs to exist in Live. Worth spot-checking the Live course pages and one certificate download once the deploy finishes (~1 minute).
