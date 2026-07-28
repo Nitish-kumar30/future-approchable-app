@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Navigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { buildLoginUrl } from '@/lib/authRedirect';
 import { useSyncMobileNavHeight } from '@/hooks/useSyncMobileNavHeight';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -57,7 +58,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    const loginUrl = buildLoginUrl(location.pathname + location.search);
+    return <Navigate to={loginUrl} replace />;
   }
 
   const getInitials = (email: string) => {

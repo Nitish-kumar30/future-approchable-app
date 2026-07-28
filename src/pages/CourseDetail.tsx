@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { buildLoginUrl } from '@/lib/authRedirect';
 import { useToast } from '@/hooks/use-toast';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
@@ -71,6 +72,7 @@ interface PreReadingMaterial {
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   
@@ -327,7 +329,7 @@ export default function CourseDetail() {
 
   const handleEnroll = async () => {
     if (!user) {
-      navigate('/auth');
+      navigate(buildLoginUrl(location.pathname + location.search));
       return;
     }
 

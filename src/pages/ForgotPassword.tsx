@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Mail, ArrowLeft } from 'lucide-react';
 import siteIcon from '@/assets/icon.png';
+import { LOGIN_PATH } from '@/lib/authRedirect';
 import { z } from 'zod';
 
 const emailSchema = z.string().email('Please enter a valid email address');
@@ -77,7 +78,7 @@ export default function ForgotPassword() {
                 Please check your inbox and click the link to reset your password.
               </p>
               <Button variant="outline" asChild className="w-full mt-4">
-                <Link to="/auth">
+                <Link to={LOGIN_PATH}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to Sign In
                 </Link>
@@ -114,7 +115,7 @@ export default function ForgotPassword() {
                   )}
                 </Button>
                 <Button variant="ghost" asChild className="w-full">
-                  <Link to="/auth">
+                  <Link to={LOGIN_PATH}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to Sign In
                   </Link>

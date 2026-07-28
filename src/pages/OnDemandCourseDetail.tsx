@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { buildLoginUrl, courseDetailPath, onDemandCoursePath } from '@/lib/authRedirect';
 import PublicHeader from '@/components/layout/PublicHeader';
 import VimeoPlayer from '@/components/session/VimeoPlayer';
 import InlineQuiz from '@/components/session/InlineQuiz';
@@ -433,12 +434,12 @@ export default function OnDemandCourseDetail() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button asChild>
-                    <Link to={`/auth?tab=signup&redirect=/on-demand/${slug}`}>
+                    <Link to={slug ? buildLoginUrl(onDemandCoursePath(slug), { tab: "signup" }) : "/login?tab=signup"}>
                       <UserPlus className="mr-2 h-4 w-4" /> Sign Up Free
                     </Link>
                   </Button>
                   <Button variant="outline" asChild>
-                    <Link to={`/auth?redirect=/on-demand/${slug}`}>
+                    <Link to={slug ? buildLoginUrl(onDemandCoursePath(slug)) : "/login"}>
                       <LogIn className="mr-2 h-4 w-4" /> Log In
                     </Link>
                   </Button>

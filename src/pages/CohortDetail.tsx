@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import confetti from "canvas-confetti";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { buildLoginUrl } from "@/lib/authRedirect";
 import { useToast } from "@/hooks/use-toast";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -121,6 +122,7 @@ interface LeaderboardEntry {
 export default function CohortDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const enrolledContentLoadedRef = useRef(false);
@@ -353,7 +355,7 @@ export default function CohortDetail() {
 
   const handleEnroll = async () => {
     if (!user) {
-      navigate("/auth");
+      navigate(buildLoginUrl(location.pathname + location.search));
       return;
     }
 

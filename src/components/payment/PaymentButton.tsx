@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { buildLoginUrl } from "@/lib/authRedirect";
 import { usePricingCurrency } from "@/hooks/usePricingCurrency";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,7 @@ export default function PaymentButton({
   adminEnroll,
 }: PaymentButtonProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAdmin } = useAuth();
   const {
     currency,
@@ -108,7 +110,7 @@ export default function PaymentButton({
 
   const openCheckout = async (currency?: PaymentCurrency) => {
     if (!user) {
-      navigate("/auth");
+      navigate(buildLoginUrl(location.pathname + location.search));
       return;
     }
 

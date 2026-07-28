@@ -13,6 +13,7 @@ import { Loader2, Mail, Lock, User } from "lucide-react";
 import siteIcon from "@/assets/icon.png";
 import { z } from "zod";
 import { lovable } from "@/integrations/lovable";
+import { parseNextSearchParam } from "@/lib/authRedirect";
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -49,10 +50,10 @@ export default function Auth() {
     );
   }
 
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const nextPath = parseNextSearchParam(searchParams);
 
   if (user) {
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to={nextPath} replace />;
   }
 
   const validateLogin = () => {
@@ -112,7 +113,7 @@ export default function Auth() {
         variant: "destructive",
       });
     } else {
-      navigate(redirectTo);
+      navigate(nextPath);
     }
   };
 
@@ -139,14 +140,14 @@ export default function Auth() {
         title: "Account created!",
         description: "Welcome to approachable.dev. Redirecting to your dashboard...",
       });
-      navigate(redirectTo);
+      navigate(nextPath);
     }
   };
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}${redirectTo}`,
+      redirect_uri: `${window.location.origin}${nextPath}`,
     });
 
     if (error) {

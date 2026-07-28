@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { buildLoginUrl, courseDetailPath } from '@/lib/authRedirect';
 import PublicHeader from '@/components/layout/PublicHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -100,7 +101,7 @@ export default function LiveCourses() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {courses.map((course) => (
-                <Link key={course.id} to={user ? `/courses/${course.slug}` : '/auth'}>
+                <Link key={course.id} to={user ? courseDetailPath(course.slug) : buildLoginUrl(courseDetailPath(course.slug))}>
                   <Card className="card-elevated hover:shadow-lg transition-all duration-200 cursor-pointer h-full group overflow-hidden">
                     {/* Course Image */}
                     <div className="relative h-48 bg-muted overflow-hidden">

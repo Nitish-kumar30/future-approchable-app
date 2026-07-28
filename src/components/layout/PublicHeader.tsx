@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { LogIn, UserPlus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { LOGIN_PATH } from '@/lib/authRedirect';
 import logo from '@/assets/icon.png';
 import PromoBanner from './PromoBanner';
 
@@ -37,13 +38,13 @@ export default function PublicHeader({ hideAuth = false }: { hideAuth?: boolean 
             ) : (
               <>
                 <Button variant="ghost" size="sm" asChild className="gap-2">
-                  <Link to="/auth">
+                  <Link to={LOGIN_PATH}>
                     <LogIn className="h-4 w-4" />
                     <span className="hidden sm:inline">Sign In</span>
                   </Link>
                 </Button>
                 <Button size="sm" asChild className="gap-2">
-                  <Link to="/auth?tab=signup">
+                  <Link to={`${LOGIN_PATH}?tab=signup`}>
                     <UserPlus className="h-4 w-4" />
                     <span className="hidden sm:inline">Sign Up</span>
                   </Link>

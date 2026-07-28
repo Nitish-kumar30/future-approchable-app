@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, Navigate, useLocation } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { buildLoginUrl } from "@/lib/authRedirect";
 import HlsPlayer from "@/components/video/HlsPlayer";
 import CourseSidebar from "@/components/course/CourseSidebar";
 import RateCourseDialog from "@/components/course/RateCourseDialog";
@@ -93,7 +94,8 @@ async function invokeFn(name: string, opts: { body?: any; method?: string; query
 export default function CourseLearn() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const location = useLocation();
+  const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -388,6 +390,18 @@ export default function CourseLearn() {
       setMyComment(comment);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to={buildLoginUrl(location.pathname + location.search)} replace />;
+  }
 
   if (loading) {
     return (
