@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import Hls from 'hls.js';
+import { applyVideoPlaybackPrefs, saveVideoPlaybackPrefs } from '@/lib/videoPlaybackPrefs';
 
 interface HlsPlayerProps {
   src: string;
@@ -42,6 +43,26 @@ export default function HlsPlayer({
 
   useEffect(() => {
     const video = videoRef.current;
+    if (!video) return;
+
+    const onVolumeChange = () => {
+      saveVideoPlaybackPrefs({ volume: video.volume });
+    };
+    const onRateChange = () => {
+      saveVideoPlaybackPrefs({ playbackRate: video.playbackRate });
+    };
+
+    video.addEventListener('volumechange', onVolumeChange);
+    video.addEventListener('ratechange', onRateChange);
+
+    return () => {
+      video.removeEventListener('volumechange', onVolumeChange);
+      video.removeEventListener('ratechange', onRateChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
     if (!video || !src) return;
 
     nearEndFiredRef.current = false;
@@ -57,7 +78,9 @@ export default function HlsPlayer({
     }
 
     const tryPlay = () => {
-      if (cancelled || !autoPlay) return;
+      if (cancelled) return;
+      applyVideoPlaybackPrefs(video);
+      if (!autoPlay) return;
       const p = video.play();
       if (p && typeof p.catch === 'function') {
         p.catch(() => {
@@ -90,7 +113,10 @@ export default function HlsPlayer({
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = src;
-      video.addEventListener('loadedmetadata', tryPlay, { once: true });
+      video.addEventListener('loadedmetadata', () => {
+        applyVideoPlaybackPrefs(video);
+        tryPlay();
+      }, { once: true });
     } else {
       onErrorRef.current?.('HLS not supported in this browser');
     }

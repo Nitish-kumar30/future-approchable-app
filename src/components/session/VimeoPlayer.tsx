@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Player from '@vimeo/player';
 import { CheckCircle2, PlayCircle, BookOpen, ClipboardList, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getVideoPlaybackPrefs, saveVideoPlaybackPrefs } from '@/lib/videoPlaybackPrefs';
 import CohortUpsellCard from '@/components/session/CohortUpsellCard';
 
 interface NextSession {
@@ -79,14 +80,29 @@ export default function VimeoPlayer({ videoUrl, title, nextSession, onCompleted,
       byline: false,
       portrait: false,
       autoplay: !!autoPlay,
+      speed: true,
     });
 
     playerRef.current = player;
 
     // Notify parent that autoplay has been consumed so it doesn't persist
-    player.ready().then(() => {
+    player.ready().then(async () => {
+      const prefs = getVideoPlaybackPrefs();
+      try {
+        await player.setVolume(prefs.volume);
+        await player.setPlaybackRate(prefs.playbackRate);
+      } catch {
+        /* ignore unsupported volume/rate on some mobile browsers */
+      }
       onAutoPlayConsumed?.();
     }).catch(() => {});
+
+    player.on('volumechange', (data: { volume: number }) => {
+      saveVideoPlaybackPrefs({ volume: data.volume });
+    });
+    player.on('playbackratechange', (data: { playbackRate: number }) => {
+      saveVideoPlaybackPrefs({ playbackRate: data.playbackRate });
+    });
 
     // Fire onPlay callback on first play event
     player.on('play', () => {
