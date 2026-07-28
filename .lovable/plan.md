@@ -1,30 +1,23 @@
-## Deploy recent commits to Test
+## Publish to Live
 
-Reviewed commits `903f20e` → `8044d1e`. Frontend is already live on the Test preview; the backend is behind. Two migrations and several edge functions still need to go out.
+### Pre-check status
+- Test DB verified current: `is_paid_course`, `upsert_chapter_progress`, `compute_enrollment_progress_percent` all present; `cohorts_public` view exists.
+- `cohorts` policies contain only the admin policies and `Enrolled users and admins can view cohorts` — the broad authenticated-read policy is gone.
+- Recent commits (`26c02a9` → `4663f95`) are frontend-only; no pending edge function or migration changes.
+- `BROWSERLESS_API_KEY` is now configured, so certificate PDF issuance should work.
 
-### 1. Migrations to apply (verified missing on Test)
+### Blocker to clear first
+The security scan still lists one **error**-level finding, `cohorts_meeting_link_exposure` (scanner `supabase_lov`), which blocks publishing. This is stale — the leaky policy was already dropped on Test. Step 1 marks it as fixed with that explanation.
 
-- **`20260716140000_restrict_paid_course_self_enroll.sql`** — `public.is_paid_course()` does not exist on Test. This is currently breaking things: `request-certificate` calls this function for course certificates, so every course certificate request fails with "Failed to verify course". The same migration also tightens the self-enroll policy on paid courses.
-- **`20260727120000_course_progress_include_course_quizzes.sql`** — `compute_enrollment_progress_percent` on Test is the old version (confirmed: no course-level quiz handling). Course progress therefore doesn't count course-level quizzes, so the certificate eligibility % disagrees with what CourseDetail shows.
+Remaining findings are all `warn` level and do not block: quiz answer-key exposure in the client payload, enrollment capacity not enforced server-side, leaked-password protection disabled, SECURITY DEFINER function execute grants, public bucket listing. None of these are new to this release.
 
-### 2. Open security finding (still unfixed on Test)
+### Steps
+1. Mark `cohorts_meeting_link_exposure` as fixed, noting the policy removal and the `cohorts_public` view as the browsing path.
+2. Publish to Live.
 
-`public.cohorts` still has both `Authenticated users can view published cohorts` and `Enrolled users and admins can view cohorts`. The first one grants full-row access — including `meeting_link` and `group_link` — to any logged-in user. Fix: drop that policy and expose only non-sensitive cohort columns for browsing (via the existing public view path used by `Cohorts.tsx`), leaving full-row access to the enrollment-gated policy.
+### What publishing pushes
+- Frontend: login `?next=` redirect, video volume/speed persistence, og/meta tag updates, layout/header/payment-button tweaks.
+- Backend: the certificate schema, the `cohorts` policy fix, `is_paid_course`, and the atomic chapter-progress migration reach Live with this publish.
 
-I'll fold this into the same deploy unless you want it handled separately.
-
-### 3. Edge functions to redeploy
-
-Changed in recent commits:
-- `request-certificate` (LinkedIn field required for all tiers, paid-course check)
-- `regenerate-certificate` (new `verify_jwt = false` config block)
-- `get-certificate-requests`
-- `issue-certificate` (picks up shared `issue-certificate-core.ts` course-name fix)
-
-### 4. Frontend
-
-Auto-deployed to the Test preview: toast/dialog error fixes, footer spacing, certificate panel LinkedIn field, Advanced tier removed for courses, course name fix, Registration tweaks. Live requires **Publish → Update**.
-
-### Known gap
-
-`BROWSERLESS_API_KEY` is still not configured, so PDF issuance will keep failing with a clean "not configured" error until it's added.
+### After publish
+Live database **data** is not copied from Test — any Live-side content (courses, cohorts, chapters) still needs to exist in Live. Worth spot-checking the Live course pages and one certificate download once the deploy finishes (~1 minute).
