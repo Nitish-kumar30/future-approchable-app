@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# One-off static course HTML export (not part of the app build)
+scripts/export-course-html.mjs
+exports/
