@@ -1,16 +1,19 @@
-## Publish og_img_2.png + current assets to Live
+## Deploy the new OG image to Live
 
 ### Current state (verified)
-- `public/og_img_2.png` exists in the repo but nothing references it — `index.html` still points `og:image` and `twitter:image` at `https://learn.approachable.dev/og-image.png`.
-- Other static assets already in `public/`: `favicon.ico`, `favicon.png`, `og-image.png`, `robots.txt`, `sitemap.xml`, `.well-known/apple-developer-merchantid-domain-association`. These ship with the frontend build; they just need a publish to reach Live.
-- Security scan re-checked: no error/critical findings remain (the `cohorts_meeting_link_exposure` blocker is cleared). Six warn-level findings remain and do not block publishing.
+- `public/og_image_3.png` (83 KB) exists in the repo; `public/og-image.png` and `og_img_2.png` have been deleted.
+- `index.html` in the repo points `og:image`, `og:image:alt`, and `twitter:image` at `https://learn.approachable.dev/og_image_3.png`.
+- The Live site still serves the old markup: `og:image` = `https://learn.approachable.dev/og-image.png`.
+- `https://learn.approachable.dev/og_image_3.png` returns **404** — the asset has not been deployed.
+
+Conclusion: the OG image change is on Test only. Nothing is broken in the code; it just needs a frontend publish.
 
 ### Steps
-1. Update `index.html` to point `og:image` and `twitter:image` at `https://learn.approachable.dev/og_img_2.png`.
-2. Keep `og-image.png` in the repo as a fallback (no deletion) unless you want it removed.
-3. Publish to Live — this deploys the frontend build plus every file in `public/` (new OG image, favicons, robots.txt, sitemap.xml, Apple Pay domain association).
+1. Run a security scan check — publishing is blocked by unresolved critical findings. The previous critical blocker was cleared, so this should pass; only warn-level findings remain.
+2. Publish to Live. This deploys the built frontend plus everything in `public/` (`og_image_3.png`, favicons, `robots.txt`, `sitemap.xml`, Apple Pay domain association).
+3. Verify after the deploy: confirm `https://learn.approachable.dev/og_image_3.png` returns 200 and that the live HTML head shows the new `og:image`.
 
 ### Notes
-- Social platforms cache link previews, so LinkedIn/X/Facebook will keep showing the old image until they re-scrape. You can force a refresh in each platform's link preview debugger after the deploy.
-- Publishing also pushes any pending backend migrations/edge-function state to Live; nothing new is pending beyond what was already applied.
-- Live deploy takes ~1 minute; the custom domain can take a little longer.
+- Live currently references `og-image.png`, which no longer exists in the repo — after publish that path will 404, so any external link still pointing at it will break. The new tags don't use it, so this only matters for previously cached shares.
+- LinkedIn/X/Facebook cache link previews; they'll keep showing the old image until re-scraped. Each platform's link preview debugger can force a refresh after the deploy.
+- Deploy takes about a minute; the custom domain can take slightly longer.
