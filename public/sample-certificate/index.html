@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en" data-tier="foundation" data-theme="dark" data-variant="v2">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Approachable — Foundation Certificate — Ranbeer Makin — AIF-2026-861707</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Playfair+Display:wght@800;900&family=Dancing+Script:wght@600;700&display=swap"
+  rel="stylesheet"
+/>
+<style>
+/* =========================================================================
+   Approachable — Certificate of Completion — shared base styles
+   Used by: foundation-certificate.html, practitioner-certificate.html,
+            expert-certificate.html
+   Only the [data-tier="..."] color blocks below differ between certificates.
+   ========================================================================= */
+
+:root {
+  --ink: #1e293b;
+  --ink-soft: #334155;
+  --muted: #64748b;
+  --muted-soft: #94a3b8;
+  --border-soft: #e2e8f0;
+  --page-bg: #eef2f6;
+}
+
+/* ---- Per-tier color themes -------------------------------------------- */
+
+[data-tier="foundation"] {
+  --tier-50: #eff6ff;
+  --tier-100: #dbeafe;
+  --tier-400: #60a5fa;
+  --tier-500: #3b82f6;
+  --tier-600: #2563eb;
+  --tier-700: #1d4ed8;
+  --tier-800: #1e40af;
+  --tier-gradient: linear-gradient(160deg, var(--tier-400), var(--tier-700));
+}
+
+[data-tier="practitioner"] {
+  --tier-50: #f5f3ff;
+  --tier-100: #ede9fe;
+  --tier-400: #a78bfa;
+  --tier-500: #8b5cf6;
+  --tier-600: #7c3aed;
+  --tier-700: #6d28d9;
+  --tier-800: #5b21b6;
+  --tier-gradient: linear-gradient(160deg, var(--tier-400), var(--tier-700));
+}
+
+[data-tier="expert"] {
+  --tier-50: #fefce8;
+  --tier-100: #fef9c3;
+  --tier-400: #fbbf24;
+  --tier-500: #eab308;
+  --tier-600: #ca8a04;
+  --tier-700: #a16207;
+  --tier-800: #854d0e;
+  --tier-gradient: linear-gradient(160deg, var(--tier-400), var(--tier-700));
+}
+
+/* ---- Reset / page (preview) wrapper ------------------------------------ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--page-bg);
+  font-family: "Inter", system-ui, sans-serif;
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+}
+
+/* ---- Certificate card --------------------------------------------------- */
+
+.certificate {
+  position: relative;
+  z-index: 0;
+  width: 1040px;
+  max-width: 100%;
+  background: #ffffff;
+  border: 3px solid var(--tier-600);
+  border-radius: 28px;
+  box-shadow: 0 24px 60px -12px rgb(15 23 42 / 0.18);
+  overflow: hidden;
+  padding: 36px 64px 0;
+}
+
+/* Faint network / dotted watermark pattern in the background (bottom-left) */
+.watermark {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.45;
+  background-image:
+    radial-gradient(circle at 1px 1px, var(--tier-500) 1.4px, transparent 2px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(circle 280px at 20px calc(100% - 20px), black 0%, black 45%, transparent 100%);
+  mask-image: radial-gradient(circle 280px at 20px calc(100% - 20px), black 0%, black 45%, transparent 100%);
+}
+
+/* Faint topographic contour rings (top-right) — kept as its own layer
+   (NOT nested inside .watermark) so the bottom-left dot mask above
+   doesn't also clip this out. */
+.certificate::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  right: -60px;
+  width: 320px;
+  height: 320px;
+  z-index: -1;
+  background: repeating-radial-gradient(
+    circle at center,
+    transparent 0px,
+    transparent 14px,
+    var(--tier-500) 15px,
+    transparent 16px
+  );
+  opacity: 0.16;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.watermark svg {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60%;
+  height: auto;
+  opacity: 0.12;
+  color: var(--tier-500);
+}
+
+
+/* ---- Ribbon + medallion (top-left) -------------------------------------- */
+
+.ribbon-wrap {
+  position: absolute;
+  top: 0;
+  left: 30px;
+  width: 108px;
+  z-index: 2;
+}
+
+.ribbon {
+  width: 108px;
+  height: 220px;
+  background: var(--tier-gradient);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+  box-shadow: inset 10px 0 14px -10px rgb(255 255 255 / 0.35), 0 8px 16px -6px rgb(15 23 42 / 0.25);
+}
+
+.ribbon-tag {
+  position: absolute;
+  bottom: 48px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  white-space: nowrap;
+}
+
+.medallion {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #ffffff, var(--tier-50) 70%);
+  border: 4px solid var(--tier-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 14px -4px rgb(15 23 42 / 0.35), inset 0 0 0 2px #ffffff;
+}
+
+.medallion::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--tier-400);
+  opacity: 0.6;
+}
+
+.medallion svg.medallion-icon {
+  width: 42px;
+  height: 42px;
+  color: var(--tier-700);
+}
+
+.medallion .medallion-star {
+  position: absolute;
+  bottom: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 26px;
+  height: 26px;
+  color: var(--tier-600);
+  background: #ffffff;
+  border-radius: 50%;
+  padding: 3px;
+  box-sizing: border-box;
+  filter: drop-shadow(0 3px 3px rgb(15 23 42 / 0.3));
+}
+
+/* ---- Header: logo + wordmark --------------------------------------------- */
+
+.cert-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.cert-header .logo-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  margin-bottom: 4px;
+}
+
+.brand-name {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+}
+
+.brand-tagline {
+  font-size: 11px;
+  color: var(--muted-soft);
+  letter-spacing: 0.01em;
+}
+
+.brand-tagline em {
+  font-style: italic;
+}
+
+/* ---- Title block: CERTIFICATE / OF COMPLETION ---------------------------- */
+
+.title-block {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.cert-title {
+  font-family: "Playfair Display", "Georgia", serif;
+  font-size: 54px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  color: #111827;
+  line-height: 1;
+}
+
+.cert-subtitle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 6px;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  color: var(--tier-600);
+}
+
+.cert-subtitle .line {
+  width: 46px;
+  height: 1px;
+  background: var(--border-soft);
+}
+
+/* ---- Certify line: "This certifies that" ---------------------------------- */
+
+.certify-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-soft);
+  margin-bottom: 6px;
+}
+
+.certify-line .line {
+  width: 26px;
+  height: 1px;
+  background: var(--border-soft);
+}
+
+/* ---- Recipient name -------------------------------------------------------- */
+
+.recipient-name {
+  text-align: center;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 42px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  background: linear-gradient(180deg, var(--tier-500), var(--tier-700));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: var(--tier-600);
+}
+
+/* ---- Body copy -------------------------------------------------------------- */
+
+.cert-body {
+  text-align: center;
+  max-width: 620px;
+  margin: 0 auto 18px;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.cert-body strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* ---- Footer: date / signature / certificate id ------------------------------ */
+
+.cert-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 8px 20px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.footer-col {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.footer-col.signature-col {
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  text-align: center;
+  border-left: 1px solid var(--border-soft);
+  border-right: 1px solid var(--border-soft);
+  padding: 0 40px;
+}
+
+.footer-col:last-child {
+  justify-content: flex-end;
+}
+
+.footer-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--tier-600);
+  flex-shrink: 0;
+}
+
+.footer-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-soft);
+  margin-bottom: 3px;
+}
+
+.footer-value {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.signature {
+  font-family: "Dancing Script", cursive;
+  font-size: 30px;
+  color: var(--ink-soft);
+  line-height: 1.1;
+}
+
+.signature-name {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  text-transform: uppercase;
+  margin-top: 2px;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 4px;
+}
+
+.signature-title {
+  font-size: 10.5px;
+  color: var(--muted-soft);
+  margin-top: 1px;
+}
+
+/* ---- Verify bar --------------------------------------------------------------- */
+
+.verify-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--tier-50);
+  border-top: 1px solid var(--border-soft);
+  padding: 13px 0;
+  font-size: 12px;
+}
+
+.verify-bar .verify-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--tier-600);
+}
+
+.verify-label {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tier-600);
+}
+
+.verify-divider {
+  width: 1px;
+  height: 12px;
+  background: var(--border-soft);
+}
+
+.verify-url {
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+
+/* =========================================================================
+   Approachable — Certificate — DARK THEME overrides (Sample 2)
+   Load AFTER certificate-base.css. Scoped entirely to [data-theme*="dark"]
+   so it never affects the official light certificates.
+   Pair with data-tier="expert" on <html> to reuse the gold --tier-* variables.
+   ========================================================================= */
+
+[data-theme*="dark"] {
+  --dt-page-bg: #05070a;
+  --dt-card-bg-1: #14181f;
+  --dt-card-bg-2: #05070a;
+  --dt-ink: #f5f1e6;
+  --dt-ink-soft: #e7e1d0;
+  --dt-muted: #a8a394;
+  --dt-muted-soft: #7d7868;
+  --dt-border-soft: rgb(255 255 255 / 0.12);
+}
+
+[data-theme*="dark"] body {
+  background: var(--dt-page-bg);
+}
+
+[data-theme*="dark"] .certificate {
+  background: linear-gradient(165deg, var(--dt-card-bg-1), var(--dt-card-bg-2));
+  border-color: var(--tier-500);
+  box-shadow:
+    0 24px 70px -12px rgb(0 0 0 / 0.65),
+    0 0 0 1px rgb(255 255 255 / 0.04) inset;
+}
+
+/* Watermark + corner rings: gold, dimmer against dark background */
+[data-theme*="dark"] .watermark {
+  opacity: 0.35;
+  background-image: radial-gradient(circle at 1px 1px, var(--tier-400) 1.4px, transparent 2px);
+}
+
+[data-theme*="dark"] .certificate::before {
+  background: repeating-radial-gradient(
+    circle at center,
+    transparent 0px,
+    transparent 14px,
+    var(--tier-400) 15px,
+    transparent 16px
+  );
+  opacity: 0.14;
+}
+
+/* Header */
+[data-theme*="dark"] .brand-name {
+  color: var(--dt-ink);
+}
+
+[data-theme*="dark"] .brand-tagline {
+  color: var(--dt-muted-soft);
+}
+
+/* Title block */
+[data-theme*="dark"] .cert-title {
+  color: var(--dt-ink);
+}
+
+[data-theme*="dark"] .cert-subtitle .line,
+[data-theme*="dark"] .certify-line .line {
+  background: var(--dt-border-soft);
+}
+
+[data-theme*="dark"] .certify-line {
+  color: var(--dt-muted-soft);
+}
+
+/* Recipient name: brighter gold gradient for legibility on dark bg */
+[data-theme*="dark"] .recipient-name {
+  background: linear-gradient(180deg, var(--tier-400), var(--tier-600));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Body copy */
+[data-theme*="dark"] .cert-body {
+  color: var(--dt-muted);
+}
+
+[data-theme*="dark"] .cert-body strong {
+  color: var(--dt-ink);
+}
+
+/* Footer */
+[data-theme*="dark"] .cert-footer {
+  border-top-color: var(--dt-border-soft);
+}
+
+[data-theme*="dark"] .footer-col.signature-col {
+  border-left-color: var(--dt-border-soft);
+  border-right-color: var(--dt-border-soft);
+}
+
+[data-theme*="dark"] .footer-label {
+  color: var(--dt-muted-soft);
+}
+
+[data-theme*="dark"] .footer-value {
+  color: var(--dt-ink);
+}
+
+[data-theme*="dark"] .footer-icon {
+  color: var(--tier-400);
+}
+
+[data-theme*="dark"] .signature {
+  color: var(--dt-ink-soft);
+}
+
+[data-theme*="dark"] .signature-name {
+  color: var(--dt-ink);
+  border-top-color: var(--dt-border-soft);
+}
+
+[data-theme*="dark"] .signature-title {
+  color: var(--dt-muted-soft);
+}
+
+/* Medallion: dark glass badge with gold ring instead of white circle */
+[data-theme*="dark"] .medallion {
+  background: radial-gradient(circle at 32% 28%, #2a2f3a, #0c0e12 70%);
+  border-color: var(--tier-500);
+  box-shadow:
+    0 6px 16px -4px rgb(0 0 0 / 0.6),
+    inset 0 0 0 2px rgb(255 255 255 / 0.06);
+}
+
+[data-theme*="dark"] .medallion::before {
+  border-color: var(--tier-400);
+  opacity: 0.5;
+}
+
+[data-theme*="dark"] .medallion svg.medallion-icon {
+  color: var(--tier-400);
+}
+
+[data-theme*="dark"] .medallion .medallion-star {
+  background: #0c0e12;
+  color: var(--tier-400);
+}
+
+/* Verify bar */
+[data-theme*="dark"] .verify-bar {
+  background: rgb(255 255 255 / 0.04);
+  border-top-color: var(--dt-border-soft);
+}
+
+[data-theme*="dark"] .verify-label {
+  color: var(--tier-400);
+}
+
+[data-theme*="dark"] .verify-divider {
+  background: var(--dt-border-soft);
+}
+
+[data-theme*="dark"] .verify-url {
+  color: var(--dt-muted-soft);
+}
+
+/* =========================================================================
+   Approachable — Certificate — DARK THEME v2 accent pass
+   Opt-in only via data-variant="v2" on <html>. Loaded AFTER
+   certificate-dark-theme.css. Does not affect existing templates
+   (foundation/practitioner/expert-certificate.html) since they do not
+   set data-variant.
+
+   Purpose: give Foundation (blue) and Practitioner (purple) their own
+   brighter, dark-mode-tuned accent color + glow treatment instead of
+   reusing the light-theme tier-400/500/600/700 swatches, which read
+   flat/muddy on dark backgrounds compared to gold.
+   ========================================================================= */
+
+[data-theme*="dark"][data-variant="v2"][data-tier="foundation"] {
+  --dtv2-accent-soft: #bae6fd;
+  --dtv2-accent: #38bdf8;
+  --dtv2-accent-strong: #0ea5e9;
+  --dtv2-glow: rgb(56 189 248 / 0.45);
+}
+
+[data-theme*="dark"][data-variant="v2"][data-tier="practitioner"] {
+  --dtv2-accent-soft: #e9d5ff;
+  --dtv2-accent: #c084fc;
+  --dtv2-accent-strong: #a855f7;
+  --dtv2-glow: rgb(192 132 252 / 0.45);
+}
+
+/* Card: brighter border + soft outer glow (mirrors gold's natural glow) */
+[data-theme*="dark"][data-variant="v2"] .certificate {
+  border-color: var(--dtv2-accent);
+  box-shadow:
+    0 24px 70px -12px rgb(0 0 0 / 0.65),
+    0 0 46px -10px var(--dtv2-glow),
+    0 0 0 1px rgb(255 255 255 / 0.04) inset;
+}
+
+/* Watermark + corner rings: use the brighter accent, slightly more visible */
+[data-theme*="dark"][data-variant="v2"] .watermark {
+  opacity: 0.4;
+  background-image: radial-gradient(circle at 1px 1px, var(--dtv2-accent) 1.4px, transparent 2px);
+}
+
+[data-theme*="dark"][data-variant="v2"] .certificate::before {
+  background: repeating-radial-gradient(
+    circle at center,
+    transparent 0px,
+    transparent 14px,
+    var(--dtv2-accent) 15px,
+    transparent 16px
+  );
+  opacity: 0.18;
+}
+
+/* Subtitle text (OF COMPLETION) was inheriting the light-theme tier-600,
+   which is too dark to read well here. */
+[data-theme*="dark"][data-variant="v2"] .cert-subtitle {
+  color: var(--dtv2-accent-soft);
+}
+
+/* Recipient name: blend cream ink -> bright accent instead of tier-500->700,
+   which trended darker/muddier toward the bottom. */
+[data-theme*="dark"][data-variant="v2"] .recipient-name {
+  background: linear-gradient(180deg, var(--dt-ink) 0%, var(--dtv2-accent-soft) 45%, var(--dtv2-accent-strong) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 10px var(--dtv2-glow));
+}
+
+/* Ribbon: brighter gradient + glow instead of flat tier-400/700 */
+[data-theme*="dark"][data-variant="v2"] .ribbon {
+  background: linear-gradient(160deg, var(--dtv2-accent-soft), var(--dtv2-accent-strong));
+  box-shadow:
+    inset 10px 0 14px -10px rgb(255 255 255 / 0.45),
+    0 8px 20px -6px var(--dtv2-glow);
+}
+
+/* Medallion: brighter ring, icon, star + soft outer glow */
+[data-theme*="dark"][data-variant="v2"] .medallion {
+  border-color: var(--dtv2-accent);
+  box-shadow:
+    0 0 0 2px var(--dtv2-glow),
+    0 6px 18px -4px rgb(0 0 0 / 0.6),
+    inset 0 0 0 2px rgb(255 255 255 / 0.08);
+}
+
+[data-theme*="dark"][data-variant="v2"] .medallion::before {
+  border-color: var(--dtv2-accent-soft);
+  opacity: 0.7;
+}
+
+[data-theme*="dark"][data-variant="v2"] .medallion svg.medallion-icon {
+  color: var(--dtv2-accent-soft);
+}
+
+[data-theme*="dark"][data-variant="v2"] .medallion .medallion-star {
+  color: var(--dtv2-accent-strong);
+}
+
+/* Footer icons + verify label pick up the brighter accent */
+[data-theme*="dark"][data-variant="v2"] .footer-icon {
+  color: var(--dtv2-accent-soft);
+}
+
+[data-theme*="dark"][data-variant="v2"] .verify-label {
+  color: var(--dtv2-accent-soft);
+}
+
+
+@page { size: 1200px 1000px; margin: 0; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+[data-theme*="dark"] body {
+  padding: 40px;
+  background: #05070a;
+}
+
+.certificate-content {
+  position: relative;
+  z-index: 2;
+}
+
+.sample-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.sample-watermark span {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 800;
+  font-size: 88px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(56 189 248 / 0.28);
+  transform: rotate(-32deg);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.verify-url a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.verify-url a:hover {
+  text-decoration: underline;
+  color: var(--dtv2-accent-soft, #bae6fd);
+}
+
+/* ---- Mobile: scale-to-fit (ref: exports course page patterns) ---------- */
+
+.cert-viewport {
+  display: contents;
+}
+
+.cert-scaler {
+  display: contents;
+}
+
+.rotate-hint {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  [data-theme*="dark"] body {
+    margin: 0;
+    padding: 1rem 0;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    background: #05070a;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    display: block;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .rotate-hint {
+    display: block;
+    text-align: center;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 0.75rem;
+    color: #7d7868;
+    padding: 0 1rem 0.5rem;
+    margin: 0;
+  }
+
+  .cert-viewport {
+    display: block;
+    width: 100%;
+    max-width: 100vw;
+    margin: 0 auto;
+    padding: 0 1rem;
+    box-sizing: border-box;
+  }
+
+  .cert-scaler {
+    display: block;
+    container-type: inline-size;
+    width: 100%;
+    position: relative;
+    height: calc(940px * (100cqw / 1040px));
+    overflow: hidden;
+  }
+
+  .certificate {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1040px;
+    max-width: none;
+    transform: scale(calc(100cqw / 1040px));
+    transform-origin: top left;
+  }
+
+  .verify-url a {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  @media (orientation: landscape) {
+    .rotate-hint {
+      display: none;
+    }
+
+    [data-theme*="dark"] body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+      padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+      overflow: hidden;
+      min-height: 100dvh;
+    }
+
+    .cert-viewport {
+      padding: 0;
+      width: min(calc(100vw - 1rem), calc((100dvh - 1rem) * 1040 / 940));
+      flex-shrink: 0;
+    }
+
+    .cert-scaler {
+      height: calc(940px * (100cqw / 1040px));
+    }
+
+    .certificate {
+      transform: scale(calc(100cqw / 1040px));
+      transform-origin: top left;
+    }
+  }
+}
+
+</style>
+</head>
+<body>
+
+  <p class="rotate-hint">Rotate your phone for a larger view</p>
+
+  <div class="cert-viewport">
+  <div class="cert-scaler">
+  <div class="certificate">
+    <div class="watermark"></div>
+
+    <div class="sample-watermark" aria-hidden="true">
+      <span>SAMPLE CERTIFICATE</span>
+    </div>
+
+    <div class="ribbon-wrap">
+      <div class="ribbon"></div>
+      <div class="medallion">
+        <svg class="medallion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
+          <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
+          <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/>
+          <path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/>
+          <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/>
+          <path d="M3.477 10.896a4 4 0 0 1 .585-.396"/>
+          <path d="M19.938 10.5a4 4 0 0 1 .585.396"/>
+          <path d="M6 18a4 4 0 0 1-1.967-.516"/>
+          <path d="M19.967 17.484A4 4 0 0 1 18 18"/>
+        </svg>
+        <svg class="medallion-star" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+          <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>
+        </svg>
+      </div>
+      <div class="ribbon-tag">FOUNDATION</div>
+    </div>
+
+    <div class="certificate-content">
+      <header class="cert-header">
+        <img class="logo-icon" src="data:image/png;base64,AAABAAMAEBAAAAEAIABoBAAANgAAACAgAAABACAAKBEAAJ4EAAAwMAAAAQAgAGgmAADGFQAAKAAAABAAAAAgAAAAAQAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANSqVQzGqlUJAAAAAAAAAADb20kHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA221tB+uSbajnomH84rFX+t68UKDdyktp29lE/NbdQEQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPN0hmfxfnv+7I9v4+elYojkrVvW47RX+N/FTf7b0kk/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD3ZZR+9myM/vJ0g4YAAAAA5plmFOehZPXks1f+3r5RLwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+WCfKPtim/P3aZDz83CIj/B+fGPslG3i5qRg/uSuXC8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD5W54q+mGbm/Vqjs/zeILj74d3/eqVa/7pnWcvAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADUVaoG+1inkfhapSIAAAAA/wD/AfN1huLxfn7+7YJ3KwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8k2mFP5Yrfr8WaXo+lqgk/hgmLz4ZJX+92iR5/+AgAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/VbJg/let8P1YqP79WqP+/Fqh4ftZnTwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOZNmQr6Vao2/1WqMP9AgAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKAAAACAAAABAAAAAAQAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA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AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKAAAADAAAABgAAAAAQAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA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AADwS6UR+VOsVvxWrZX8Vq26/FaryfxWqsP6V6io+1SkdvNTpiv/AAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" alt="Approachable logo" />
+        <div class="brand-name">APPROACHABLE</div>
+        <div class="brand-tagline">making AI approachable for <em>everyone</em></div>
+      </header>
+
+      <div class="title-block">
+        <h1 class="cert-title">CERTIFICATE</h1>
+        <div class="cert-subtitle">
+          <span class="line"></span>
+          <span>OF COMPLETION</span>
+          <span class="line"></span>
+        </div>
+      </div>
+
+      <div class="certify-line">
+        <span class="line"></span>
+        <span>This certifies that</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="recipient-name">Ranbeer Makin</div>
+
+      <p class="cert-body">
+        has successfully completed the<br />
+        <strong>AI Mastery for Working Professionals</strong><br />
+        and has demonstrated dedication, learning<br />
+        and commitment to applying AI in practical ways.
+      </p>
+
+      <div class="cert-footer">
+        <div class="footer-col">
+          <svg class="footer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 2v4"/>
+            <path d="M16 2v4"/>
+            <rect width="18" height="18" x="3" y="4" rx="2"/>
+            <path d="M3 10h18"/>
+          </svg>
+          <div>
+            <div class="footer-label">Completed On</div>
+            <div class="footer-value">29 Jul 2026</div>
+          </div>
+        </div>
+
+        <div class="footer-col signature-col">
+          <div class="signature">Ranbeer Makin</div>
+          <div class="signature-name">Ranbeer Makin</div>
+          <div class="signature-title">Instructor & Founder</div>
+        </div>
+
+        <div class="footer-col">
+          <div>
+            <div class="footer-label" style="text-align: right;">Certificate ID</div>
+            <div class="footer-value" style="text-align: right;">AIF-2026-861707</div>
+          </div>
+          <svg class="footer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 10h2"/>
+            <path d="M16 14h2"/>
+            <path d="M6.17 15a3 3 0 0 1 5.66 0"/>
+            <circle cx="9" cy="11" r="2"/>
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="verify-bar">
+        <svg class="verify-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+        <span class="verify-label">Verify Certificate</span>
+        <span class="verify-divider"></span>
+        <span class="verify-url"><a href="https://learn.approachable.dev/verify/AIF-2026-861707" target="_blank" rel="noopener noreferrer">https://learn.approachable.dev/verify/AIF-2026-861707</a></span>
+      </div>
+    </div>
+  </div>
+  </div>
+  </div>
+
+</body>
+</html>
