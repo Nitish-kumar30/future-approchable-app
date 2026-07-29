@@ -188,7 +188,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </nav>
 
       {/* Main Content */}
-      <main className="container py-6 pb-[var(--mobile-nav-height)] md:pb-6 flex-1">
+      <main className="container py-6 pb-[calc(var(--mobile-nav-height)+var(--sticky-pay-bar-height,0px))] md:pb-6 flex-1">
         {children}
         <div className="md:hidden mt-8 border-t border-border pt-6">
           <Footer variant="inline" />
@@ -196,7 +196,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </main>
 
       {/* Footer - desktop only (mobile footer is inside main) */}
-      <div className="hidden md:block">
+      <div className="hidden md:block mb-[var(--sticky-pay-bar-height,0px)]">
         <Footer />
       </div>
     </div>

@@ -1,5 +1,6 @@
-import { useEffect, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import PaymentButton from '@/components/payment/PaymentButton';
+import { useSyncStickyPayBarHeight } from '@/hooks/useSyncStickyPayBarHeight';
 
 type StickyPayBarProps = {
   courseId: string;
@@ -21,7 +22,10 @@ export default function StickyPayBar({
   heroRef,
   onPaid,
 }: StickyPayBarProps) {
+  const barRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+
+  useSyncStickyPayBarHeight(barRef);
 
   useEffect(() => {
     const el = heroRef.current;
@@ -42,6 +46,7 @@ export default function StickyPayBar({
 
   return (
     <div
+      ref={barRef}
       className={`fixed inset-x-0 z-40 border-t bg-background md:bg-background/95 md:backdrop-blur md:supports-[backdrop-filter]:bg-background/80 transition-transform duration-300 bottom-[var(--mobile-nav-height)] md:bottom-0 md:pb-[env(safe-area-inset-bottom)] ${
         visible ? 'translate-y-0' : 'translate-y-full'
       }`}
