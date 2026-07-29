@@ -79,7 +79,6 @@ body {
   align-items: center;
   justify-content: center;
   padding: 40px 16px;
-  overflow-x: hidden;
 }
 
 /* ---- Certificate card --------------------------------------------------- */
@@ -734,13 +733,11 @@ body {
 
 html {
   -webkit-text-size-adjust: 100%;
-  overflow-x: hidden;
 }
 
 [data-theme*="dark"] body {
   padding: 40px;
   background: #05070a;
-  overflow-x: hidden;
 }
 
 .certificate-content {
@@ -784,18 +781,11 @@ html {
 /* ---- Mobile: scale-to-fit (ref: exports course page patterns) ---------- */
 
 .cert-viewport {
-  display: block;
-  width: 100%;
-  max-width: 1040px;
-  margin: 0 auto;
-  box-sizing: border-box;
+  display: contents;
 }
 
 .cert-scaler {
-  display: block;
-  width: 100%;
-  border-radius: 28px;
-  overflow: hidden;
+  display: contents;
 }
 
 .rotate-hint {
@@ -839,7 +829,6 @@ html {
     width: 100%;
     position: relative;
     height: calc(940px * (100cqw / 1040px));
-    border-radius: calc(28px * (100cqw / 1040px));
     overflow: hidden;
   }
 
