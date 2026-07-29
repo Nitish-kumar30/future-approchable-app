@@ -18,7 +18,7 @@ export function formatCompletionDate(date: string | Date): string {
 }
 
 export function getVerifyBaseUrl(): string {
-  return Deno.env.get("CERTIFICATE_VERIFY_BASE_URL") ?? "https://approachable.dev/verify";
+  return Deno.env.get("CERTIFICATE_VERIFY_BASE_URL") ?? "https://learn.approachable.dev/verify";
 }
 
 export function buildVerifyUrl(certificateId: string): string {
