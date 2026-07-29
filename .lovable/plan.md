@@ -1,23 +1,16 @@
-## Publish to Live
+## Publish og_img_2.png + current assets to Live
 
-### Pre-check status
-- Test DB verified current: `is_paid_course`, `upsert_chapter_progress`, `compute_enrollment_progress_percent` all present; `cohorts_public` view exists.
-- `cohorts` policies contain only the admin policies and `Enrolled users and admins can view cohorts` — the broad authenticated-read policy is gone.
-- Recent commits (`26c02a9` → `4663f95`) are frontend-only; no pending edge function or migration changes.
-- `BROWSERLESS_API_KEY` is now configured, so certificate PDF issuance should work.
-
-### Blocker to clear first
-The security scan still lists one **error**-level finding, `cohorts_meeting_link_exposure` (scanner `supabase_lov`), which blocks publishing. This is stale — the leaky policy was already dropped on Test. Step 1 marks it as fixed with that explanation.
-
-Remaining findings are all `warn` level and do not block: quiz answer-key exposure in the client payload, enrollment capacity not enforced server-side, leaked-password protection disabled, SECURITY DEFINER function execute grants, public bucket listing. None of these are new to this release.
+### Current state (verified)
+- `public/og_img_2.png` exists in the repo but nothing references it — `index.html` still points `og:image` and `twitter:image` at `https://learn.approachable.dev/og-image.png`.
+- Other static assets already in `public/`: `favicon.ico`, `favicon.png`, `og-image.png`, `robots.txt`, `sitemap.xml`, `.well-known/apple-developer-merchantid-domain-association`. These ship with the frontend build; they just need a publish to reach Live.
+- Security scan re-checked: no error/critical findings remain (the `cohorts_meeting_link_exposure` blocker is cleared). Six warn-level findings remain and do not block publishing.
 
 ### Steps
-1. Mark `cohorts_meeting_link_exposure` as fixed, noting the policy removal and the `cohorts_public` view as the browsing path.
-2. Publish to Live.
+1. Update `index.html` to point `og:image` and `twitter:image` at `https://learn.approachable.dev/og_img_2.png`.
+2. Keep `og-image.png` in the repo as a fallback (no deletion) unless you want it removed.
+3. Publish to Live — this deploys the frontend build plus every file in `public/` (new OG image, favicons, robots.txt, sitemap.xml, Apple Pay domain association).
 
-### What publishing pushes
-- Frontend: login `?next=` redirect, video volume/speed persistence, og/meta tag updates, layout/header/payment-button tweaks.
-- Backend: the certificate schema, the `cohorts` policy fix, `is_paid_course`, and the atomic chapter-progress migration reach Live with this publish.
-
-### After publish
-Live database **data** is not copied from Test — any Live-side content (courses, cohorts, chapters) still needs to exist in Live. Worth spot-checking the Live course pages and one certificate download once the deploy finishes (~1 minute).
+### Notes
+- Social platforms cache link previews, so LinkedIn/X/Facebook will keep showing the old image until they re-scrape. You can force a refresh in each platform's link preview debugger after the deploy.
+- Publishing also pushes any pending backend migrations/edge-function state to Live; nothing new is pending beyond what was already applied.
+- Live deploy takes ~1 minute; the custom domain can take a little longer.
