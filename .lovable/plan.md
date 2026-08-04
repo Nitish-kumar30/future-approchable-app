@@ -1,52 +1,33 @@
-# Dashboard + Layout Redesign (reference mockup)
+# Why Session 1 shows "completed" with 0 chapters and 0 quizzes
 
-Goal: move from the current top-nav + card-grid dashboard to a left-sidebar app shell with a richer "Home" dashboard (stat strip, upcoming live sessions, community panel, continue-learning progress cards).
+## What the data shows (Live)
 
-## What already exists
+For `sridhar.ambati@gmail.com`, the row in your screenshot is the course session **"Introduction to AI & Kickoff"** (AI Mastery course), which has **15 chapters and 1 quiz**. His progress there is:
 
-| Mockup element | Status today |
-|---|---|
-| Brand mark + "Approachable" wordmark | Exists (`MainLayout`, top header) |
-| Nav items: Cohorts, Courses, On-Demand, Prompts, Admin | Exist as top-nav links |
-| Profile avatar + dropdown (profile, sign out) | Exists |
-| "Welcome back!" greeting | Exists |
-| Three stat cards | Exists (counts only, not "Active Cohort / Next Session / Progress") |
-| Enrolled cohorts + courses cards | Exists |
-| On-demand course cards | Exists |
-| Mobile bottom nav | Exists |
-| Sessions with date/time and meeting link | Exist in DB (`sessions.session_date`, `cohorts.session_time`, `meeting_link`) |
-| Per-course progress % | Exists (`compute_enrollment_progress_percent`, `chapter_progress`) |
+- chapter_progress completed for that session: **0**
+- submissions for that session's quiz (`Session 1: AI Mastery: Quiz 1: AI Overview`): **none**
+- session_progress: `is_completed = true`, `completed_at = 2026-07-29 14:11:38.117123+00`
 
-## What needs building
+That timestamp is *exactly* the timestamp of a different submission: the cohort quiz `Session 1: Quiz 1: AI Overview` (a different quiz id), submitted at 14:11:38.117123+00 for Cohort 6.
 
-**Simple**
-- Sidebar shell: convert the top nav into a fixed left sidebar (collapsible on tablet, existing bottom nav retained on mobile). Pure layout work in `MainLayout`.
-- Greeting with the learner's first name (already available from the profile record).
-- Stat strip redesign: replace the three count cards with "Active Cohort", "Next Live Session", "Overall Progress" (ring chart). All three derive from data the dashboard already fetches or can fetch with one extra query.
-- "Continue Learning" row: course cards with a progress bar + percentage, replacing the current plain enrolled-course cards.
-- Rename the dashboard nav label to "Home".
+## Cause
 
-**Medium**
-- Upcoming Live Sessions panel: list the next N sessions across the user's enrolled cohorts with a Join button that opens the cohort meeting link. Needs a new read path (edge function) that returns upcoming sessions for the signed-in user, since meeting links are enrollment-gated.
-- Progress ring + aggregate progress across all enrollments: needs a single call that returns per-enrollment progress instead of the current per-cohort loop (the dashboard currently fires one query per cohort).
-- Consolidating the dashboard's many client-side queries into one `get-dashboard` edge function (also aligns with the project rule that DB reads go through edge functions).
-- "Resources" nav section: no such concept exists; would reuse pre-reading materials + mini-projects aggregated across enrolled courses.
+Two things combine:
 
-**Complex**
-- Community panel ("Ask questions, share wins", member avatars, +120 count): no community feature, no posts/threads tables, no membership avatars. This is a whole feature — either build a lightweight cohort discussion board (tables, RLS, edge functions, UI) or make the panel a link out to an existing external group (WhatsApp/Discord) using `cohorts.group_link`, which would be Simple instead.
-- "1-on-1 Mentorship" nav section: no booking, availability, or session-request model exists. Full feature (scheduling, admin views, notifications).
-- Notification bell: no notifications table, no producers, no read-state. Full feature.
-- "Live Sessions" as a first-class nav section (a calendar-style view across cohorts) — moderate-to-complex depending on whether it needs calendar UI and RSVP.
+1. **Session completion is decided only by quizzes.** The `check_session_completion()` trigger fires on quiz submission and marks a session complete when submitted quizzes >= session quizzes. It never looks at chapters. So a course session with 15 chapters can be flagged complete without a single chapter watched.
+2. **The completion was written against the wrong session.** The trigger marks every session linked to the submitted quiz where the user is enrolled. The course session was evidently linked to the shared cohort quiz at submission time; it is now linked to a duplicated copy of that quiz (the duplicate-quiz flow creates a new quiz id). The old `session_progress` row stayed behind as stale `true`.
 
-## Suggested phasing
+Net effect: the course session shows completed, while the chapter and quiz counts for it are genuinely 0.
 
-1. Sidebar shell + Home dashboard restyle (stat strip, continue-learning progress cards) — visual parity for most of the mockup.
-2. Upcoming Live Sessions panel + consolidated `get-dashboard` edge function.
-3. Community panel as an external-link card (cheap), Resources page.
-4. Defer notifications, mentorship, and in-app community unless you want them scoped as separate projects.
+## Proposed fix
+
+1. **Make session completion require chapters too.** Update `check_session_completion()` (and `recompute_session_completion()`) so a session counts as complete only when all its chapters are completed AND all its quizzes are submitted. Sessions with zero chapters keep quiz-only behaviour.
+2. **Fire recomputation on chapter progress as well**, so completion is kept accurate in both directions (also un-set `is_completed` when it no longer holds).
+3. **Backfill/repair**: recompute `session_progress` for all users against current chapter/quiz links, clearing stale `true` rows like this one.
+4. Optionally, guard the duplicate-quiz flow so re-pointing a session's quiz triggers a recompute for affected users.
 
 ## Technical notes
 
-- `MainLayout` currently owns header, mobile nav, promo banner and footer; the sidebar variant would live in the same file with the mobile bottom nav unchanged.
-- New reads must go through edge functions per project convention; `get-enrollments` and `get-cohort-detail` already exist and can be extended or wrapped rather than duplicated.
-- All colors must come from existing semantic tokens in `index.css`; the mockup's indigo accent maps to the current `primary`.
+- Changes are DB-side: migration updating `public.check_session_completion()` and `public.recompute_session_completion()`, plus a trigger on `chapter_progress`, plus a one-time backfill UPDATE.
+- Applies to Test first; Live is updated on publish. The Live rows currently marked incorrectly complete would need the same repair statement run against Live via the SQL editor (data changes never sync from Test).
+- Progress percentages shown for courses come from `compute_enrollment_progress_percent`, which already counts chapters + quizzes, so course % is unaffected; only per-session completion flags change.
