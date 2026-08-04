@@ -24,6 +24,7 @@ const COHORT_OPTIONS = ["Cohort 7: Master Claude Ecosystem Aug 27th, 7:30PM IST"
 
 const INTEREST_OPTIONS = [
   "Claude Overview",
+  "Claude Chat"
   "Claude Code",
   "No-code AI Agents",
   "Claude Cowork",
