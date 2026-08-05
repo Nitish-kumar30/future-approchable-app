@@ -79,6 +79,9 @@ function validateInput(body: Record<string, unknown>): string | null {
   }
 
   if (!EMAIL_REGEX.test(body.email as string)) return "Invalid email format";
+  if (!PHONE_REGEX.test((body.whatsapp_number as string).trim())) {
+    return "Enter a valid WhatsApp number with country code, digits only";
+  }
 
   // State required if India
   if (body.country === "India") {
