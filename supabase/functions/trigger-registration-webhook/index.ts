@@ -47,6 +47,12 @@ function isRateLimited(ip: string): boolean {
 
 // Input validation helpers
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^\+?\d{7,15}$/;
+
+// Waitlist cohorts don't collect a commitment fee
+function isWaitlistCohort(cohort: unknown): boolean {
+  return typeof cohort === "string" && /waitlist/i.test(cohort);
+}
 
 function validateString(val: unknown, maxLen: number, fieldName: string): string | null {
   if (typeof val !== "string") return `${fieldName} must be a string`;
@@ -73,6 +79,9 @@ function validateInput(body: Record<string, unknown>): string | null {
   }
 
   if (!EMAIL_REGEX.test(body.email as string)) return "Invalid email format";
+  if (!PHONE_REGEX.test((body.whatsapp_number as string).trim())) {
+    return "Enter a valid WhatsApp number with country code, digits only";
+  }
 
   // State required if India
   if (body.country === "India") {
@@ -148,6 +157,7 @@ serve(async (req) => {
     );
 
     // Commitment fee — server-side source of truth, never trusted from the client
+    const waitlist = isWaitlistCohort(cohort);
     const isIndia = country === "India";
     const currency = isIndia ? "INR" : "USD";
     const amount = isIndia ? COMMITMENT_FEE_INR_PAISE : COMMITMENT_FEE_USD_CENTS;
@@ -168,9 +178,9 @@ serve(async (req) => {
         role: role.trim(),
         reason: reason.trim(),
         additional_info: additional_info || null,
-        payment_status: "pending",
-        amount,
-        currency,
+        payment_status: waitlist ? "waitlist" : "pending",
+        amount: waitlist ? null : amount,
+        currency: waitlist ? null : currency,
       })
       .select("id")
       .single();
@@ -191,7 +201,16 @@ serve(async (req) => {
       body: JSON.stringify({ Name: name, Email: email, Cohort: cohort, Country: country, State: state, CapstoneOfficeHours: capstone_office_hours ?? true, priceInd: price_india, priceIntl: price_international }),
     }).then(r => r.text()).catch(err => console.error("Webhook trigger failed:", err));
 
+    // Waitlist cohorts: no payment collected
+    if (waitlist) {
+      return new Response(
+        JSON.stringify({ success: true, skip_payment: true, registration_id: inserted.id }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // Create the Razorpay order for the commitment fee
+
     let order;
     try {
       order = await createRazorpayOrder({

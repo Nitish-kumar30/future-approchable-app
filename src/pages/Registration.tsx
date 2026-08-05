@@ -24,6 +24,15 @@ import { isIOS } from "@/lib/platform";
 
 const COHORT_OPTIONS = ["Cohort 7: Master Claude Ecosystem Aug 27th, 7:30PM IST"];
 
+/** Waitlist cohorts don't collect a commitment fee. */
+const isWaitlistCohort = (cohort?: string) => /waitlist/i.test(cohort || "");
+
+/** Digits only, optional single leading "+". No spaces or letters. */
+const sanitizePhone = (value: string) => {
+  const plus = value.trim().startsWith("+") ? "+" : "";
+  return plus + value.replace(/\D/g, "").slice(0, 15);
+};
+
 const INTEREST_OPTIONS = [
   "Claude Overview",
   "Claude Chat",
@@ -38,7 +47,10 @@ const registrationSchema = z
   .object({
     name: z.string().min(2, "Name is required"),
     email: z.string().email("Valid email is required"),
-    whatsapp_number: z.string().min(5, "WhatsApp number is required"),
+    whatsapp_number: z
+      .string()
+      .trim()
+      .regex(/^\+?\d{7,15}$/, "Enter a valid number with country code, digits only (e.g. +919876543210)"),
     country: z.string().min(1, "Please select your country"),
     state: z.string().optional(),
     cohort: z.string().min(1, "Please select a cohort"),
@@ -49,9 +61,7 @@ const registrationSchema = z
     role: z.string().min(1, "Role is required"),
     reason: z.string().min(1, "Please tell us why you want to join"),
     additional_info: z.string().optional(),
-    fee_acknowledged: z.literal(true, {
-      errorMap: () => ({ message: "You must acknowledge the commitment fee" }),
-    }),
+    fee_acknowledged: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.country === "India" && (!data.state || data.state.trim().length === 0)) {
@@ -59,6 +69,13 @@ const registrationSchema = z
         code: z.ZodIssueCode.custom,
         path: ["state"],
         message: "Please select your state",
+      });
+    }
+    if (!isWaitlistCohort(data.cohort) && data.fee_acknowledged !== true) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["fee_acknowledged"],
+        message: "You must acknowledge the commitment fee",
       });
     }
   });
@@ -193,9 +210,10 @@ export default function Registration() {
   };
 
   const onSubmit = async (data: RegistrationForm) => {
+    const waitlist = isWaitlistCohort(data.cohort);
     setStatus("opening");
     try {
-      await loadRazorpayCheckout();
+      if (!waitlist) await loadRazorpayCheckout();
 
       const { data: result, error } = await supabase.functions.invoke("trigger-registration-webhook", {
         body: {
@@ -217,13 +235,30 @@ export default function Registration() {
         },
       });
 
-      if (error || result?.error || !result?.razorpay_order_id) {
+      if (error || result?.error) {
         toast({
           title: "Registration failed",
           description: result?.error || "Something went wrong. Please try again.",
           variant: "destructive",
         });
         console.error("Registration error:", error || result?.error);
+        setStatus("idle");
+        return;
+      }
+
+      // Waitlist cohorts skip payment entirely
+      if (result?.skip_payment) {
+        setStatus("success");
+        setSubmitted(true);
+        return;
+      }
+
+      if (!result?.razorpay_order_id) {
+        toast({
+          title: "Registration failed",
+          description: "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
         setStatus("idle");
         return;
       }
@@ -295,6 +330,8 @@ export default function Registration() {
   };
 
   const selectedCountry = form.watch("country");
+  const selectedCohort = form.watch("cohort");
+  const isWaitlist = isWaitlistCohort(selectedCohort);
   const feeLabel = !selectedCountry
     ? ""
     : selectedCountry === "India"
@@ -355,7 +392,14 @@ export default function Registration() {
                     <FormItem>
                       <FormLabel>WhatsApp Number (with country code) *</FormLabel>
                       <FormControl>
-                        <Input placeholder="+91 98765 43210" {...field} />
+                        <Input
+                          type="tel"
+                          inputMode="tel"
+                          placeholder="+919876543210"
+                          {...field}
+                          onChange={(e) => field.onChange(sanitizePhone(e.target.value))}
+                        />
+
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -546,29 +590,31 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
-                {/* Fee Acknowledgment */}
-                <FormField
-                  control={form.control}
-                  name="fee_acknowledged"
-                  render={({ field }) => (
-                    <FormItem className="flex items-start space-x-3 space-y-0 rounded-md border border-border p-4">
-                      <FormControl>
-                        <Checkbox checked={field.value === true} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="cursor-pointer font-medium">
-                          I agree to the Commitment fee (non-refundable) *
-                        </FormLabel>
-                        <p className="text-sm text-muted-foreground pt-1">​</p>
-                        <p className="text-sm text-muted-foreground">
-                          In previous cohorts, many registered but didn't show up. To ensure a serious, engaged learning
-                          experience for everyone, we now require a commitment fee to reserve your seat.
-                        </p>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Fee Acknowledgment (not for waitlist cohorts) */}
+                {!isWaitlist && (
+                  <FormField
+                    control={form.control}
+                    name="fee_acknowledged"
+                    render={({ field }) => (
+                      <FormItem className="flex items-start space-x-3 space-y-0 rounded-md border border-border p-4">
+                        <FormControl>
+                          <Checkbox checked={field.value === true} onCheckedChange={field.onChange} />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="cursor-pointer font-medium">
+                            I agree to the Commitment fee (non-refundable) *
+                          </FormLabel>
+                          <p className="text-sm text-muted-foreground pt-1">​</p>
+                          <p className="text-sm text-muted-foreground">
+                            In previous cohorts, many registered but didn't show up. To ensure a serious, engaged
+                            learning experience for everyone, we now require a commitment fee to reserve your seat.
+                          </p>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
                 <Button type="submit" className="w-full" size="lg" disabled={status !== "idle"}>
                   {status !== "idle" && status !== "success" && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -579,8 +625,11 @@ export default function Registration() {
                       ? "Confirming your payment…"
                       : status === "success"
                         ? "Registered"
-                        : `Submit Registration & Pay${feeLabel ? ` ${feeLabel}` : ""}`}
+                        : isWaitlist
+                          ? "Submit Registration"
+                          : `Submit Registration & Pay${feeLabel ? ` ${feeLabel}` : ""}`}
                 </Button>
+
               </form>
             </Form>
           </CardContent>
