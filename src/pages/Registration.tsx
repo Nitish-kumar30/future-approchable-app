@@ -590,29 +590,31 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
-                {/* Fee Acknowledgment */}
-                <FormField
-                  control={form.control}
-                  name="fee_acknowledged"
-                  render={({ field }) => (
-                    <FormItem className="flex items-start space-x-3 space-y-0 rounded-md border border-border p-4">
-                      <FormControl>
-                        <Checkbox checked={field.value === true} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="cursor-pointer font-medium">
-                          I agree to the Commitment fee (non-refundable) *
-                        </FormLabel>
-                        <p className="text-sm text-muted-foreground pt-1">​</p>
-                        <p className="text-sm text-muted-foreground">
-                          In previous cohorts, many registered but didn't show up. To ensure a serious, engaged learning
-                          experience for everyone, we now require a commitment fee to reserve your seat.
-                        </p>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Fee Acknowledgment (not for waitlist cohorts) */}
+                {!isWaitlist && (
+                  <FormField
+                    control={form.control}
+                    name="fee_acknowledged"
+                    render={({ field }) => (
+                      <FormItem className="flex items-start space-x-3 space-y-0 rounded-md border border-border p-4">
+                        <FormControl>
+                          <Checkbox checked={field.value === true} onCheckedChange={field.onChange} />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="cursor-pointer font-medium">
+                            I agree to the Commitment fee (non-refundable) *
+                          </FormLabel>
+                          <p className="text-sm text-muted-foreground pt-1">​</p>
+                          <p className="text-sm text-muted-foreground">
+                            In previous cohorts, many registered but didn't show up. To ensure a serious, engaged
+                            learning experience for everyone, we now require a commitment fee to reserve your seat.
+                          </p>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
                 <Button type="submit" className="w-full" size="lg" disabled={status !== "idle"}>
                   {status !== "idle" && status !== "success" && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -623,8 +625,11 @@ export default function Registration() {
                       ? "Confirming your payment…"
                       : status === "success"
                         ? "Registered"
-                        : `Submit Registration & Pay${feeLabel ? ` ${feeLabel}` : ""}`}
+                        : isWaitlist
+                          ? "Submit Registration"
+                          : `Submit Registration & Pay${feeLabel ? ` ${feeLabel}` : ""}`}
                 </Button>
+
               </form>
             </Form>
           </CardContent>
