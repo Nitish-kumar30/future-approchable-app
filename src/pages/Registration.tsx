@@ -47,7 +47,10 @@ const registrationSchema = z
   .object({
     name: z.string().min(2, "Name is required"),
     email: z.string().email("Valid email is required"),
-    whatsapp_number: z.string().min(5, "WhatsApp number is required"),
+    whatsapp_number: z
+      .string()
+      .trim()
+      .regex(/^\+?\d{7,15}$/, "Enter a valid number with country code, digits only (e.g. +919876543210)"),
     country: z.string().min(1, "Please select your country"),
     state: z.string().optional(),
     cohort: z.string().min(1, "Please select a cohort"),
@@ -58,9 +61,7 @@ const registrationSchema = z
     role: z.string().min(1, "Role is required"),
     reason: z.string().min(1, "Please tell us why you want to join"),
     additional_info: z.string().optional(),
-    fee_acknowledged: z.literal(true, {
-      errorMap: () => ({ message: "You must acknowledge the commitment fee" }),
-    }),
+    fee_acknowledged: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.country === "India" && (!data.state || data.state.trim().length === 0)) {
@@ -68,6 +69,13 @@ const registrationSchema = z
         code: z.ZodIssueCode.custom,
         path: ["state"],
         message: "Please select your state",
+      });
+    }
+    if (!isWaitlistCohort(data.cohort) && data.fee_acknowledged !== true) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["fee_acknowledged"],
+        message: "You must acknowledge the commitment fee",
       });
     }
   });
