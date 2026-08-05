@@ -295,6 +295,11 @@ export default function Registration() {
   };
 
   const selectedCountry = form.watch("country");
+  const feeLabel = !selectedCountry
+    ? ""
+    : selectedCountry === "India"
+      ? `₹${(COHORT_CONFIG.priceIndiaPaise / 100).toLocaleString("en-IN")}`
+      : `$${(COHORT_CONFIG.priceInternationalCents / 100).toLocaleString("en-US")}`;
 
   if (submitted) {
     return <ThankYouScreen />;
