@@ -2566,6 +2566,9 @@ export default function Admin() {
                               <span className="text-sm text-muted-foreground">{reg.email}</span>
                               <span className="text-sm text-muted-foreground">{reg.whatsapp_number}</span>
                               <Badge variant="outline">{reg.status}</Badge>
+                              <Badge variant={reg.payment_status === "paid" ? "default" : "secondary"}>
+                                {reg.payment_status === "paid" ? "Paid" : "Payment pending"}
+                              </Badge>
                               {reg.capstone_office_hours && <Badge variant="secondary">Capstone</Badge>}
                             </div>
                             <span className="text-xs text-muted-foreground">
