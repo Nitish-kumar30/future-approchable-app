@@ -330,6 +330,8 @@ export default function Registration() {
   };
 
   const selectedCountry = form.watch("country");
+  const selectedCohort = form.watch("cohort");
+  const isWaitlist = isWaitlistCohort(selectedCohort);
   const feeLabel = !selectedCountry
     ? ""
     : selectedCountry === "India"
