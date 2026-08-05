@@ -210,9 +210,10 @@ export default function Registration() {
   };
 
   const onSubmit = async (data: RegistrationForm) => {
+    const waitlist = isWaitlistCohort(data.cohort);
     setStatus("opening");
     try {
-      await loadRazorpayCheckout();
+      if (!waitlist) await loadRazorpayCheckout();
 
       const { data: result, error } = await supabase.functions.invoke("trigger-registration-webhook", {
         body: {
@@ -234,13 +235,30 @@ export default function Registration() {
         },
       });
 
-      if (error || result?.error || !result?.razorpay_order_id) {
+      if (error || result?.error) {
         toast({
           title: "Registration failed",
           description: result?.error || "Something went wrong. Please try again.",
           variant: "destructive",
         });
         console.error("Registration error:", error || result?.error);
+        setStatus("idle");
+        return;
+      }
+
+      // Waitlist cohorts skip payment entirely
+      if (result?.skip_payment) {
+        setStatus("success");
+        setSubmitted(true);
+        return;
+      }
+
+      if (!result?.razorpay_order_id) {
+        toast({
+          title: "Registration failed",
+          description: "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
         setStatus("idle");
         return;
       }
