@@ -154,9 +154,11 @@ function ThankYouScreen() {
   );
 }
 
+type PayStatus = "idle" | "opening" | "confirming" | "success";
+
 export default function Registration() {
   const [submitted, setSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [status, setStatus] = useState<PayStatus>("idle");
 
   const form = useForm<RegistrationForm>({
     resolver: zodResolver(registrationSchema),
@@ -178,9 +180,21 @@ export default function Registration() {
     },
   });
 
+  const failPayment = (message: string) => {
+    toast({
+      title: "Payment could not be completed",
+      description: `${message} Your details are saved — you can retry the payment.`,
+      variant: "destructive",
+      duration: 10000,
+    });
+    setStatus("idle");
+  };
+
   const onSubmit = async (data: RegistrationForm) => {
-    setIsSubmitting(true);
+    setStatus("opening");
     try {
+      await loadRazorpayCheckout();
+
       const { data: result, error } = await supabase.functions.invoke("trigger-registration-webhook", {
         body: {
           name: data.name,
@@ -201,17 +215,72 @@ export default function Registration() {
         },
       });
 
-      if (error) {
+      if (error || result?.error || !result?.razorpay_order_id) {
         toast({
           title: "Registration failed",
-          description: "Something went wrong. Please try again.",
+          description: result?.error || "Something went wrong. Please try again.",
           variant: "destructive",
         });
-        console.error("Registration error:", error);
+        console.error("Registration error:", error || result?.error);
+        setStatus("idle");
         return;
       }
 
-      setSubmitted(true);
+      const rzp = new window.Razorpay({
+        key: result.key_id,
+        amount: result.amount,
+        currency: result.currency,
+        name: "Approachable",
+        description: "Cohort commitment fee",
+        order_id: result.razorpay_order_id,
+        prefill: {
+          name: data.name,
+          email: data.email,
+          contact: data.whatsapp_number,
+        },
+        ...(isIOS() && result.currency === "INR"
+          ? { config: { display: { hide: [{ method: "upi", flows: ["intent"] }] } } }
+          : {}),
+        handler: async (response: {
+          razorpay_order_id: string;
+          razorpay_payment_id: string;
+          razorpay_signature: string;
+        }) => {
+          setStatus("confirming");
+          try {
+            const { data: verifyData, error: verifyError } = await supabase.functions.invoke(
+              "verify-registration-payment",
+              {
+                body: {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                },
+              },
+            );
+
+            if (verifyError || verifyData?.error) {
+              throw new Error(verifyData?.error || verifyError?.message || "Verification failed");
+            }
+
+            setStatus("success");
+            setSubmitted(true);
+          } catch (err) {
+            failPayment(err instanceof Error ? err.message : "Verification failed.");
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setStatus((s) => (s === "confirming" || s === "success" ? s : "idle"));
+          },
+        },
+      });
+
+      rzp.on("payment.failed", (response) => {
+        failPayment(response?.error?.description || "Payment failed.");
+      });
+
+      rzp.open();
     } catch (err) {
       toast({
         title: "Registration failed",
@@ -219,8 +288,7 @@ export default function Registration() {
         variant: "destructive",
       });
       console.error("Registration error:", err);
-    } finally {
-      setIsSubmitting(false);
+      setStatus("idle");
     }
   };
 
