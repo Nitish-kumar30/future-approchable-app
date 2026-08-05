@@ -47,6 +47,12 @@ function isRateLimited(ip: string): boolean {
 
 // Input validation helpers
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^\+?\d{7,15}$/;
+
+// Waitlist cohorts don't collect a commitment fee
+function isWaitlistCohort(cohort: unknown): boolean {
+  return typeof cohort === "string" && /waitlist/i.test(cohort);
+}
 
 function validateString(val: unknown, maxLen: number, fieldName: string): string | null {
   if (typeof val !== "string") return `${fieldName} must be a string`;
