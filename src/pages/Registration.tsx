@@ -392,7 +392,14 @@ export default function Registration() {
                     <FormItem>
                       <FormLabel>WhatsApp Number (with country code) *</FormLabel>
                       <FormControl>
-                        <Input placeholder="+91 98765 43210" {...field} />
+                        <Input
+                          type="tel"
+                          inputMode="tel"
+                          placeholder="+919876543210"
+                          {...field}
+                          onChange={(e) => field.onChange(sanitizePhone(e.target.value))}
+                        />
+
                       </FormControl>
                       <FormMessage />
                     </FormItem>
