@@ -270,16 +270,21 @@ export type Database = {
       cohort_registrations: {
         Row: {
           additional_info: string | null
+          amount: number | null
           capstone_office_hours: boolean
           cohort: string
           company: string
           country: string | null
           created_at: string
+          currency: string | null
           email: string
           id: string
           interests: string[]
           name: string
           other_interest: string | null
+          payment_status: string
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
           reason: string
           role: string
           state: string | null
@@ -289,16 +294,21 @@ export type Database = {
         }
         Insert: {
           additional_info?: string | null
+          amount?: number | null
           capstone_office_hours?: boolean
           cohort: string
           company: string
           country?: string | null
           created_at?: string
+          currency?: string | null
           email: string
           id?: string
           interests?: string[]
           name: string
           other_interest?: string | null
+          payment_status?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           reason: string
           role: string
           state?: string | null
@@ -308,16 +318,21 @@ export type Database = {
         }
         Update: {
           additional_info?: string | null
+          amount?: number | null
           capstone_office_hours?: boolean
           cohort?: string
           company?: string
           country?: string | null
           created_at?: string
+          currency?: string | null
           email?: string
           id?: string
           interests?: string[]
           name?: string
           other_interest?: string | null
+          payment_status?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           reason?: string
           role?: string
           state?: string | null
