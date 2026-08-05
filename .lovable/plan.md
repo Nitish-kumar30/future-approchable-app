@@ -5,13 +5,13 @@
 Today the Payments tab lists course purchases only. Cohort registration fees are recorded separately on the registrations records, so they never show up here.
 
 Changes:
-- Backend (`get-payments`) returns a single merged list:
-  - Course payments (existing source), tagged `type: "course"` with the course name.
-  - Cohort registration payments (registration records that have a Razorpay order), tagged `type: "cohort"` with the cohort label, registrant name, email, amount, currency, status.
-  - Also returns the distinct course list and cohort list for the dropdowns.
-- UI adds two dropdowns in the Payments header: **Course** (All + each course) and **Cohort** (All + each cohort label). Selecting a course filters to course payments for it; selecting a cohort filters to registration payments for it; "All" on both shows everything.
-- Adds a **Download CSV** button that exports exactly the currently filtered rows: Type, Name, Email, Course/Cohort, Amount, Currency, Status, Order ID, Payment ID, Date.
+- Backend (`get-payments`) requires exactly one selector: `course_id` or `cohort` (label). There is no "All" — without a selector it returns only the dropdown option lists (courses and cohort labels) and an empty payment list, so nothing loads a full table server-side.
+  - With `course_id`: course purchase records for that course, tagged `type: "course"`.
+  - With `cohort`: registration payment records for that cohort label (registrations carrying a Razorpay order), tagged `type: "cohort"`, with registrant name, email, amount, currency, status.
+- UI shows two dropdowns in the Payments header: **Course** and **Cohort**, mutually exclusive (picking one clears the other) and no "All" entry. Until one is picked, the table shows an empty state prompting a selection. Each change refetches from the server.
+- Adds a **Download CSV** button, enabled once a selection is loaded, exporting the loaded rows: Type, Name, Email, Course/Cohort, Amount, Currency, Status, Order ID, Payment ID, Date.
 - Table gains a Type column (Course / Cohort) and the existing Course column becomes "Course / Cohort".
+
 
 ## 2. Registrations tab — inline approve dropdown
 
