@@ -24,6 +24,15 @@ import { isIOS } from "@/lib/platform";
 
 const COHORT_OPTIONS = ["Cohort 7: Master Claude Ecosystem Aug 27th, 7:30PM IST"];
 
+/** Waitlist cohorts don't collect a commitment fee. */
+const isWaitlistCohort = (cohort?: string) => /waitlist/i.test(cohort || "");
+
+/** Digits only, optional single leading "+". No spaces or letters. */
+const sanitizePhone = (value: string) => {
+  const plus = value.trim().startsWith("+") ? "+" : "";
+  return plus + value.replace(/\D/g, "").slice(0, 15);
+};
+
 const INTEREST_OPTIONS = [
   "Claude Overview",
   "Claude Chat",
