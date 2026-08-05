@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createRazorpayOrder, getRazorpayKeyId } from "../_shared/razorpay.ts";
+
+// Commitment fee (smallest currency unit) — keep in sync with COHORT_CONFIG in src/lib/constants.ts
+const COMMITMENT_FEE_INR_PAISE = 349900;
+const COMMITMENT_FEE_USD_CENTS = 9900;
 
 // CORS origin whitelist
 const ALLOWED_ORIGINS = [
@@ -142,23 +147,35 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { error: dbError } = await supabase.from("cohort_registrations").insert({
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      whatsapp_number: whatsapp_number.trim(),
-      country: country.trim(),
-      state: state || null,
-      cohort,
-      interests: interests || [],
-      other_interest: other_interest || null,
-      capstone_office_hours: capstone_office_hours ?? true,
-      company: company.trim(),
-      role: role.trim(),
-      reason: reason.trim(),
-      additional_info: additional_info || null,
-    });
+    // Commitment fee — server-side source of truth, never trusted from the client
+    const isIndia = country === "India";
+    const currency = isIndia ? "INR" : "USD";
+    const amount = isIndia ? COMMITMENT_FEE_INR_PAISE : COMMITMENT_FEE_USD_CENTS;
 
-    if (dbError) {
+    const { data: inserted, error: dbError } = await supabase
+      .from("cohort_registrations")
+      .insert({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        whatsapp_number: whatsapp_number.trim(),
+        country: country.trim(),
+        state: state || null,
+        cohort,
+        interests: interests || [],
+        other_interest: other_interest || null,
+        capstone_office_hours: capstone_office_hours ?? true,
+        company: company.trim(),
+        role: role.trim(),
+        reason: reason.trim(),
+        additional_info: additional_info || null,
+        payment_status: "pending",
+        amount,
+        currency,
+      })
+      .select("id")
+      .single();
+
+    if (dbError || !inserted) {
       console.error("DB insert error:", dbError);
       return new Response(JSON.stringify({ error: "Failed to save registration" }), {
         status: 500,
@@ -174,10 +191,39 @@ serve(async (req) => {
       body: JSON.stringify({ Name: name, Email: email, Cohort: cohort, Country: country, State: state, CapstoneOfficeHours: capstone_office_hours ?? true, priceInd: price_india, priceIntl: price_international }),
     }).then(r => r.text()).catch(err => console.error("Webhook trigger failed:", err));
 
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // Create the Razorpay order for the commitment fee
+    let order;
+    try {
+      order = await createRazorpayOrder({
+        amount,
+        currency,
+        receipt: `reg_${inserted.id.slice(0, 30)}`,
+        notes: { registration_id: inserted.id, email: String(email), cohort: String(cohort) },
+      });
+    } catch (orderErr) {
+      console.error("Razorpay order error:", orderErr);
+      return new Response(
+        JSON.stringify({ error: "Registration saved but payment could not be started", registration_id: inserted.id }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    await supabase
+      .from("cohort_registrations")
+      .update({ razorpay_order_id: order.id })
+      .eq("id", inserted.id);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        registration_id: inserted.id,
+        razorpay_order_id: order.id,
+        key_id: getRazorpayKeyId(),
+        amount: order.amount,
+        currency: order.currency,
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,

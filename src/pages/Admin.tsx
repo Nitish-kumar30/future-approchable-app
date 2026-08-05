@@ -256,6 +256,9 @@ export default function Admin() {
     additional_info: string | null;
     capstone_office_hours: boolean;
     status: string;
+    payment_status?: string | null;
+    amount?: number | null;
+    currency?: string | null;
     created_at: string;
   }
   const [registrations, setRegistrations] = useState<Registration[]>([]);
@@ -862,10 +865,10 @@ export default function Admin() {
 
   const downloadRegistrationsCSV = () => {
     const header =
-      "Name,Email,Phone,Country,State,Company,Role,Cohort,Capstone Office Hours,Interests,Other Interest,Reason,Additional Info,Status,Registered";
+      "Name,Email,Phone,Country,State,Company,Role,Cohort,Capstone Office Hours,Interests,Other Interest,Reason,Additional Info,Status,Payment,Fee,Registered";
     const rows = registrations.map(
       (r) =>
-        `"${(r.name || "").replace(/"/g, '""')}","${r.email}","${r.whatsapp_number}","${(r.country || "").replace(/"/g, '""')}","${(r.state || "").replace(/"/g, '""')}","${(r.company || "").replace(/"/g, '""')}","${(r.role || "").replace(/"/g, '""')}","${(r.cohort || "").replace(/"/g, '""')}","${r.capstone_office_hours ? "Yes" : "No"}","${(r.interests || []).join("; ")}","${(r.other_interest || "").replace(/"/g, '""')}","${(r.reason || "").replace(/"/g, '""')}","${(r.additional_info || "").replace(/"/g, '""')}","${r.status}","${new Date(r.created_at).toLocaleDateString()}"`,
+        `"${(r.name || "").replace(/"/g, '""')}","${r.email}","${r.whatsapp_number}","${(r.country || "").replace(/"/g, '""')}","${(r.state || "").replace(/"/g, '""')}","${(r.company || "").replace(/"/g, '""')}","${(r.role || "").replace(/"/g, '""')}","${(r.cohort || "").replace(/"/g, '""')}","${r.capstone_office_hours ? "Yes" : "No"}","${(r.interests || []).join("; ")}","${(r.other_interest || "").replace(/"/g, '""')}","${(r.reason || "").replace(/"/g, '""')}","${(r.additional_info || "").replace(/"/g, '""')}","${r.status}","${r.payment_status || "pending"}","${r.amount ? formatPaymentAmount(r.amount, r.currency || "INR") : ""}","${new Date(r.created_at).toLocaleDateString()}"`,
     );
     const csv = [header, ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -2563,6 +2566,9 @@ export default function Admin() {
                               <span className="text-sm text-muted-foreground">{reg.email}</span>
                               <span className="text-sm text-muted-foreground">{reg.whatsapp_number}</span>
                               <Badge variant="outline">{reg.status}</Badge>
+                              <Badge variant={reg.payment_status === "paid" ? "default" : "secondary"}>
+                                {reg.payment_status === "paid" ? "Paid" : "Payment pending"}
+                              </Badge>
                               {reg.capstone_office_hours && <Badge variant="secondary">Capstone</Badge>}
                             </div>
                             <span className="text-xs text-muted-foreground">
