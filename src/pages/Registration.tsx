@@ -109,7 +109,7 @@ function ThankYouScreen() {
 
   const steps = [
     "Next steps for onboarding",
-    "Payment link for commitment fee",
+    "Payment link for commitment fee (if already paid, share your payment screenshot with me at ranbeer@gmail.com)",
     "Access to your study group workspace",
     "Week 1 cohort materials and schedule",
   ];
