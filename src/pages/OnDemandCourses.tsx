@@ -133,7 +133,7 @@ export default function OnDemandCourses() {
       <main className="container py-8">{content}</main>
       <footer className="border-t border-border py-8 mt-12">
         <div className="container text-center text-sm text-muted-foreground">
-          © 2026 approachable.dev. All rights reserved.
+          © 2026 approachable.dev. All rights reserved. For support, contact: ranbeer@gmail.com
         </div>
       </footer>
     </div>

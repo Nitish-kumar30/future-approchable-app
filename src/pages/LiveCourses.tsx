@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { buildLoginUrl, courseDetailPath } from '@/lib/authRedirect';
-import PublicHeader from '@/components/layout/PublicHeader';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { BookOpen, Clock, GraduationCap, ArrowRight, Image as ImageIcon } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { buildLoginUrl, courseDetailPath } from "@/lib/authRedirect";
+import PublicHeader from "@/components/layout/PublicHeader";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BookOpen, Clock, GraduationCap, ArrowRight, Image as ImageIcon } from "lucide-react";
 
 interface Course {
   id: string;
@@ -35,11 +35,11 @@ export default function LiveCourses() {
 
   const fetchCourses = async () => {
     const { data, error } = await supabase
-      .from('courses')
-      .select('id, slug, name, description, mentor_name, duration, image_url')
-      .eq('is_published', true)
-      .eq('is_on_demand', false)
-      .order('created_at', { ascending: false });
+      .from("courses")
+      .select("id, slug, name, description, mentor_name, duration, image_url")
+      .eq("is_published", true)
+      .eq("is_on_demand", false)
+      .order("created_at", { ascending: false });
 
     if (!error && data) {
       setCourses(data);
@@ -49,13 +49,13 @@ export default function LiveCourses() {
 
   const fetchEnrollments = async () => {
     const { data, error } = await supabase
-      .from('enrollments')
-      .select('course_id')
-      .eq('user_id', user?.id)
-      .not('course_id', 'is', null);
+      .from("enrollments")
+      .select("course_id")
+      .eq("user_id", user?.id)
+      .not("course_id", "is", null);
 
     if (!error && data) {
-      setEnrolledCourseIds(data.map(e => e.course_id as string));
+      setEnrolledCourseIds(data.map((e) => e.course_id as string));
     }
   };
 
@@ -64,7 +64,7 @@ export default function LiveCourses() {
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader />
-      
+
       <main className="container py-8">
         <div className="space-y-8 animate-fade-in">
           {/* Header */}
@@ -93,21 +93,22 @@ export default function LiveCourses() {
               <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                 <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No Courses Available</h3>
-                <p className="text-muted-foreground">
-                  Check back soon for new live courses.
-                </p>
+                <p className="text-muted-foreground">Check back soon for new live courses.</p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {courses.map((course) => (
-                <Link key={course.id} to={user ? courseDetailPath(course.slug) : buildLoginUrl(courseDetailPath(course.slug))}>
+                <Link
+                  key={course.id}
+                  to={user ? courseDetailPath(course.slug) : buildLoginUrl(courseDetailPath(course.slug))}
+                >
                   <Card className="card-elevated hover:shadow-lg transition-all duration-200 cursor-pointer h-full group overflow-hidden">
                     {/* Course Image */}
                     <div className="relative h-48 bg-muted overflow-hidden">
                       {course.image_url ? (
-                        <img 
-                          src={course.image_url} 
+                        <img
+                          src={course.image_url}
                           alt={course.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
@@ -122,14 +123,12 @@ export default function LiveCourses() {
                         </Badge>
                       )}
                     </div>
-                    
+
                     <CardHeader>
                       <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-2">
                         {course.name}
                       </CardTitle>
-                      <CardDescription className="line-clamp-2">
-                        {course.description}
-                      </CardDescription>
+                      <CardDescription className="line-clamp-2">{course.description}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
@@ -148,7 +147,7 @@ export default function LiveCourses() {
                       </div>
                       <div className="flex items-center justify-end pt-2">
                         <Button variant="ghost" size="sm" className="gap-1">
-                          {user ? 'View details' : 'Sign in to enroll'} <ArrowRight className="h-4 w-4" />
+                          {user ? "View details" : "Sign in to enroll"} <ArrowRight className="h-4 w-4" />
                         </Button>
                       </div>
                     </CardContent>
@@ -163,7 +162,7 @@ export default function LiveCourses() {
       {/* Footer */}
       <footer className="border-t border-border py-8 mt-12">
         <div className="container text-center text-sm text-muted-foreground">
-          © 2024 approachable.dev. All rights reserved.
+          © 2024 approachable.dev. All rights reserved. For support, contact: ranbeer@gmail.com
         </div>
       </footer>
     </div>
