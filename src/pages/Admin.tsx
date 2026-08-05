@@ -865,10 +865,10 @@ export default function Admin() {
 
   const downloadRegistrationsCSV = () => {
     const header =
-      "Name,Email,Phone,Country,State,Company,Role,Cohort,Capstone Office Hours,Interests,Other Interest,Reason,Additional Info,Status,Registered";
+      "Name,Email,Phone,Country,State,Company,Role,Cohort,Capstone Office Hours,Interests,Other Interest,Reason,Additional Info,Status,Payment,Fee,Registered";
     const rows = registrations.map(
       (r) =>
-        `"${(r.name || "").replace(/"/g, '""')}","${r.email}","${r.whatsapp_number}","${(r.country || "").replace(/"/g, '""')}","${(r.state || "").replace(/"/g, '""')}","${(r.company || "").replace(/"/g, '""')}","${(r.role || "").replace(/"/g, '""')}","${(r.cohort || "").replace(/"/g, '""')}","${r.capstone_office_hours ? "Yes" : "No"}","${(r.interests || []).join("; ")}","${(r.other_interest || "").replace(/"/g, '""')}","${(r.reason || "").replace(/"/g, '""')}","${(r.additional_info || "").replace(/"/g, '""')}","${r.status}","${new Date(r.created_at).toLocaleDateString()}"`,
+        `"${(r.name || "").replace(/"/g, '""')}","${r.email}","${r.whatsapp_number}","${(r.country || "").replace(/"/g, '""')}","${(r.state || "").replace(/"/g, '""')}","${(r.company || "").replace(/"/g, '""')}","${(r.role || "").replace(/"/g, '""')}","${(r.cohort || "").replace(/"/g, '""')}","${r.capstone_office_hours ? "Yes" : "No"}","${(r.interests || []).join("; ")}","${(r.other_interest || "").replace(/"/g, '""')}","${(r.reason || "").replace(/"/g, '""')}","${(r.additional_info || "").replace(/"/g, '""')}","${r.status}","${r.payment_status || "pending"}","${r.amount ? formatPaymentAmount(r.amount, r.currency || "INR") : ""}","${new Date(r.created_at).toLocaleDateString()}"`,
     );
     const csv = [header, ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
