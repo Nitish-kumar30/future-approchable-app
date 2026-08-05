@@ -256,6 +256,9 @@ export default function Admin() {
     additional_info: string | null;
     capstone_office_hours: boolean;
     status: string;
+    payment_status?: string | null;
+    amount?: number | null;
+    currency?: string | null;
     created_at: string;
   }
   const [registrations, setRegistrations] = useState<Registration[]>([]);
