@@ -23,4 +23,4 @@ Changes:
 
 - Files: `supabase/functions/get-payments/index.ts`, `src/pages/Admin.tsx`.
 - No schema changes and no new edge functions — `get-payments` is extended and `update-registration-status` is reused.
-- Filtering and CSV are client-side over the merged payload; dropdown options come from the same response.
+- Payments are fetched per selection (no full-table load); CSV is built client-side from the loaded rows.
