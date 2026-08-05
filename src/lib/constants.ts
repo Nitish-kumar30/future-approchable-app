@@ -9,6 +9,9 @@ export const COHORT_CONFIG = {
   totalSeats: 20,
   priceIndia: "Rs 3499",
   priceInternational: "$ 99",
+  /** Commitment fee in the smallest currency unit (must match the edge function). */
+  priceIndiaPaise: 349900,
+  priceInternationalCents: 9900,
   previousCohortDate: "Jul 23",
   socialProof: "Alumni from Adobe, Microsoft, Deloitte",
 };
