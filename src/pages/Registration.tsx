@@ -19,6 +19,8 @@ import { CheckCircle2, PartyPopper } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { COUNTRIES, INDIA_STATES, PRIORITY_COUNTRIES } from "@/lib/locations";
 import { COHORT_CONFIG } from "@/lib/constants";
+import { loadRazorpayCheckout } from "@/lib/loadRazorpay";
+import { isIOS } from "@/lib/platform";
 
 const COHORT_OPTIONS = ["Cohort 7: Master Claude Ecosystem Aug 27th, 7:30PM IST"];
 
