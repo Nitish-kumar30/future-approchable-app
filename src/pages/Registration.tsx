@@ -562,9 +562,17 @@ export default function Registration() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isSubmitting ? "Submitting..." : "Submit Registration"}
+                <Button type="submit" className="w-full" size="lg" disabled={status !== "idle"}>
+                  {status !== "idle" && status !== "success" && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {status === "opening"
+                    ? "Processing…"
+                    : status === "confirming"
+                      ? "Confirming your payment…"
+                      : status === "success"
+                        ? "Registered"
+                        : `Submit Registration & Pay${feeLabel ? ` ${feeLabel}` : ""}`}
                 </Button>
               </form>
             </Form>
