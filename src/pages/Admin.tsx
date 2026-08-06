@@ -841,17 +841,22 @@ export default function Admin() {
     }
   };
 
-  const fetchPayments = async () => {
+  const fetchPayments = async (opts?: { courseId?: string; cohort?: string }) => {
     setPaymentsLoading(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-payments`, {
+      const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-payments`);
+      if (opts?.courseId) url.searchParams.set("course_id", opts.courseId);
+      else if (opts?.cohort) url.searchParams.set("cohort", opts.cohort);
+      const response = await fetch(url.toString(), {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
       const result = await response.json();
       if (response.ok) {
         setPayments(result.payments || []);
+        if (result.courses) setPaymentCourseOptions(result.courses);
+        if (result.cohorts) setPaymentCohortOptions(result.cohorts);
       } else {
         toast({ title: "Failed to fetch payments", description: result.error, variant: "destructive" });
       }
@@ -861,6 +866,49 @@ export default function Admin() {
       setPaymentsLoading(false);
     }
   };
+
+  const selectPaymentCourse = (courseId: string) => {
+    setPaymentCourseFilter(courseId);
+    setPaymentCohortFilter("");
+    fetchPayments({ courseId });
+  };
+
+  const selectPaymentCohort = (cohort: string) => {
+    setPaymentCohortFilter(cohort);
+    setPaymentCourseFilter("");
+    fetchPayments({ cohort });
+  };
+
+  const downloadPaymentsCSV = () => {
+    const header = "Type,Name,Email,Course/Cohort,Amount,Currency,Status,Order ID,Payment ID,Date";
+    const esc = (v: string | null | undefined) => `"${(v ?? "").toString().replace(/"/g, '""')}"`;
+    const rows = payments.map((p) =>
+      [
+        esc(p.type === "cohort" ? "Cohort" : "Course"),
+        esc(p.user_name || ""),
+        esc(p.user_email),
+        esc(p.course_name),
+        esc((p.amount / 100).toString()),
+        esc(p.currency),
+        esc(p.status),
+        esc(p.razorpay_order_id),
+        esc(p.razorpay_payment_id || ""),
+        esc(new Date(p.created_at).toLocaleString()),
+      ].join(","),
+    );
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const label = paymentCourseFilter
+      ? paymentCourseOptions.find((c) => c.id === paymentCourseFilter)?.name || "course"
+      : paymentCohortFilter || "payments";
+    a.download = `payments_${label.replace(/[^a-z0-9]+/gi, "_").toLowerCase()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
 
   const formatPaymentAmount = (amount: number, currency: string) => {
     const value = amount / 100;
