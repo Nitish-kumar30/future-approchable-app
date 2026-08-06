@@ -2694,18 +2694,65 @@ export default function Admin() {
                     Razorpay transactions — use order/payment IDs to verify in Razorpay dashboard
                   </CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={fetchPayments} disabled={paymentsLoading}>
-                  {paymentsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Refresh
-                </Button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Select value={paymentCourseFilter} onValueChange={selectPaymentCourse}>
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Select course" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentCourseOptions.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={paymentCohortFilter} onValueChange={selectPaymentCohort}>
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Select cohort" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentCohortOptions.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      fetchPayments(
+                        paymentCourseFilter
+                          ? { courseId: paymentCourseFilter }
+                          : paymentCohortFilter
+                            ? { cohort: paymentCohortFilter }
+                            : undefined,
+                      )
+                    }
+                    disabled={paymentsLoading}
+                  >
+                    {paymentsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Refresh
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={downloadPaymentsCSV} disabled={payments.length === 0}>
+                    <Download className="mr-2 h-4 w-4" /> Download CSV
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {paymentsLoading ? (
                   <div className="flex justify-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                   </div>
+                ) : !paymentCourseFilter && !paymentCohortFilter ? (
+                  <p className="text-center py-8 text-muted-foreground">
+                    Select a course or a cohort to load payments.
+                  </p>
                 ) : payments.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">No payments found.</p>
+
                 ) : (
                   <>
                     <p className="text-sm text-muted-foreground mb-4">
