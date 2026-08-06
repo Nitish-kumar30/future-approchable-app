@@ -2619,7 +2619,22 @@ export default function Admin() {
                               <span className="font-medium">{reg.name}</span>
                               <span className="text-sm text-muted-foreground">{reg.email}</span>
                               <span className="text-sm text-muted-foreground">{reg.whatsapp_number}</span>
-                              <Badge variant="outline">{reg.status}</Badge>
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <Select
+                                  value={reg.status}
+                                  onValueChange={(val) => handleRegistrationStatusUpdate(reg.id, val)}
+                                  disabled={statusUpdatingId === reg.id}
+                                >
+                                  <SelectTrigger className="w-[130px] h-8">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="approved">Approved</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
                               <Badge variant={reg.payment_status === "paid" ? "default" : "secondary"}>
                                 {reg.payment_status === "paid" ? "Paid" : "Payment pending"}
                               </Badge>
