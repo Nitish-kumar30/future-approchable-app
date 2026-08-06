@@ -2762,8 +2762,10 @@ export default function Admin() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Date</TableHead>
+                          <TableHead>Type</TableHead>
                           <TableHead>User</TableHead>
-                          <TableHead>Course</TableHead>
+                          <TableHead>Course / Cohort</TableHead>
+
                           <TableHead>Amount</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Order ID</TableHead>
