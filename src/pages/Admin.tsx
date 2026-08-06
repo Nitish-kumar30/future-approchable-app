@@ -269,10 +269,11 @@ export default function Admin() {
 
   interface PaymentRecord {
     id: string;
-    user_id: string;
+    type?: "course" | "cohort";
+    user_id: string | null;
     user_email: string;
     user_name: string | null;
-    course_id: string;
+    course_id: string | null;
     course_name: string;
     course_slug: string | null;
     razorpay_order_id: string;
@@ -285,6 +286,11 @@ export default function Admin() {
   }
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [paymentCourseOptions, setPaymentCourseOptions] = useState<{ id: string; name: string }[]>([]);
+  const [paymentCohortOptions, setPaymentCohortOptions] = useState<string[]>([]);
+  const [paymentCourseFilter, setPaymentCourseFilter] = useState<string>("");
+  const [paymentCohortFilter, setPaymentCohortFilter] = useState<string>("");
+
 
   // Quiz Responses state
   interface ResponseQuestion {
