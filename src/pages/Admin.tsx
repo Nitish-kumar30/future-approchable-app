@@ -269,10 +269,11 @@ export default function Admin() {
 
   interface PaymentRecord {
     id: string;
-    user_id: string;
+    type?: "course" | "cohort";
+    user_id: string | null;
     user_email: string;
     user_name: string | null;
-    course_id: string;
+    course_id: string | null;
     course_name: string;
     course_slug: string | null;
     razorpay_order_id: string;
@@ -285,6 +286,11 @@ export default function Admin() {
   }
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [paymentCourseOptions, setPaymentCourseOptions] = useState<{ id: string; name: string }[]>([]);
+  const [paymentCohortOptions, setPaymentCohortOptions] = useState<string[]>([]);
+  const [paymentCourseFilter, setPaymentCourseFilter] = useState<string>("");
+  const [paymentCohortFilter, setPaymentCohortFilter] = useState<string>("");
+
 
   // Quiz Responses state
   interface ResponseQuestion {
@@ -835,17 +841,22 @@ export default function Admin() {
     }
   };
 
-  const fetchPayments = async () => {
+  const fetchPayments = async (opts?: { courseId?: string; cohort?: string }) => {
     setPaymentsLoading(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-payments`, {
+      const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-payments`);
+      if (opts?.courseId) url.searchParams.set("course_id", opts.courseId);
+      else if (opts?.cohort) url.searchParams.set("cohort", opts.cohort);
+      const response = await fetch(url.toString(), {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
       const result = await response.json();
       if (response.ok) {
         setPayments(result.payments || []);
+        if (result.courses) setPaymentCourseOptions(result.courses);
+        if (result.cohorts) setPaymentCohortOptions(result.cohorts);
       } else {
         toast({ title: "Failed to fetch payments", description: result.error, variant: "destructive" });
       }
@@ -855,6 +866,49 @@ export default function Admin() {
       setPaymentsLoading(false);
     }
   };
+
+  const selectPaymentCourse = (courseId: string) => {
+    setPaymentCourseFilter(courseId);
+    setPaymentCohortFilter("");
+    fetchPayments({ courseId });
+  };
+
+  const selectPaymentCohort = (cohort: string) => {
+    setPaymentCohortFilter(cohort);
+    setPaymentCourseFilter("");
+    fetchPayments({ cohort });
+  };
+
+  const downloadPaymentsCSV = () => {
+    const header = "Type,Name,Email,Course/Cohort,Amount,Currency,Status,Order ID,Payment ID,Date";
+    const esc = (v: string | null | undefined) => `"${(v ?? "").toString().replace(/"/g, '""')}"`;
+    const rows = payments.map((p) =>
+      [
+        esc(p.type === "cohort" ? "Cohort" : "Course"),
+        esc(p.user_name || ""),
+        esc(p.user_email),
+        esc(p.course_name),
+        esc((p.amount / 100).toString()),
+        esc(p.currency),
+        esc(p.status),
+        esc(p.razorpay_order_id),
+        esc(p.razorpay_payment_id || ""),
+        esc(new Date(p.created_at).toLocaleString()),
+      ].join(","),
+    );
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const label = paymentCourseFilter
+      ? paymentCourseOptions.find((c) => c.id === paymentCourseFilter)?.name || "course"
+      : paymentCohortFilter || "payments";
+    a.download = `payments_${label.replace(/[^a-z0-9]+/gi, "_").toLowerCase()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
 
   const formatPaymentAmount = (amount: number, currency: string) => {
     const value = amount / 100;
@@ -938,6 +992,28 @@ export default function Admin() {
       setStatusUpdatingId(null);
     }
   };
+
+  const handleRegistrationStatusUpdate = async (registrationId: string, newStatus: string) => {
+    const previous = registrations;
+    setRegistrations((prev) => prev.map((r) => (r.id === registrationId ? { ...r, status: newStatus } : r)));
+    setStatusUpdatingId(registrationId);
+    try {
+      const { data, error } = await supabase.functions.invoke("update-registration-status", {
+        body: { id: registrationId, status: newStatus },
+      });
+      if (error || (data && (data as any).error)) {
+        throw new Error(error?.message || (data as any)?.error || "Update failed");
+      }
+      toast({ title: `Status updated to ${newStatus}` });
+    } catch (err: any) {
+      setRegistrations(previous);
+      toast({ title: "Failed to update status", description: err.message, variant: "destructive" });
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  };
+
+
 
   const downloadUnenrolledCSV = () => {
     const header = "Name,Email,Phone,Cohort,Status,Registered";
@@ -2565,7 +2641,22 @@ export default function Admin() {
                               <span className="font-medium">{reg.name}</span>
                               <span className="text-sm text-muted-foreground">{reg.email}</span>
                               <span className="text-sm text-muted-foreground">{reg.whatsapp_number}</span>
-                              <Badge variant="outline">{reg.status}</Badge>
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <Select
+                                  value={reg.status}
+                                  onValueChange={(val) => handleRegistrationStatusUpdate(reg.id, val)}
+                                  disabled={statusUpdatingId === reg.id}
+                                >
+                                  <SelectTrigger className="w-[130px] h-8">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="approved">Approved</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
                               <Badge variant={reg.payment_status === "paid" ? "default" : "secondary"}>
                                 {reg.payment_status === "paid" ? "Paid" : "Payment pending"}
                               </Badge>
@@ -2640,18 +2731,65 @@ export default function Admin() {
                     Razorpay transactions — use order/payment IDs to verify in Razorpay dashboard
                   </CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={fetchPayments} disabled={paymentsLoading}>
-                  {paymentsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Refresh
-                </Button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Select value={paymentCourseFilter} onValueChange={selectPaymentCourse}>
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Select course" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentCourseOptions.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={paymentCohortFilter} onValueChange={selectPaymentCohort}>
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Select cohort" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentCohortOptions.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      fetchPayments(
+                        paymentCourseFilter
+                          ? { courseId: paymentCourseFilter }
+                          : paymentCohortFilter
+                            ? { cohort: paymentCohortFilter }
+                            : undefined,
+                      )
+                    }
+                    disabled={paymentsLoading}
+                  >
+                    {paymentsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Refresh
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={downloadPaymentsCSV} disabled={payments.length === 0}>
+                    <Download className="mr-2 h-4 w-4" /> Download CSV
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {paymentsLoading ? (
                   <div className="flex justify-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                   </div>
+                ) : !paymentCourseFilter && !paymentCohortFilter ? (
+                  <p className="text-center py-8 text-muted-foreground">
+                    Select a course or a cohort to load payments.
+                  </p>
                 ) : payments.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">No payments found.</p>
+
                 ) : (
                   <>
                     <p className="text-sm text-muted-foreground mb-4">
@@ -2661,8 +2799,10 @@ export default function Admin() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Date</TableHead>
+                          <TableHead>Type</TableHead>
                           <TableHead>User</TableHead>
-                          <TableHead>Course</TableHead>
+                          <TableHead>Course / Cohort</TableHead>
+
                           <TableHead>Amount</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Order ID</TableHead>
@@ -2676,6 +2816,10 @@ export default function Admin() {
                               {new Date(payment.created_at).toLocaleString()}
                             </TableCell>
                             <TableCell>
+                              <Badge variant="outline">{payment.type === "cohort" ? "Cohort" : "Course"}</Badge>
+                            </TableCell>
+                            <TableCell>
+
                               <div className="font-medium">{payment.user_name || payment.user_email}</div>
                               {payment.user_name && (
                                 <div className="text-xs text-muted-foreground">{payment.user_email}</div>
