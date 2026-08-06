@@ -993,6 +993,28 @@ export default function Admin() {
     }
   };
 
+  const handleRegistrationStatusUpdate = async (registrationId: string, newStatus: string) => {
+    const previous = registrations;
+    setRegistrations((prev) => prev.map((r) => (r.id === registrationId ? { ...r, status: newStatus } : r)));
+    setStatusUpdatingId(registrationId);
+    try {
+      const { data, error } = await supabase.functions.invoke("update-registration-status", {
+        body: { id: registrationId, status: newStatus },
+      });
+      if (error || (data && (data as any).error)) {
+        throw new Error(error?.message || (data as any)?.error || "Update failed");
+      }
+      toast({ title: `Status updated to ${newStatus}` });
+    } catch (err: any) {
+      setRegistrations(previous);
+      toast({ title: "Failed to update status", description: err.message, variant: "destructive" });
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  };
+
+
+
   const downloadUnenrolledCSV = () => {
     const header = "Name,Email,Phone,Cohort,Status,Registered";
     const rows = unenrolledUsers.map(
