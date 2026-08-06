@@ -2779,6 +2779,10 @@ export default function Admin() {
                               {new Date(payment.created_at).toLocaleString()}
                             </TableCell>
                             <TableCell>
+                              <Badge variant="outline">{payment.type === "cohort" ? "Cohort" : "Course"}</Badge>
+                            </TableCell>
+                            <TableCell>
+
                               <div className="font-medium">{payment.user_name || payment.user_email}</div>
                               {payment.user_name && (
                                 <div className="text-xs text-muted-foreground">{payment.user_email}</div>
