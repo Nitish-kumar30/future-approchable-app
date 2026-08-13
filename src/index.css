@@ -12,31 +12,31 @@
 
 @layer base {
   :root {
-    /* Core backgrounds */
-    --background: 210 20% 98%;
-    --foreground: 200 25% 15%;
+    /* Core backgrounds — unified teal hue family (174°) */
+    --background: 174 20% 97%;
+    --foreground: 174 30% 12%;
 
-    /* Card surfaces */
+    /* Card surfaces — pure white so cards pop against the tinted background */
     --card: 0 0% 100%;
-    --card-foreground: 200 25% 15%;
+    --card-foreground: 174 30% 12%;
 
     /* Popover surfaces */
     --popover: 0 0% 100%;
-    --popover-foreground: 200 25% 15%;
+    --popover-foreground: 174 30% 12%;
 
     /* Primary - Deep Teal */
     --primary: 174 65% 30%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Light Teal */
-    --secondary: 174 35% 92%;
-    --secondary-foreground: 174 65% 25%;
+    /* Secondary - Subtle teal tint (icon backgrounds, chips only) */
+    --secondary: 174 30% 92%;
+    --secondary-foreground: 174 55% 22%;
 
     /* Muted surfaces */
-    --muted: 210 20% 96%;
-    --muted-foreground: 200 15% 45%;
+    --muted: 174 18% 94%;
+    --muted-foreground: 174 15% 42%;
 
-    /* Accent - Warm Amber */
+    /* Accent - Warm Amber (CTAs, highlights, badges) */
     --accent: 38 92% 50%;
     --accent-foreground: 38 95% 15%;
 
@@ -45,13 +45,13 @@
     --destructive-foreground: 0 0% 100%;
 
     /* Borders & inputs */
-    --border: 200 20% 88%;
-    --input: 200 20% 88%;
+    --border: 174 18% 87%;
+    --input: 174 18% 87%;
     --ring: 174 65% 30%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    /* Mobile bottom nav height — fallback until MainLayout measures the real nav */
+    /* Mobile bottom nav height — fallback until AppShell measures the real nav */
     --mobile-nav-height: 4rem;
 
     /* Sticky pay bar height — fallback until StickyPayBar measures the real bar */
@@ -72,86 +72,154 @@
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(174 65% 30%), hsl(174 65% 40%));
     --gradient-accent: linear-gradient(135deg, hsl(38 92% 50%), hsl(28 95% 55%));
-    --gradient-hero: linear-gradient(135deg, hsl(174 65% 25%), hsl(200 70% 30%));
-    --gradient-subtle: linear-gradient(180deg, hsl(210 20% 98%), hsl(210 20% 95%));
+    --gradient-hero: linear-gradient(135deg, hsl(174 65% 25%), hsl(174 55% 35%));
+    --gradient-subtle: linear-gradient(180deg, hsl(174 20% 97%), hsl(174 18% 94%));
     
     /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(200 25% 15% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(200 25% 15% / 0.08), 0 2px 4px -2px hsl(200 25% 15% / 0.05);
-    --shadow-lg: 0 10px 15px -3px hsl(200 25% 15% / 0.1), 0 4px 6px -4px hsl(200 25% 15% / 0.05);
-    --shadow-xl: 0 20px 25px -5px hsl(200 25% 15% / 0.1), 0 8px 10px -6px hsl(200 25% 15% / 0.05);
+    --shadow-sm: 0 1px 2px 0 hsl(174 30% 12% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(174 30% 12% / 0.08), 0 2px 4px -2px hsl(174 30% 12% / 0.05);
+    --shadow-lg: 0 10px 15px -3px hsl(174 30% 12% / 0.1), 0 4px 6px -4px hsl(174 30% 12% / 0.05);
+    --shadow-xl: 0 20px 25px -5px hsl(174 30% 12% / 0.1), 0 8px 10px -6px hsl(174 30% 12% / 0.05);
     --shadow-glow: 0 0 20px hsl(174 65% 30% / 0.15);
     --shadow-accent-glow: 0 0 20px hsl(38 92% 50% / 0.25);
 
-    /* Sidebar */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 200 25% 25%;
+    /* Sidebar — slightly deeper teal tint than the main background */
+    --sidebar-background: 174 25% 95.5%;
+    --sidebar-foreground: 174 30% 18%;
     --sidebar-primary: 174 65% 30%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 174 35% 95%;
-    --sidebar-accent-foreground: 174 65% 25%;
-    --sidebar-border: 200 20% 90%;
+    --sidebar-accent: 174 35% 91%;
+    --sidebar-accent-foreground: 174 55% 22%;
+    --sidebar-border: 174 20% 86%;
     --sidebar-ring: 174 65% 30%;
   }
 
-  .dark {
-    --background: 200 25% 8%;
-    --foreground: 210 20% 95%;
+  /*
+    Theme: Blue — a cool, corporate-friendly alternative to the default Teal.
+    Same structure/lightness scale as :root, hue shifted from 174° (teal) to 217° (blue).
+  */
+  .theme-blue {
+    --background: 217 30% 97%;
+    --foreground: 222 35% 14%;
 
-    --card: 200 25% 12%;
-    --card-foreground: 210 20% 95%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 35% 14%;
 
-    --popover: 200 25% 12%;
-    --popover-foreground: 210 20% 95%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 35% 14%;
 
-    --primary: 174 65% 45%;
-    --primary-foreground: 200 25% 8%;
+    --primary: 221 70% 42%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 25% 18%;
-    --secondary-foreground: 174 45% 70%;
+    --secondary: 217 45% 93%;
+    --secondary-foreground: 221 55% 28%;
 
-    --muted: 200 25% 15%;
-    --muted-foreground: 200 15% 60%;
+    --muted: 217 30% 95%;
+    --muted-foreground: 220 15% 44%;
 
-    --accent: 38 92% 55%;
-    --accent-foreground: 38 95% 10%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 38 95% 15%;
 
-    --destructive: 0 70% 50%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 200 25% 20%;
-    --input: 200 25% 20%;
-    --ring: 174 65% 45%;
+    --border: 217 25% 88%;
+    --input: 217 25% 88%;
+    --ring: 221 70% 42%;
 
-    --success: 152 60% 50%;
-    --success-foreground: 200 25% 8%;
+    --success: 152 60% 42%;
+    --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 55%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 95% 15%;
+
+    --info: 200 80% 50%;
+    --info-foreground: 0 0% 100%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(221 70% 42%), hsl(217 75% 52%));
+    --gradient-accent: linear-gradient(135deg, hsl(38 92% 50%), hsl(28 95% 55%));
+    --gradient-hero: linear-gradient(135deg, hsl(222 55% 30%), hsl(217 60% 40%));
+    --gradient-subtle: linear-gradient(180deg, hsl(217 30% 97%), hsl(217 30% 95%));
+
+    --shadow-sm: 0 1px 2px 0 hsl(222 35% 14% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(222 35% 14% / 0.08), 0 2px 4px -2px hsl(222 35% 14% / 0.05);
+    --shadow-lg: 0 10px 15px -3px hsl(222 35% 14% / 0.1), 0 4px 6px -4px hsl(222 35% 14% / 0.05);
+    --shadow-xl: 0 20px 25px -5px hsl(222 35% 14% / 0.1), 0 8px 10px -6px hsl(222 35% 14% / 0.05);
+    --shadow-glow: 0 0 20px hsl(221 70% 42% / 0.15);
+    --shadow-accent-glow: 0 0 20px hsl(38 92% 50% / 0.25);
+
+    --sidebar-background: 217 35% 95.5%;
+    --sidebar-foreground: 222 35% 20%;
+    --sidebar-primary: 221 70% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 45% 91%;
+    --sidebar-accent-foreground: 221 55% 28%;
+    --sidebar-border: 217 30% 87%;
+    --sidebar-ring: 221 70% 42%;
+  }
+
+  /*
+    Theme: Midnight — a genuine dark theme (reuses Tailwind's `.dark` class strategy),
+    tuned for contrast and a premium low-light feel rather than a plain inverted palette.
+  */
+  .dark {
+    --background: 224 28% 8%;
+    --foreground: 210 25% 96%;
+
+    --card: 224 26% 11%;
+    --card-foreground: 210 25% 96%;
+
+    --popover: 224 26% 11%;
+    --popover-foreground: 210 25% 96%;
+
+    --primary: 199 89% 58%;
+    --primary-foreground: 224 28% 8%;
+
+    --secondary: 224 22% 17%;
+    --secondary-foreground: 199 60% 75%;
+
+    --muted: 224 22% 15%;
+    --muted-foreground: 217 15% 60%;
+
+    --accent: 38 92% 58%;
+    --accent-foreground: 38 95% 10%;
+
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 224 18% 26%;
+    --input: 224 18% 26%;
+    --ring: 199 89% 58%;
+
+    --success: 152 55% 52%;
+    --success-foreground: 224 28% 8%;
+
+    --warning: 38 92% 58%;
     --warning-foreground: 38 95% 10%;
 
-    --info: 200 80% 55%;
-    --info-foreground: 200 25% 8%;
+    --info: 199 89% 58%;
+    --info-foreground: 224 28% 8%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(174 65% 40%), hsl(174 65% 50%));
-    --gradient-accent: linear-gradient(135deg, hsl(38 92% 55%), hsl(28 95% 60%));
-    --gradient-hero: linear-gradient(135deg, hsl(200 25% 8%), hsl(200 30% 15%));
-    --gradient-subtle: linear-gradient(180deg, hsl(200 25% 10%), hsl(200 25% 8%));
+    --gradient-primary: linear-gradient(135deg, hsl(199 89% 45%), hsl(230 75% 55%));
+    --gradient-accent: linear-gradient(135deg, hsl(38 92% 58%), hsl(28 95% 60%));
+    --gradient-hero: linear-gradient(135deg, hsl(224 30% 9%), hsl(230 35% 15%));
+    --gradient-subtle: linear-gradient(180deg, hsl(224 26% 11%), hsl(224 28% 8%));
 
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.4), 0 2px 4px -2px hsl(0 0% 0% / 0.3);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.5), 0 4px 6px -4px hsl(0 0% 0% / 0.3);
-    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.5), 0 8px 10px -6px hsl(0 0% 0% / 0.3);
-    --shadow-glow: 0 0 20px hsl(174 65% 45% / 0.2);
-    --shadow-accent-glow: 0 0 20px hsl(38 92% 55% / 0.3);
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.5), 0 2px 4px -2px hsl(0 0% 0% / 0.4);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.6), 0 4px 6px -4px hsl(0 0% 0% / 0.4);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.6), 0 8px 10px -6px hsl(0 0% 0% / 0.4);
+    --shadow-glow: 0 0 24px hsl(199 89% 58% / 0.25);
+    --shadow-accent-glow: 0 0 24px hsl(38 92% 58% / 0.3);
 
-    --sidebar-background: 200 25% 10%;
-    --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 174 65% 45%;
-    --sidebar-primary-foreground: 200 25% 8%;
-    --sidebar-accent: 200 25% 15%;
-    --sidebar-accent-foreground: 174 45% 70%;
-    --sidebar-border: 200 25% 18%;
-    --sidebar-ring: 174 65% 45%;
+    --sidebar-background: 224 30% 6.5%;
+    --sidebar-foreground: 210 20% 92%;
+    --sidebar-primary: 199 89% 58%;
+    --sidebar-primary-foreground: 224 28% 8%;
+    --sidebar-accent: 224 24% 14%;
+    --sidebar-accent-foreground: 199 60% 75%;
+    --sidebar-border: 224 20% 17%;
+    --sidebar-ring: 199 89% 58%;
   }
 }
 
@@ -161,23 +229,39 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased text-sm;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-display font-bold tracking-tight;
   }
+
+  h1 {
+    @apply text-xl md:text-2xl;
+  }
+
+  h2 {
+    @apply text-lg;
+  }
+
+  h3 {
+    @apply text-base;
+  }
 }
 
 @layer components {
   .card-elevated {
-    @apply bg-card rounded-xl border border-border/50;
-    box-shadow: var(--shadow-md);
+    @apply bg-card rounded-lg border border-border/60;
+    box-shadow: var(--shadow-sm);
   }
 
   .card-elevated:hover {
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-md);
+  }
+
+  .section-label {
+    @apply text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
   }
 
   .gradient-text {

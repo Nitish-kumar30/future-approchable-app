@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Award, CheckCircle2, Loader2, XCircle } from "lucide-react";
-import MainLayout from "@/components/layout/MainLayout";
+import AppShell from "@/components/layout/AppShell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { verifyCertificatePublic, tierLabel } from "@/lib/certificates";
@@ -39,7 +39,7 @@ export default function VerifyCertificate() {
   }, [certificateId]);
 
   return (
-    <MainLayout>
+    <AppShell>
       <div className="container max-w-lg py-16">
         <Card>
           <CardHeader className="text-center">
@@ -74,6 +74,6 @@ export default function VerifyCertificate() {
           </CardContent>
         </Card>
       </div>
-    </MainLayout>
+    </AppShell>
   );
 }

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Mail, ArrowLeft } from 'lucide-react';
 import siteIcon from '@/assets/icon.png';
+import Footer from '@/components/layout/Footer';
 import { LOGIN_PATH } from '@/lib/authRedirect';
 import { z } from 'zod';
 
@@ -50,7 +51,8 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex flex-col bg-background">
+      <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-md animate-fade-in">
         <Link to="/" className="block text-center mb-8">
           <img src={siteIcon} alt="Approachable" className="w-16 h-16 rounded-2xl mx-auto mb-4" />
@@ -125,6 +127,8 @@ export default function ForgotPassword() {
           )}
         </Card>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Lock, CheckCircle } from 'lucide-react';
 import siteIcon from '@/assets/icon.png';
+import Footer from '@/components/layout/Footer';
 import { z } from 'zod';
 
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -97,7 +98,8 @@ export default function ResetPassword() {
 
   if (!isValidSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md animate-fade-in">
           <Link to="/" className="block text-center mb-8">
             <img src={siteIcon} alt="Approachable" className="w-16 h-16 rounded-2xl mx-auto mb-4" />
@@ -118,12 +120,15 @@ export default function ResetPassword() {
             </CardContent>
           </Card>
         </div>
+        </div>
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex flex-col bg-background">
+      <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-md animate-fade-in">
         <Link to="/" className="block text-center mb-8">
           <img src={siteIcon} alt="Approachable" className="w-16 h-16 rounded-2xl mx-auto mb-4" />
@@ -200,6 +205,8 @@ export default function ResetPassword() {
           )}
         </Card>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }

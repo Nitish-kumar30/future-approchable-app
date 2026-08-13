@@ -1,0 +1,274 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import { BookOpen, ArrowRight } from 'lucide-react';
+
+interface LearningItem {
+  courseId: string;
+  slug: string;
+  name: string;
+  percent: number;
+  lastChapterTitle: string | null;
+  isOnDemand: boolean;
+}
+
+interface EnrolledCourse {
+  id: string;
+  slug: string;
+  name: string;
+  is_on_demand: boolean | null;
+}
+
+function isVideoUrl(url: string) {
+  return url.includes('youtube') || url.includes('youtu.be') || url.includes('vimeo.com');
+}
+
+// Free / on-demand courses track progress at the session level (no chapters),
+// so they need their own percent + "last touched" computation.
+async function fetchOnDemandProgress(
+  userId: string,
+  courses: EnrolledCourse[],
+): Promise<LearningItem[]> {
+  const courseIds = courses.map((c) => c.id);
+
+  const { data: sessions } = await supabase
+    .from('sessions')
+    .select('id, title, session_order, recording_url, course_id')
+    .in('course_id', courseIds)
+    .order('session_order', { ascending: true });
+
+  const sessionIds = (sessions || []).map((s) => s.id);
+
+  const [{ data: quizRows }, { data: progressRows }] = await Promise.all([
+    sessionIds.length > 0
+      ? supabase.from('session_quizzes').select('session_id').in('session_id', sessionIds)
+      : Promise.resolve({ data: [] as { session_id: string }[] }),
+    sessionIds.length > 0
+      ? supabase
+          .from('session_progress')
+          .select('session_id, is_completed, completed_at')
+          .eq('user_id', userId)
+          .eq('is_completed', true)
+          .in('session_id', sessionIds)
+      : Promise.resolve({ data: [] as { session_id: string; is_completed: boolean; completed_at: string | null }[] }),
+  ]);
+
+  const quizSessionIds = new Set((quizRows || []).map((q) => q.session_id));
+  const completedAtBySession = new Map(
+    (progressRows || []).map((p) => [p.session_id, p.completed_at ?? '']),
+  );
+
+  return courses.map((course) => {
+    const courseSessions = (sessions || []).filter((s) => s.course_id === course.id);
+    const trackable = courseSessions.filter(
+      (s) => (s.recording_url && isVideoUrl(s.recording_url)) || quizSessionIds.has(s.id),
+    );
+    const completedCount = trackable.filter((s) => completedAtBySession.has(s.id)).length;
+    const percent =
+      trackable.length > 0 ? Math.round((completedCount / trackable.length) * 100) : 0;
+
+    let lastTitle: string | null = null;
+    let lastCompletedAt = '';
+    for (const s of courseSessions) {
+      const completedAt = completedAtBySession.get(s.id);
+      if (completedAt && completedAt > lastCompletedAt) {
+        lastCompletedAt = completedAt;
+        lastTitle = s.title;
+      }
+    }
+
+    return {
+      courseId: course.id,
+      slug: course.slug,
+      name: course.name,
+      percent,
+      lastChapterTitle: lastTitle,
+      isOnDemand: true,
+    };
+  });
+}
+
+export default function ContinueLearningRow() {
+  const { user } = useAuth();
+  const [items, setItems] = useState<LearningItem[] | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    (async () => {
+      const { data: enrollments } = await supabase
+        .from('enrollments')
+        .select('course_id, courses (id, slug, name, is_on_demand)')
+        .eq('user_id', user.id)
+        .not('course_id', 'is', null);
+
+      if (cancelled) return;
+
+      const courses = (enrollments || [])
+        .map((e) => e.courses as unknown as EnrolledCourse | null)
+        .filter((c): c is EnrolledCourse => !!c);
+
+      if (courses.length === 0) {
+        setItems([]);
+        return;
+      }
+
+      const structuredCourses = courses.filter((c) => !c.is_on_demand);
+      const onDemandCourses = courses.filter((c) => c.is_on_demand);
+      const structuredCourseIds = new Set(structuredCourses.map((c) => c.id));
+
+      const [{ data: progressRows }, structuredPercents, onDemandItems] = await Promise.all([
+        structuredCourses.length > 0
+          ? supabase
+              .from('chapter_progress')
+              .select('updated_at, chapters (title, sessions (course_id))')
+              .eq('user_id', user.id)
+              .order('updated_at', { ascending: false })
+              .limit(100)
+          : Promise.resolve({ data: [] as { updated_at: string; chapters: unknown }[] }),
+        Promise.all(
+          structuredCourses.map(async (course) => {
+            const { data: percent } = await supabase.rpc('compute_enrollment_progress_percent', {
+              p_user_id: user.id,
+              p_course_id: course.id,
+            });
+            return { courseId: course.id, percent: Number(percent) || 0 };
+          }),
+        ),
+        onDemandCourses.length > 0
+          ? fetchOnDemandProgress(user.id, onDemandCourses)
+          : Promise.resolve([] as LearningItem[]),
+      ]);
+
+      if (cancelled) return;
+
+      const percentByCourse = new Map(structuredPercents.map((p) => [p.courseId, p.percent]));
+      const lastChapterByCourse = new Map<string, string>();
+
+      for (const row of progressRows || []) {
+        const chapter = row.chapters as unknown as {
+          title: string;
+          sessions: { course_id: string | null } | null;
+        } | null;
+        const courseId = chapter?.sessions?.course_id;
+        if (!courseId || !structuredCourseIds.has(courseId) || lastChapterByCourse.has(courseId))
+          continue;
+        lastChapterByCourse.set(courseId, chapter!.title);
+      }
+
+      const structuredItems: LearningItem[] = structuredCourses.map((course) => ({
+        courseId: course.id,
+        slug: course.slug,
+        name: course.name,
+        percent: percentByCourse.get(course.id) ?? 0,
+        lastChapterTitle: lastChapterByCourse.get(course.id) ?? null,
+        isOnDemand: false,
+      }));
+
+      // Show every enrolled/started course that isn't finished yet — paid or free.
+      const learningItems = [...structuredItems, ...onDemandItems].filter(
+        (item) => item.percent < 100,
+      );
+
+      setItems(learningItems);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  if (items === null) {
+    return (
+      <div className="space-y-2">
+        <p className="section-label">Continue learning</p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="card-elevated">
+              <CardContent className="p-4 space-y-3">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="h-2 w-full" />
+                <Skeleton className="h-8 w-24" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="space-y-2">
+        <p className="section-label">Continue learning</p>
+        <Card className="card-elevated border-dashed">
+          <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4">
+            <div className="flex items-start gap-3">
+              <div className="h-9 w-9 rounded-md bg-secondary flex items-center justify-center shrink-0">
+                <BookOpen className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">No courses in progress</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Enroll in a course to pick up where you left off.
+                </p>
+              </div>
+            </div>
+            <Button size="sm" asChild>
+              <Link to="/courses">
+                Browse courses <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="section-label">Continue learning</p>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((item) => (
+          <Card key={item.courseId} className="card-elevated">
+            <CardContent className="p-4 space-y-3">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-snug">
+                  {item.name}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                  {item.lastChapterTitle ? `Last: ${item.lastChapterTitle}` : 'Ready to start'}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>Progress</span>
+                  <span className="tabular-nums font-medium text-foreground">{item.percent}%</span>
+                </div>
+                <Progress value={item.percent} className="h-1.5" />
+              </div>
+              <Button size="sm" className="h-8 text-xs w-full sm:w-auto" asChild>
+                <Link
+                  to={
+                    item.isOnDemand
+                      ? `/on-demand/${item.slug}`
+                      : `/courses/${item.slug}/learn`
+                  }
+                >
+                  Resume
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}

@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import MainLayout from '@/components/layout/MainLayout';
+import AppShell from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, Save, User } from 'lucide-react';
+import { Loader2, Save, User, Palette, LogOut } from 'lucide-react';
 import MyCertificatesSection from '@/components/certificate/MyCertificatesSection';
+import { useThemeMode, THEME_OPTIONS } from '@/hooks/useThemeMode';
+import { cn } from '@/lib/utils';
 
 interface Profile {
   id: string;
@@ -20,9 +23,11 @@ interface Profile {
 }
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
-  
+  const location = useLocation();
+  const { theme, setTheme } = useThemeMode();
+
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -34,6 +39,16 @@ export default function ProfilePage() {
       fetchProfile();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (location.hash !== '#certificates' || isLoading) return;
+    const el = document.getElementById('certificates');
+    if (el) {
+      // Slight delay so async sections (e.g. certificates list) have a chance to render first.
+      const timer = setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [location.hash, isLoading]);
 
   const fetchProfile = async () => {
     const { data, error } = await supabase
@@ -117,11 +132,11 @@ export default function ProfilePage() {
   };
 
   return (
-    <MainLayout>
+    <AppShell>
       <div className="max-w-2xl mx-auto space-y-8 animate-fade-in">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-display font-bold text-foreground">Profile</h1>
-          <p className="text-muted-foreground">Manage your personal information</p>
+        <div className="space-y-1">
+          <h2 className="text-xl font-display font-bold text-foreground">Profile</h2>
+          <p className="text-sm text-muted-foreground">Manage your personal information</p>
         </div>
 
         <Card className="card-elevated">
@@ -183,8 +198,53 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        <MyCertificatesSection />
+        <Card className="card-elevated">
+          <CardHeader>
+            <CardTitle className="text-base">Preferences</CardTitle>
+            <CardDescription>Theme and account settings</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Palette className="h-3.5 w-3.5" /> Theme
+              </Label>
+              <div className="grid grid-cols-3 gap-2">
+                {THEME_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setTheme(opt.value)}
+                    className={cn(
+                      'flex flex-col items-center gap-1.5 rounded-lg border p-2.5 text-xs font-medium transition-colors',
+                      theme === opt.value
+                        ? 'border-primary bg-primary/5 text-foreground'
+                        : 'border-border text-muted-foreground hover:bg-muted',
+                    )}
+                  >
+                    <span className={cn('h-4 w-4 rounded-full', opt.swatchClass)} />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-1 border-t border-border/60">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={signOut}
+                className="mt-4 gap-2 text-destructive hover:text-destructive"
+              >
+                <LogOut className="h-4 w-4" /> Sign out
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div id="certificates" className="scroll-mt-6">
+          <MyCertificatesSection />
+        </div>
       </div>
-    </MainLayout>
+    </AppShell>
   );
 }

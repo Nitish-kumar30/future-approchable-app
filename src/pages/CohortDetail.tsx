@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buildLoginUrl } from "@/lib/authRedirect";
 import { useToast } from "@/hooks/use-toast";
-import MainLayout from "@/components/layout/MainLayout";
+import AppShell from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -477,24 +477,24 @@ export default function CohortDetail() {
 
   if (isLoading) {
     return (
-      <MainLayout>
+      <AppShell>
         <div className="space-y-6">
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-10 w-2/3" />
           <Skeleton className="h-24 w-full" />
         </div>
-      </MainLayout>
+      </AppShell>
     );
   }
 
   if (!cohort) {
     return (
-      <MainLayout>
+      <AppShell>
         <div className="text-center py-12">
           <h2 className="text-2xl font-semibold mb-2">Cohort not found</h2>
           <Button onClick={() => navigate("/cohorts")}>Back to Cohorts</Button>
         </div>
-      </MainLayout>
+      </AppShell>
     );
   }
 
@@ -502,9 +502,23 @@ export default function CohortDetail() {
     ? cohort.max_seats - enrollmentCount
     : null;
 
+  // A cohort whose dates have fully passed shouldn't offer "Enroll Now" even
+  // if the admin never flipped enrollment_disabled — registering for
+  // something that already happened doesn't make sense to a new learner.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const isPastDated = cohort.end_date
+    ? cohort.end_date < todayIso
+    : cohort.start_date
+      ? cohort.start_date < todayIso
+      : false;
+  const isRegistrationClosed = cohort.enrollment_disabled || isPastDated;
+  const registrationClosedLabel = cohort.enrollment_disabled
+    ? "Enrollment Closed"
+    : "Registration Ended";
+
   return (
     <>
-      <MainLayout>
+      <AppShell>
         <div className="space-y-8 animate-fade-in">
           {/* Back Button */}
           <Button
@@ -556,9 +570,9 @@ export default function CohortDetail() {
                       <MessageSquare className="h-4 w-4" /> Feedback
                     </Button>
                   </div>
-                ) : cohort.enrollment_disabled ? (
+                ) : isRegistrationClosed ? (
                   <Badge variant="secondary" className="text-base px-4 py-2">
-                    Enrollment Closed
+                    {registrationClosedLabel}
                   </Badge>
                 ) : (
                   <Button
@@ -593,7 +607,7 @@ export default function CohortDetail() {
                   )}
                 </div>
               )}
-              {seatsLeft !== null && !cohort.enrollment_disabled && (
+              {seatsLeft !== null && !isRegistrationClosed && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Users className="h-4 w-4" />
                   {seatsLeft > 0 ? `${seatsLeft} seats left` : "Fully booked"}
@@ -607,19 +621,19 @@ export default function CohortDetail() {
           {/* Tabbed Content */}
           <Tabs defaultValue="about" onValueChange={handleTabChange}>
             <div className="-mx-8 overflow-x-auto md:mx-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <TabsList className="inline-flex w-max min-w-full flex-nowrap justify-start px-3 md:w-full md:px-0">
-                <TabsTrigger value="about" className="shrink-0">
+              <TabsList className="inline-flex h-11 w-max min-w-full flex-nowrap justify-start gap-1 bg-muted/70 p-1.5 px-3 md:w-full md:px-1.5">
+                <TabsTrigger value="about" className="h-8 shrink-0 rounded-md px-3.5 data-[state=active]:shadow-sm">
                   About
                 </TabsTrigger>
-                <TabsTrigger value="sessions" className="shrink-0">
+                <TabsTrigger value="sessions" className="h-8 shrink-0 rounded-md px-3.5 data-[state=active]:shadow-sm">
                   Sessions
                 </TabsTrigger>
-                <TabsTrigger value="mentor" className="shrink-0">
+                <TabsTrigger value="mentor" className="h-8 shrink-0 rounded-md px-3.5 data-[state=active]:shadow-sm">
                   Mentor
                 </TabsTrigger>
                 <TabsTrigger
                   value="leaderboard"
-                  className="shrink-0 gap-1.5"
+                  className="h-8 shrink-0 gap-1.5 rounded-md px-3.5 data-[state=active]:shadow-sm"
                 >
                   <Trophy className="h-4 w-4" /> Leaderboard
                 </TabsTrigger>
@@ -1015,12 +1029,12 @@ export default function CohortDetail() {
                         track your progress.
                       </p>
                     </div>
-                    {cohort.enrollment_disabled ? (
+                    {isRegistrationClosed ? (
                       <Badge
                         variant="secondary"
                         className="text-base px-4 py-2"
                       >
-                        Enrollment Closed
+                        {registrationClosedLabel}
                       </Badge>
                     ) : (
                       <Button
@@ -1046,7 +1060,7 @@ export default function CohortDetail() {
             </TabsContent>
           </Tabs>
         </div>
-      </MainLayout>
+      </AppShell>
 
       {isEnrolled && cohort && (
         <FeedbackDialog

@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import MainLayout from "@/components/layout/MainLayout";
+import AppShell from "@/components/layout/AppShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1337,45 +1337,45 @@ export default function Admin() {
   }
 
   return (
-    <MainLayout>
+    <AppShell>
       <div className="space-y-8 animate-fade-in">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-display font-bold text-foreground">Admin Panel</h1>
-          <p className="text-muted-foreground">Manage cohorts, courses, sessions, and quizzes</p>
+        <div className="space-y-1">
+          <h2 className="text-xl font-display font-bold text-foreground">Admin Panel</h2>
+          <p className="text-sm text-muted-foreground">Manage cohorts, courses, sessions, and quizzes</p>
         </div>
 
         <Tabs defaultValue="cohorts" className="space-y-6">
-          <TabsList className="flex flex-wrap h-auto w-full gap-1 lg:w-auto">
-            <TabsTrigger value="cohorts" className="gap-2">
+          <TabsList className="flex flex-wrap h-auto w-full gap-1.5 p-1.5 bg-muted/70 lg:w-auto">
+            <TabsTrigger value="cohorts" className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm">
               <Users className="h-4 w-4" /> Cohorts
             </TabsTrigger>
-            <TabsTrigger value="courses" className="gap-2">
+            <TabsTrigger value="courses" className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm">
               <BookOpen className="h-4 w-4" /> Courses
             </TabsTrigger>
-            <TabsTrigger value="sessions" className="gap-2">
+            <TabsTrigger value="sessions" className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm">
               <GraduationCap className="h-4 w-4" /> Sessions
             </TabsTrigger>
-            <TabsTrigger value="quizzes" className="gap-2">
+            <TabsTrigger value="quizzes" className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm">
               <ClipboardList className="h-4 w-4" /> Quizzes
             </TabsTrigger>
-            <TabsTrigger value="responses" className="gap-2">
+            <TabsTrigger value="responses" className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm">
               <MessageSquare className="h-4 w-4" /> Quiz Responses
             </TabsTrigger>
-            <TabsTrigger value="enrollments" className="gap-2">
+            <TabsTrigger value="enrollments" className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm">
               <Users className="h-4 w-4" /> Enrollments
             </TabsTrigger>
-            <TabsTrigger value="leaderboard" className="gap-2">
+            <TabsTrigger value="leaderboard" className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm">
               <Trophy className="h-4 w-4" /> Leaderboard
             </TabsTrigger>
-            <TabsTrigger value="feedback" className="gap-2">
+            <TabsTrigger value="feedback" className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm">
               <MessageSquare className="h-4 w-4" /> Feedback
             </TabsTrigger>
-            <TabsTrigger value="prompts" className="gap-2">
+            <TabsTrigger value="prompts" className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm">
               <FileText className="h-4 w-4" /> Prompts
             </TabsTrigger>
             <TabsTrigger
               value="unenrolled"
-              className="gap-2"
+              className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm"
               onClick={() => {
                 if (unenrolledUsers.length === 0) fetchUnenrolledUsers();
               }}
@@ -1384,7 +1384,7 @@ export default function Admin() {
             </TabsTrigger>
             <TabsTrigger
               value="registrations"
-              className="gap-2"
+              className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm"
               onClick={() => {
                 if (registrations.length === 0) fetchRegistrations();
               }}
@@ -1393,14 +1393,14 @@ export default function Admin() {
             </TabsTrigger>
             <TabsTrigger
               value="payments"
-              className="gap-2"
+              className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm"
               onClick={() => {
                 if (payments.length === 0) fetchPayments();
               }}
             >
               <CreditCard className="h-4 w-4" /> Payments
             </TabsTrigger>
-            <TabsTrigger value="certificates" className="gap-2">
+            <TabsTrigger value="certificates" className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm">
               <Award className="h-4 w-4" /> Certificates
             </TabsTrigger>
           </TabsList>
@@ -2958,6 +2958,6 @@ export default function Admin() {
           </DialogContent>
         </Dialog>
       </div>
-    </MainLayout>
+    </AppShell>
   );
 }

@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Lock, User } from "lucide-react";
 import siteIcon from "@/assets/icon.png";
+import Footer from "@/components/layout/Footer";
 import { z } from "zod";
 import { lovable } from "@/integrations/lovable";
 import { parseNextSearchParam } from "@/lib/authRedirect";
@@ -161,7 +162,8 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex flex-col bg-background">
+      <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-md animate-fade-in">
         {/* Logo */}
         <Link to="/" className="block text-center mb-8">
@@ -342,6 +344,8 @@ export default function Auth() {
           </Tabs>
         </Card>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }

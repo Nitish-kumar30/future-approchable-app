@@ -2,9 +2,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { PricingCurrencyProvider } from "@/hooks/usePricingCurrency";
+import { ThemeModeProvider } from "@/hooks/useThemeMode";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Cohorts from "./pages/Cohorts";
@@ -18,9 +19,10 @@ import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-import OnDemandCourses from "./pages/OnDemandCourses";
 import OnDemandCourseDetail from "./pages/OnDemandCourseDetail";
+import FreeCourses from "./pages/FreeCourses";
 import PromptLibrary from "./pages/PromptLibrary";
+import Resources from "./pages/Resources";
 import Registration from "./pages/Registration";
 import NotFound from "./pages/NotFound";
 import VerifyCertificate from "./pages/VerifyCertificate";
@@ -29,6 +31,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <ThemeModeProvider>
     <AuthProvider>
       <PricingCurrencyProvider>
         <TooltipProvider>
@@ -49,7 +52,9 @@ const App = () => (
             <Route path="/quiz/:id" element={<Quiz />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/admin" element={<Admin />} />
-            <Route path="/on-demand" element={<OnDemandCourses />} />
+            <Route path="/free" element={<FreeCourses />} />
+            <Route path="/on-demand" element={<Navigate to="/free" replace />} />
+            <Route path="/resources" element={<Resources />} />
             <Route path="/prompts" element={<PromptLibrary />} />
             <Route path="/on-demand/:slug" element={<OnDemandCourseDetail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -62,6 +67,7 @@ const App = () => (
         </TooltipProvider>
       </PricingCurrencyProvider>
     </AuthProvider>
+    </ThemeModeProvider>
   </QueryClientProvider>
 );
 

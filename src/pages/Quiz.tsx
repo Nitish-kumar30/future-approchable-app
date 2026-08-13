@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import MainLayout from '@/components/layout/MainLayout';
+import AppShell from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -161,24 +161,24 @@ export default function QuizPage() {
 
   if (isLoading) {
     return (
-      <MainLayout>
+      <AppShell>
         <div className="space-y-6">
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-10 w-2/3" />
           <Skeleton className="h-48 w-full" />
         </div>
-      </MainLayout>
+      </AppShell>
     );
   }
 
   if (!quiz) {
     return (
-      <MainLayout>
+      <AppShell>
         <div className="text-center py-12">
           <h2 className="text-2xl font-semibold mb-2">Quiz not found</h2>
           <Button onClick={() => navigate(-1)}>Go Back</Button>
         </div>
-      </MainLayout>
+      </AppShell>
     );
   }
 
@@ -188,7 +188,7 @@ export default function QuizPage() {
   const passed = isGradedSubmission && (latestSubmission!.score as number) >= 70;
 
   return (
-    <MainLayout>
+    <AppShell>
       <div className="max-w-3xl mx-auto space-y-8 animate-fade-in">
         {/* Back Button */}
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2">
@@ -360,6 +360,6 @@ export default function QuizPage() {
           </div>
         )}
       </div>
-    </MainLayout>
+    </AppShell>
   );
 }

@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { buildLoginUrl } from '@/lib/authRedirect';
 import { useToast } from '@/hooks/use-toast';
-import MainLayout from '@/components/layout/MainLayout';
+import AppShell from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -394,31 +394,31 @@ export default function CourseDetail() {
 
   if (isLoading) {
     return (
-      <MainLayout>
+      <AppShell>
         <div className="space-y-6">
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-10 w-2/3" />
           <Skeleton className="h-24 w-full" />
         </div>
-      </MainLayout>
+      </AppShell>
     );
   }
 
   if (!course) {
     return (
-      <MainLayout>
+      <AppShell>
         <div className="text-center py-12">
           <h2 className="text-2xl font-semibold mb-2">Course not found</h2>
           <Button onClick={() => navigate('/courses')}>Back to Courses</Button>
         </div>
-      </MainLayout>
+      </AppShell>
     );
   }
 
   const showStickyPay = course && isPaidCourse(course) && !isEnrolled && !course.enrollment_disabled;
 
   return (
-    <MainLayout>
+    <AppShell>
       <div className={`space-y-8 animate-fade-in`}>
         {/* Back Button */}
         <Button variant="ghost" size="sm" onClick={() => navigate('/courses')} className="gap-2">
@@ -596,6 +596,6 @@ export default function CourseDetail() {
           onPaid={handlePaymentSuccess}
         />
       )}
-    </MainLayout>
+    </AppShell>
   );
 }
