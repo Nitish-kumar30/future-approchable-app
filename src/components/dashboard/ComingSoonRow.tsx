@@ -110,8 +110,8 @@ export default function ComingSoonRow() {
         {/* Upcoming live sessions — bigger, interactive monthly plan card */}
         <Card className="card-elevated overflow-hidden">
           <CardContent className="p-0">
-            <div className="flex items-center gap-3 px-5 pt-5 pb-4">
-              <div className="h-11 w-11 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+            <div className="flex items-center gap-3 px-5 pt-4 pb-3">
+              <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
                 <CalendarDays className="h-5 w-5 text-primary" />
               </div>
               <div>
@@ -145,7 +145,7 @@ export default function ComingSoonRow() {
                     {isNext && (
                       <span className="absolute inset-y-0 left-0 w-0.5 bg-primary" aria-hidden />
                     )}
-                    <AccordionTrigger className="py-3.5 hover:no-underline gap-3">
+                    <AccordionTrigger className="py-2.5 hover:no-underline gap-3">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div
                           className={cn(
@@ -202,13 +202,11 @@ export default function ComingSoonRow() {
               communityTheme.glowBottom,
             )}
           />
-          {theme === 'teal' && (
-            <div className="pointer-events-none absolute -right-10 top-1/2 -translate-y-1/2 flex h-44 w-44 items-center justify-center rounded-full bg-white/[0.06]">
-              <Users2 className="h-16 w-16 text-white/15" strokeWidth={1.5} />
-            </div>
-          )}
+          <div className="pointer-events-none absolute -right-10 top-1/2 -translate-y-1/2 flex h-44 w-44 items-center justify-center rounded-full bg-white/[0.06]">
+            <Users2 className="h-16 w-16 text-white/15" strokeWidth={1.5} />
+          </div>
 
-          <CardContent className="relative p-6 h-full min-h-[280px] flex flex-col justify-between gap-6 text-white">
+          <CardContent className="relative p-6 h-full flex flex-col justify-between gap-6 text-white">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <p className="text-lg font-semibold leading-tight">Community</p>
@@ -222,7 +220,11 @@ export default function ComingSoonRow() {
             <div className="space-y-4">
               <Button
                 size="default"
-                className={cn('bg-white hover:bg-white/90 font-medium', communityTheme.buttonText)}
+                disabled
+                className={cn(
+                  'bg-white hover:bg-white/90 font-medium disabled:opacity-60 disabled:pointer-events-none',
+                  communityTheme.buttonText,
+                )}
               >
                 Go to Community
               </Button>
