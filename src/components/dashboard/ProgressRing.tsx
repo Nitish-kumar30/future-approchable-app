@@ -42,7 +42,10 @@ export default function ProgressRing({
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-base font-display font-bold text-foreground tabular-nums">
+          <span
+            className="font-display font-bold text-foreground tabular-nums"
+            style={{ fontSize: Math.round(size * 0.18) }}
+          >
             {clamped}%
           </span>
         </div>

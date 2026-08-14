@@ -158,7 +158,7 @@ function SpotlightCard({ state }: { state: SpotlightState }) {
           'border-amber-400/50 bg-gradient-to-br from-amber-400/10 via-amber-300/5 to-transparent shadow-[0_0_0_1px_rgba(251,191,36,0.25)]',
       )}
     >
-      <CardContent className="p-4 flex flex-col sm:flex-row items-stretch gap-4">
+      <CardContent className="p-4 flex flex-row items-center sm:items-stretch gap-3 sm:gap-4">
         <div className="min-w-0 space-y-2 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="section-label">{sectionLabel}</p>
@@ -250,9 +250,9 @@ function SpotlightCard({ state }: { state: SpotlightState }) {
 
         {showRing && (
           <>
-            <div className="hidden sm:block w-px bg-border" />
-            <div className="flex items-center justify-center sm:w-36 shrink-0">
-              <ProgressRing percent={progress} label="Cohort progress" />
+            <div className="w-px self-stretch bg-border" />
+            <div className="flex items-center justify-center shrink-0">
+              <ProgressRing percent={progress} size={64} strokeWidth={6} label="Progress" />
             </div>
           </>
         )}

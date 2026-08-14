@@ -76,6 +76,63 @@ const adminNavItems: NavItem[] = [
   { path: '/admin', label: 'Admin', icon: Shield },
 ];
 
+/** Shared menu items for the profile dropdown, reused by both the desktop
+ * sidebar footer trigger and the mobile top-bar avatar trigger so the two
+ * stay in sync. */
+function ProfileMenuItems({
+  theme,
+  setTheme,
+  signOut,
+}: {
+  theme: ThemeMode;
+  setTheme: (value: ThemeMode) => void;
+  signOut: () => void;
+}) {
+  return (
+    <>
+      <DropdownMenuItem asChild>
+        <Link to="/profile" className="flex items-center cursor-pointer">
+          <User className="mr-2 h-4 w-4" />
+          Profile
+        </Link>
+      </DropdownMenuItem>
+      <DropdownMenuItem asChild>
+        <Link to="/profile#certificates" className="flex items-center cursor-pointer">
+          <Award className="mr-2 h-4 w-4" />
+          Certificates
+        </Link>
+      </DropdownMenuItem>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger>
+          <Palette className="mr-2 h-4 w-4" />
+          Theme
+          <span
+            className={cn(
+              'ml-auto mr-1 h-2.5 w-2.5 rounded-full',
+              THEME_OPTIONS.find((t) => t.value === theme)?.swatchClass,
+            )}
+          />
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent>
+          <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(v as ThemeMode)}>
+            {THEME_OPTIONS.map((opt) => (
+              <DropdownMenuRadioItem key={opt.value} value={opt.value} className="cursor-pointer">
+                <span className={cn('mr-2 h-2.5 w-2.5 rounded-full', opt.swatchClass)} />
+                {opt.label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onClick={signOut} className="cursor-pointer text-destructive focus:text-destructive">
+        <LogOut className="mr-2 h-4 w-4" />
+        Sign out
+      </DropdownMenuItem>
+    </>
+  );
+}
+
 function isNavActive(pathname: string, search: string, itemPath: string): boolean {
   if (itemPath === '/dashboard') return pathname === '/dashboard';
   if (itemPath === '/free') {
@@ -241,45 +298,7 @@ export default function AppShell({ children }: AppShellProps) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/profile" className="flex items-center cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/profile#certificates" className="flex items-center cursor-pointer">
-                    <Award className="mr-2 h-4 w-4" />
-                    Certificates
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Palette className="mr-2 h-4 w-4" />
-                    Theme
-                    <span
-                      className={cn(
-                        'ml-auto mr-1 h-2.5 w-2.5 rounded-full',
-                        THEME_OPTIONS.find((t) => t.value === theme)?.swatchClass,
-                      )}
-                    />
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(v as ThemeMode)}>
-                      {THEME_OPTIONS.map((opt) => (
-                        <DropdownMenuRadioItem key={opt.value} value={opt.value} className="cursor-pointer">
-                          <span className={cn('mr-2 h-2.5 w-2.5 rounded-full', opt.swatchClass)} />
-                          {opt.label}
-                        </DropdownMenuRadioItem>
-                      ))}
-                    </DropdownMenuRadioGroup>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut} className="cursor-pointer text-destructive focus:text-destructive">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign out
-                </DropdownMenuItem>
+                <ProfileMenuItems theme={theme} setTheme={setTheme} signOut={signOut} />
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -295,19 +314,43 @@ export default function AppShell({ children }: AppShellProps) {
                 approachable.dev
               </span>
             </Link>
-            <Link to="/profile" className="shrink-0">
-              <Avatar
-                className={cn(
-                  'h-8 w-8 ring-2 ring-transparent transition-colors',
-                  location.pathname.startsWith('/profile') && 'ring-primary',
-                )}
-              >
-                <AvatarImage src="" alt={user.email || ''} />
-                <AvatarFallback className="bg-primary text-primary-foreground text-[11px] font-bold">
-                  {getInitials(user.email || 'U')}
-                </AvatarFallback>
-              </Avatar>
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="shrink-0 outline-none" aria-label="Profile menu">
+                  <Avatar
+                    className={cn(
+                      'h-8 w-8 ring-2 ring-transparent transition-colors',
+                      location.pathname.startsWith('/profile') && 'ring-primary',
+                    )}
+                  >
+                    <AvatarImage src="" alt={user.email || ''} />
+                    <AvatarFallback className="bg-primary text-primary-foreground text-[11px] font-bold">
+                      {getInitials(user.email || 'U')}
+                    </AvatarFallback>
+                  </Avatar>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-60" side="bottom" align="end" collisionPadding={12}>
+                <DropdownMenuLabel className="font-normal py-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <Avatar className="h-9 w-9 shrink-0">
+                      <AvatarImage src="" alt={user.email || ''} />
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
+                        {getInitials(user.email || 'U')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium leading-tight truncate">{user.email}</p>
+                      <p className="text-xs leading-tight text-muted-foreground mt-0.5">
+                        {isAdmin ? 'Administrator' : 'Learner'}
+                      </p>
+                    </div>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <ProfileMenuItems theme={theme} setTheme={setTheme} signOut={signOut} />
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <PromoBanner />
@@ -316,7 +359,7 @@ export default function AppShell({ children }: AppShellProps) {
             {children}
           </div>
 
-          <Footer className="mt-auto hidden md:block px-3 md:px-6" />
+          <Footer className="mt-8 md:mt-auto px-4 md:px-6 pb-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+1.5rem)] md:pb-6" />
         </SidebarInset>
 
         {/* ── Mobile bottom navigation ── */}

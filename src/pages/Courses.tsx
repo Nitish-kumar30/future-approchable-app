@@ -357,8 +357,8 @@ export default function Courses() {
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="relative w-full sm:w-64 shrink-0">
+            <div className="flex items-center gap-2 w-full sm:w-auto min-w-0">
+              <div className="relative flex-1 min-w-0 sm:w-64 sm:flex-none">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={search}
@@ -375,7 +375,7 @@ export default function Courses() {
                     Filter
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" collisionPadding={12} className="w-48">
                   <DropdownMenuLabel className="text-xs">Sort by</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuRadioGroup
