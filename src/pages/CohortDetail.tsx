@@ -373,19 +373,35 @@ export default function CohortDetail() {
         },
       );
 
-      // LINT (BUG-08): network or edge-function errors are indistinguishable
-      // from an explicit "not approved" response. A transient failure will
-      // show the payment gate dialog to a learner who has already paid.
-      // Consider branching on fnError separately (retry toast) vs
-      // !data?.approved (real payment gate).
-      if (fnError || !data?.approved) {
+      // Distinguish transient errors (network / edge-function failure) from a
+      // genuine "not approved" response. A transient failure should surface a
+      // retry toast, not the payment gate — otherwise an already-paid,
+      // already-approved learner sees the misleading "Enrollment Requires
+      // Payment" dialog on any hiccup.
+      if (fnError) {
+        setIsEnrolling(false);
+        toast({
+          title: "Couldn't verify your registration",
+          description:
+            "Something went wrong checking your approval status. Please try again in a moment.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!data?.approved) {
         setIsEnrolling(false);
         setShowPaymentGateDialog(true);
         return;
       }
     } catch {
       setIsEnrolling(false);
-      setShowPaymentGateDialog(true);
+      toast({
+        title: "Couldn't verify your registration",
+        description:
+          "Something went wrong checking your approval status. Please try again in a moment.",
+        variant: "destructive",
+      });
       return;
     }
 

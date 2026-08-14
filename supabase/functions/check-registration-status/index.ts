@@ -83,23 +83,35 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Match the registration's free-text `cohort` field against the cohort's
-    // name using a contains-token search. Prefer the "Cohort N" token when
-    // present (works no matter where it sits in either string); otherwise
-    // fall back to the full cohort name as a contains match.
-    const nameToken = cohort.name.match(/Cohort\s+\d+/i)?.[0] ?? cohort.name;
+    // Whitespace-insensitive, case-insensitive matching. We cannot do this
+    // reliably in SQL because ilike does not collapse internal whitespace, and
+    // real cohort names in the DB have been observed with stray/double spaces
+    // (e.g. " cohort  6 "). Fetch this user's approved registrations and
+    // compare normalized strings in code.
+    const normalize = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+    const nameNorm = normalize(cohort.name);
+    const nameTokenMatch = nameNorm.match(/cohort\s+\d+/);
+    const nameToken = nameTokenMatch ? nameTokenMatch[0] : nameNorm;
 
-    const { data: registration } = await supabaseAdmin
+    const { data: registrations } = await supabaseAdmin
       .from("cohort_registrations")
-      .select("id")
+      .select("id, cohort")
       .eq("email", userEmail)
-      .eq("status", "approved")
-      .ilike("cohort", `%${nameToken}%`)
-      .limit(1)
-      .maybeSingle();
+      .eq("status", "approved");
+
+    const approved = (registrations || []).some((r) => {
+      const regNorm = normalize(String(r.cohort || ""));
+      const regTokenMatch = regNorm.match(/cohort\s+\d+/);
+      const regToken = regTokenMatch ? regTokenMatch[0] : null;
+      // Match if the Cohort-N tokens agree, or if either normalized string
+      // contains the other (handles cohorts named without the "Cohort N"
+      // pattern by falling back to the full name).
+      if (regToken && regToken === nameToken) return true;
+      return regNorm.includes(nameToken) || nameNorm.includes(regNorm);
+    });
 
     return new Response(
-      JSON.stringify({ approved: !!registration }),
+      JSON.stringify({ approved }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
