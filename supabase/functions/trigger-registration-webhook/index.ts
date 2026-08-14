@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createRazorpayOrder, getRazorpayKeyId } from "../_shared/razorpay.ts";
 
 // Commitment fee (smallest currency unit) — keep in sync with COHORT_CONFIG in src/lib/constants.ts
-const COMMITMENT_FEE_INR_PAISE = 349900;
+const COMMITMENT_FEE_INR_PAISE = 399900;
 const COMMITMENT_FEE_USD_CENTS = 9900;
 
 // CORS origin whitelist
@@ -148,13 +148,26 @@ serve(async (req) => {
       });
     }
 
-    const { name, email, whatsapp_number, country, state, cohort, interests, other_interest, capstone_office_hours, company, role, reason, additional_info, price_india, price_international } = body;
+    const {
+      name,
+      email,
+      whatsapp_number,
+      country,
+      state,
+      cohort,
+      interests,
+      other_interest,
+      capstone_office_hours,
+      company,
+      role,
+      reason,
+      additional_info,
+      price_india,
+      price_international,
+    } = body;
 
     // Use service role to insert (bypasses RLS)
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Commitment fee — server-side source of truth, never trusted from the client
     const waitlist = isWaitlistCohort(cohort);
@@ -198,15 +211,26 @@ serve(async (req) => {
     fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ Name: name, Email: email, Cohort: cohort, Country: country, State: state, CapstoneOfficeHours: capstone_office_hours ?? true, priceInd: price_india, priceIntl: price_international }),
-    }).then(r => r.text()).catch(err => console.error("Webhook trigger failed:", err));
+      body: JSON.stringify({
+        Name: name,
+        Email: email,
+        Cohort: cohort,
+        Country: country,
+        State: state,
+        CapstoneOfficeHours: capstone_office_hours ?? true,
+        priceInd: price_india,
+        priceIntl: price_international,
+      }),
+    })
+      .then((r) => r.text())
+      .catch((err) => console.error("Webhook trigger failed:", err));
 
     // Waitlist cohorts: no payment collected
     if (waitlist) {
-      return new Response(
-        JSON.stringify({ success: true, skip_payment: true, registration_id: inserted.id }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ success: true, skip_payment: true, registration_id: inserted.id }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Create the Razorpay order for the commitment fee
@@ -227,10 +251,7 @@ serve(async (req) => {
       );
     }
 
-    await supabase
-      .from("cohort_registrations")
-      .update({ razorpay_order_id: order.id })
-      .eq("id", inserted.id);
+    await supabase.from("cohort_registrations").update({ razorpay_order_id: order.id }).eq("id", inserted.id);
 
     return new Response(
       JSON.stringify({
