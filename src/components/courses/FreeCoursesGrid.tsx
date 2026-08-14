@@ -68,8 +68,8 @@ export default function FreeCoursesGrid({
     return (
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {[1, 2, 3].map((i) => (
-          <Card key={i} className="card-elevated overflow-hidden h-72 flex flex-col">
-            <Skeleton className="h-[60%] w-full shrink-0 rounded-none" />
+          <Card key={i} className="card-elevated overflow-hidden flex flex-col">
+            <Skeleton className="h-36 w-full shrink-0 rounded-none" />
             <CardHeader className="p-4">
               <Skeleton className="h-5 w-3/4" />
               <Skeleton className="h-3 w-full mt-2" />
@@ -108,8 +108,8 @@ export default function FreeCoursesGrid({
     <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
       {visibleCourses.map((course) => (
         <Link key={course.id} to={`/on-demand/${course.slug}`}>
-          <Card className="card-elevated hover:shadow-md transition-all duration-200 cursor-pointer h-72 group overflow-hidden flex flex-col">
-            <div className="relative h-[60%] shrink-0 bg-muted overflow-hidden">
+          <Card className="card-elevated hover:shadow-md transition-all duration-200 cursor-pointer group overflow-hidden flex flex-col h-full">
+            <div className="relative h-36 shrink-0 bg-muted overflow-hidden">
               {course.image_url ? (
                 <img
                   src={course.image_url}
@@ -123,14 +123,13 @@ export default function FreeCoursesGrid({
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
             </div>
-            <div className="flex-1 min-h-0 flex flex-col justify-end overflow-hidden pt-3">
             <CardHeader className="p-4 pb-2">
               <CardTitle className="text-base group-hover:text-primary transition-colors line-clamp-2">
                 {course.name}
               </CardTitle>
               <CardDescription className="line-clamp-2 text-xs">{course.description}</CardDescription>
             </CardHeader>
-            <CardContent className="p-4 pt-0 space-y-2">
+            <CardContent className="p-4 pt-0 pb-4 space-y-2 mt-auto">
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 {course.mentor_name && (
                   <span className="flex items-center gap-1">
@@ -151,7 +150,6 @@ export default function FreeCoursesGrid({
                 </Button>
               </div>
             </CardContent>
-            </div>
           </Card>
         </Link>
       ))}

@@ -44,6 +44,8 @@ function isOngoing(c: Cohort): boolean {
   if (!c.start_date) return false;
   const today = todayIso();
   const started = c.start_date <= today;
+  // LINT (BUG-01): same forever-ongoing issue as Cohorts.tsx — a null
+  // end_date + past start_date returns true here indefinitely.
   const notEnded = !c.end_date || c.end_date >= today;
   return started && notEnded;
 }
@@ -54,11 +56,24 @@ function isUpcomingDate(c: Cohort): boolean {
 }
 
 function isJoinableUpcoming(c: Cohort): boolean {
+  // LINT (BUG-05): seat availability is not checked here. A fully-booked
+  // upcoming cohort still qualifies as "joinable" and gets a Register CTA
+  // on the spotlight card.
   return isUpcomingDate(c) && !c.enrollment_disabled;
 }
 
 function isWaitlist(c: Cohort): boolean {
+  // LINT (BUG-07): brittle detection based on the display name. Any cohort
+  // whose title happens to contain "waitlist" is demoted to the fallback
+  // branch; add an explicit `is_waitlist` DB column.
   return /waitlist/i.test(c.name || '');
+}
+
+/** True for any spotlight card whose cohort hasn't started yet — regardless of
+ * whether it's the learner's own upcoming enrollment or an open upsell. Used
+ * to give upcoming cohorts a golden highlight and lead position in the row. */
+function isUpcomingState(state: SpotlightState): boolean {
+  return !!state.cohort && isUpcomingDate(state.cohort);
 }
 
 function sectionLabelFor(mode: SpotlightMode): string {
@@ -97,6 +112,8 @@ function SignupNextCard() {
           </p>
           <div className="pt-1">
             <Button size="sm" className="h-8 text-xs" asChild>
+              {/* LINT (BUG-15): this is the only CTA on the dashboard that opens
+                  in a new tab. Every other card uses SPA navigation. */}
               <Link to="/registration" target="_blank" rel="noopener noreferrer">
                 Signup for next Cohort <ArrowRight className="ml-1 h-3.5 w-3.5" />
               </Link>
@@ -118,15 +135,17 @@ function SpotlightCard({ state }: { state: SpotlightState }) {
   const isEnrolledView =
     mode === 'ongoing' || mode === 'enrolled_upcoming' || mode === 'enrolled_completed';
   const sectionLabel = sectionLabelFor(mode);
-  // Subtle highlight on the open-for-registration upsell — a soft accent tint,
-  // not a loud banner, so it stands out without fighting the personal card.
-  const isHighlighted = mode === 'upcoming';
+  // Any cohort that hasn't started yet — whether it's the learner's own
+  // upcoming seat or an open upsell — gets a golden highlight so it stands
+  // out as "the one coming up next."
+  const isHighlighted = isUpcomingState(state);
 
   return (
     <Card
       className={cn(
         'card-elevated overflow-hidden',
-        isHighlighted && 'border-accent/40 bg-accent/[0.04] shadow-[0_0_0_1px_hsl(var(--accent)/0.08)]',
+        isHighlighted &&
+          'border-amber-400/50 bg-gradient-to-br from-amber-400/10 via-amber-300/5 to-transparent shadow-[0_0_0_1px_rgba(251,191,36,0.25)]',
       )}
     >
       <CardContent className="p-4 flex flex-col sm:flex-row items-stretch gap-4">
@@ -135,7 +154,15 @@ function SpotlightCard({ state }: { state: SpotlightState }) {
             <p className="section-label">{sectionLabel}</p>
             {mode === 'enrolled_upcoming' && (
               <>
-                <Badge variant="secondary" className="text-[10px] h-5">Upcoming</Badge>
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    'text-[10px] h-5',
+                    isHighlighted && 'bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/40',
+                  )}
+                >
+                  Upcoming
+                </Badge>
                 <Badge variant="outline" className="text-[10px] h-5">Enrolled</Badge>
               </>
             )}
@@ -149,7 +176,7 @@ function SpotlightCard({ state }: { state: SpotlightState }) {
                 variant="secondary"
                 className={cn(
                   'text-[10px] h-5',
-                  isHighlighted && 'bg-accent/15 text-accent border border-accent/30',
+                  isHighlighted && 'bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/40',
                 )}
               >
                 Upcoming
@@ -225,6 +252,10 @@ function SpotlightCard({ state }: { state: SpotlightState }) {
 }
 
 export default function CohortSpotlightRow() {
+  // LINT (BUG-03): unlike Cohorts.tsx, this component never consults
+  // `isAdmin` from useAuth. Admins visiting the dashboard only see cohorts
+  // in `cohorts_public` — unpublished cohorts they authored (or are enrolled
+  // in) are invisible here.
   const { user } = useAuth();
   const [states, setStates] = useState<SpotlightState[] | null>(null);
 
@@ -233,6 +264,11 @@ export default function CohortSpotlightRow() {
     let cancelled = false;
 
     (async () => {
+      // LINT (BUG-02): same silent-drop as Cohorts.tsx — RLS on the joined
+      // `cohorts` returns null for unpublished cohorts, and the catalog
+      // fallback below is `cohorts_public` which also excludes them, so a
+      // non-admin learner enrolled in an unpublished cohort loses their
+      // personal spotlight entirely.
       const [{ data: enrollments }, { data: publicCohorts }] = await Promise.all([
         supabase
           .from('enrollments')
@@ -297,6 +333,11 @@ export default function CohortSpotlightRow() {
 
       // 3) Enrolled in a past/completed cohort — show their most recent one with progress ring
       if (!personal) {
+        // LINT (BUG-04): requires `end_date` to be set. An enrolled cohort
+        // whose admin never entered end_date (or never entered start_date
+        // at all) satisfies none of rules 1/2/3 → the learner sees no
+        // personal spotlight and only the upsell/signup_next card, giving
+        // the impression they aren't enrolled anywhere.
         const enrolledCompleted = enrolled
           .filter((c) => c.end_date && c.end_date < todayIso())
           .sort((a, b) => (b.end_date || '').localeCompare(a.end_date || ''))[0];
@@ -394,9 +435,18 @@ export default function CohortSpotlightRow() {
     return <SignupNextCard />;
   }
 
+  // Whichever card is for a cohort that hasn't started yet leads the row —
+  // it's the most actionable/time-sensitive thing to show first.
+  const orderedStates = [...states].sort((a, b) => {
+    const aUpcoming = isUpcomingState(a);
+    const bUpcoming = isUpcomingState(b);
+    if (aUpcoming === bUpcoming) return 0;
+    return aUpcoming ? -1 : 1;
+  });
+
   return (
-    <div className={cn('grid gap-3', states.length > 1 && 'sm:grid-cols-2')}>
-      {states.map((state) => (
+    <div className={cn('grid gap-3', orderedStates.length > 1 && 'sm:grid-cols-2')}>
+      {orderedStates.map((state) => (
         <SpotlightCard key={`${state.mode}-${state.cohort?.id ?? 'none'}`} state={state} />
       ))}
     </div>

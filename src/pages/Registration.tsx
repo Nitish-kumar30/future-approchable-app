@@ -22,7 +22,11 @@ import { COHORT_CONFIG } from "@/lib/constants";
 import { loadRazorpayCheckout } from "@/lib/loadRazorpay";
 import { isIOS } from "@/lib/platform";
 
-const COHORT_OPTIONS = ["Cohort 7: Master Claude Ecosystem Aug 27th, 7:30PM IST"];
+const COHORT_OPTIONS = [
+  "Cohort 7: Master Claude Ecosystem Aug 27th, 7:30PM IST",
+  "Cohort 6: Master the Claude Ecosystem - July 23rd 7:30PM/10AM Eastern",
+  "Test Cohort",
+];
 
 /** Waitlist cohorts don't collect a commitment fee. */
 const isWaitlistCohort = (cohort?: string) => /waitlist/i.test(cohort || "");

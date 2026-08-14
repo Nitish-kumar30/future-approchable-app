@@ -373,6 +373,11 @@ export default function CohortDetail() {
         },
       );
 
+      // LINT (BUG-08): network or edge-function errors are indistinguishable
+      // from an explicit "not approved" response. A transient failure will
+      // show the payment gate dialog to a learner who has already paid.
+      // Consider branching on fnError separately (retry toast) vs
+      // !data?.approved (real payment gate).
       if (fnError || !data?.approved) {
         setIsEnrolling(false);
         setShowPaymentGateDialog(true);
@@ -384,6 +389,10 @@ export default function CohortDetail() {
       return;
     }
 
+    // LINT (BUG-09): seat cap is only enforced client-side via the disabled
+    // state of the Enroll button. This insert has no server-side check; two
+    // learners clicking with 1 seat left can both succeed. Move the seat
+    // check into a Postgres RPC / trigger.
     const { error } = await supabase.from("enrollments").insert({
       user_id: user.id,
       cohort_id: id,
@@ -413,6 +422,9 @@ export default function CohortDetail() {
     }
   };
 
+  // LINT (BUG-17): leaderboard is fetched at most once per mount. If the
+  // learner completes a session/quiz and comes back to this tab, they see
+  // stale rankings. Consider refetching on tab focus or a soft TTL.
   const fetchLeaderboard = useCallback(async () => {
     if (!user || !id || leaderboardFetched) return;
     setIsLeaderboardLoading(true);
@@ -464,9 +476,16 @@ export default function CohortDetail() {
   const completedSessions = sessions.filter((s) =>
     isSessionCompleted(s.id),
   ).length;
+  // LINT (BUG-13): overallProgress is computed differently here than in
+  // Cohorts.tsx / ContinueLearningRow (which call the RPC
+  // `compute_enrollment_progress_percent`). Numbers can disagree if the RPC
+  // weights quizzes. Pick one source of truth.
   const overallProgress =
     sessions.length > 0 ? (completedSessions / sessions.length) * 100 : 0;
 
+  // LINT (BUG-14): denominator is `quizSubmissions.length` (attempted only),
+  // not the total number of quizzes in the cohort. A learner who tries one
+  // quiz and gets 100% shows Avg Score: 100%.
   const averageScore =
     quizSubmissions.length > 0
       ? Math.round(
@@ -505,6 +524,10 @@ export default function CohortDetail() {
   // A cohort whose dates have fully passed shouldn't offer "Enroll Now" even
   // if the admin never flipped enrollment_disabled — registering for
   // something that already happened doesn't make sense to a new learner.
+  // LINT (BUG-01): this "past" definition disagrees with Cohorts.tsx and
+  // CohortSpotlightRow, which treat a null end_date + past start_date as
+  // Ongoing forever. Result: the list surfaces a "Register" button that
+  // dead-ends here on "Registration Ended".
   const todayIso = new Date().toISOString().slice(0, 10);
   const isPastDated = cohort.end_date
     ? cohort.end_date < todayIso
@@ -1071,6 +1094,9 @@ export default function CohortDetail() {
         />
       )}
 
+      {/* LINT (BUG-19): user-facing copy mentions "commitment fee" with no
+          amount, currency, or link to the actual price — inconsistent with
+          the localized pricing surface elsewhere in the app. */}
       <Dialog
         open={showPaymentGateDialog}
         onOpenChange={setShowPaymentGateDialog}

@@ -57,6 +57,10 @@ const COMMUNITY_CARD_THEME: Record<
   },
 };
 
+// LINT (BUG-16): these upcoming-session dates are hardcoded strings with no
+// year and no filtering. Once Aug 20 passes, the card still shows
+// "Aug 20 · 7:00 PM IST" with the "Next up" pill. Move to a DB table or add
+// a date parser that hides past entries and re-marks the next one.
 const monthlyPlanSessions = [
   {
     title: 'Google Workspace',

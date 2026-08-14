@@ -45,6 +45,10 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 function isWithinRunningWindow(cohort: Cohort, today: string): boolean {
   if (!cohort.start_date) return false;
   const started = cohort.start_date <= today;
+  // LINT (BUG-01): a null end_date makes this true forever once start_date
+  // has passed. A cohort admin who forgot to set end_date will be shown as
+  // "Ongoing" indefinitely on this page AND on the dashboard spotlight,
+  // while CohortDetail.tsx (isPastDated) treats the same cohort as ended.
   const notEnded = !cohort.end_date || cohort.end_date >= today;
   return started && notEnded;
 }
@@ -71,10 +75,20 @@ function deriveStatus(
   cohort: Cohort,
   isEnrolled: boolean,
   progressPercent: number | null,
+  category: DateCategory,
 ): EnrollmentStatus {
   if (isEnrolled) {
     return progressPercent != null && progressPercent >= 100 ? 'Completed' : 'Enrolled';
   }
+  // "Open Enrollment" cohorts have already run their dates — the admin flag
+  // may still say enrollment is open, but registering for something that
+  // already happened doesn't make sense, so the badge should read "Closed"
+  // (matches the cohort detail page, which blocks registration here too).
+  if (category === 'Open Enrollment') return 'Closed';
+  // LINT (BUG-05): seat availability is ignored. A fully-booked upcoming
+  // cohort still returns "Open" here and the card below renders a "Register"
+  // button next to a "Fully booked" line. Consider returning a new status
+  // (e.g. "Full") or reading enrollment count in this decision.
   return cohort.enrollment_disabled ? 'Closed' : 'Open';
 }
 
@@ -84,6 +98,10 @@ function statusVariant(status: EnrollmentStatus): 'default' | 'secondary' | 'out
   return 'outline';
 }
 
+// LINT (BUG-06): section heading "Open Enrollment" contains cards whose
+// status badge says "Closed" (see deriveStatus above). Either the label
+// should be renamed (e.g. "Recently Ended") or the badge logic needs to
+// stop overriding to Closed here.
 const CATEGORY_META: Record<DateCategory, { label: string }> = {
   Ongoing: { label: 'Ongoing Cohorts' },
   Upcoming: { label: 'Upcoming Cohorts' },
@@ -157,6 +175,9 @@ export default function Cohorts() {
 
   useEffect(() => {
     if (!user) { setIsLoading(false); return; }
+    // LINT (BUG-12): when `user` changes (logout, or switching accounts on
+    // the same device) we do not reset `items` — the previous user's cohort
+    // list stays visible until the new fetch resolves.
     let cancelled = false;
 
     (async () => {
@@ -176,6 +197,12 @@ export default function Cohorts() {
             )
             .order('start_date', { ascending: false });
 
+      // LINT (BUG-02): the join `cohorts(...)` respects RLS. If a non-admin
+      // learner is enrolled in an *unpublished* cohort, the join returns
+      // `cohorts = null`. The catalog fallback below is `cohorts_public`
+      // which also excludes unpublished rows — so that enrollment silently
+      // disappears from this page. A dedicated RPC (get_my_cohorts) or
+      // including a user's own enrollments in `cohorts_public` would fix it.
       const [{ data: enrolledRows }, { data: publicRows }] = await Promise.all([
         supabase
           .from('enrollments')
@@ -251,25 +278,32 @@ export default function Cohorts() {
       const list: CohortListItem[] = [
         ...Array.from(enrolledMap.values()).map((cohort) => {
           const progress = progressById.get(cohort.id) ?? null;
+          const category = deriveCategory(cohort, true);
           return {
             cohort,
-            category: deriveCategory(cohort, true),
-            status: deriveStatus(cohort, true, progress),
+            category,
+            status: deriveStatus(cohort, true, progress, category),
             isEnrolled: true,
             enrollmentCount: counts[cohort.id] || 0,
           };
         }),
-        ...others.map((cohort) => ({
-          cohort,
-          category: deriveCategory(cohort, false),
-          status: deriveStatus(cohort, false, null),
-          isEnrolled: false,
-          enrollmentCount: counts[cohort.id] || 0,
-        })),
+        ...others.map((cohort) => {
+          const category = deriveCategory(cohort, false);
+          return {
+            cohort,
+            category,
+            status: deriveStatus(cohort, false, null, category),
+            isEnrolled: false,
+            enrollmentCount: counts[cohort.id] || 0,
+          };
+        }),
       ];
 
       // Sort within each category by relevance: Upcoming soonest-first,
       // everything else (Ongoing/Open Enrollment/Past) most-recent-first.
+      // LINT (BUG-10): `start_date || ''` sorts null-dated cohorts before
+      // every real date in the ascending Upcoming sort, so any draft cohort
+      // that landed in the Upcoming bucket floats to the top of the list.
       list.sort((a, b) => {
         const aDate = a.cohort.start_date || '';
         const bDate = b.cohort.start_date || '';
