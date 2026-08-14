@@ -682,6 +682,11 @@ export default function CohortDetail() {
                         </span>
                       </div>
                       <Progress value={overallProgress} className="h-3" />
+                      {overallProgress < 100 && (
+                        <p className="text-sm text-muted-foreground pt-1">
+                          Complete your cohort
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

@@ -45,7 +45,9 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub;
-    const userEmail = claimsData.claims.email;
+    // Registrations are inserted with email.trim().toLowerCase(), so the JWT
+    // email must be normalized the same way before comparing.
+    const userEmail = String(claimsData.claims.email ?? "").trim().toLowerCase();
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -81,17 +83,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Extract prefix like "Cohort 5" from "Cohort 5 - AI Fundamentals - Apr 23, 2026"
-    const match = cohort.name.match(/^(Cohort\s+\d+)/i);
-    const cohortPrefix = match ? match[1] : cohort.name.split(" - ")[0].trim();
+    // Match the registration's free-text `cohort` field against the cohort's
+    // name using a contains-token search. Prefer the "Cohort N" token when
+    // present (works no matter where it sits in either string); otherwise
+    // fall back to the full cohort name as a contains match.
+    const nameToken = cohort.name.match(/Cohort\s+\d+/i)?.[0] ?? cohort.name;
 
-    // Check cohort_registrations for approved record with partial match
     const { data: registration } = await supabaseAdmin
       .from("cohort_registrations")
       .select("id")
       .eq("email", userEmail)
       .eq("status", "approved")
-      .ilike("cohort", `${cohortPrefix}%`)
+      .ilike("cohort", `%${nameToken}%`)
       .limit(1)
       .maybeSingle();
 
