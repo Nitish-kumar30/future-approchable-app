@@ -69,6 +69,16 @@ function isWaitlist(c: Cohort): boolean {
   return /waitlist/i.test(c.name || '');
 }
 
+/** True once a cohort's window has fully closed (both start and end dates
+ * are in the past). Used to keep long-ended cohorts out of the "come join
+ * this" upsell fallback even when an admin forgot to flip
+ * `enrollment_disabled` — a stale cohort should never look freshly open. */
+function hasEnded(c: Cohort): boolean {
+  if (!c.start_date) return false;
+  const today = todayIso();
+  return c.start_date <= today && !!c.end_date && c.end_date < today;
+}
+
 /** True for any spotlight card whose cohort hasn't started yet — regardless of
  * whether it's the learner's own upcoming enrollment or an open upsell. Used
  * to give upcoming cohorts a golden highlight and lead position in the row. */
@@ -307,8 +317,13 @@ export default function CohortSpotlightRow() {
       const enrolled = Array.from(enrolledMap.values());
       const enrolledIds = new Set(enrolledMap.keys());
 
-      // ── Personal spotlight: the learner's own cohort status (at most one) ──
-      let personal: SpotlightState | null = null;
+      // ── Personal spotlight: the learner's own live cohort status. A ──
+      // learner can legitimately be enrolled in an ongoing cohort AND a
+      // separate upcoming one at the same time (e.g. finishing one cohort
+      // while already signed up for the next) — rules 1 and 2 are computed
+      // independently so a second live enrollment is never silently dropped
+      // just because the first rule already matched.
+      const personalCards: SpotlightState[] = [];
 
       // 1) Enrolled in an ongoing cohort → spotlight + progress ring
       const ongoing = enrolled.find(isOngoing);
@@ -318,21 +333,20 @@ export default function CohortSpotlightRow() {
           p_cohort_id: ongoing.id,
         });
         if (cancelled) return;
-        personal = { mode: 'ongoing', cohort: ongoing, progress: Number(percent) || 0 };
+        personalCards.push({ mode: 'ongoing', cohort: ongoing, progress: Number(percent) || 0 });
       }
 
-      // 2) Enrolled in an upcoming cohort → your cohort, View details (never Register)
-      if (!personal) {
-        const enrolledUpcoming = enrolled
-          .filter(isUpcomingDate)
-          .sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''))[0];
-        if (enrolledUpcoming) {
-          personal = { mode: 'enrolled_upcoming', cohort: enrolledUpcoming, progress: 0 };
-        }
+      // 2) Enrolled in a separate upcoming cohort → your cohort, View details (never Register)
+      const enrolledUpcoming = enrolled
+        .filter(isUpcomingDate)
+        .sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''))[0];
+      if (enrolledUpcoming) {
+        personalCards.push({ mode: 'enrolled_upcoming', cohort: enrolledUpcoming, progress: 0 });
       }
 
-      // 3) Enrolled in a past/completed cohort — show their most recent one with progress ring
-      if (!personal) {
+      // 3) No live (ongoing/upcoming) enrollment — fall back to their most
+      // recent past/completed one with a progress ring.
+      if (personalCards.length === 0) {
         // LINT (BUG-04): requires `end_date` to be set. An enrolled cohort
         // whose admin never entered end_date (or never entered start_date
         // at all) satisfies none of rules 1/2/3 → the learner sees no
@@ -347,63 +361,70 @@ export default function CohortSpotlightRow() {
             p_cohort_id: enrolledCompleted.id,
           });
           if (cancelled) return;
-          personal = {
+          personalCards.push({
             mode: 'enrolled_completed',
             cohort: enrolledCompleted,
             progress: Number(percent) || 0,
-          };
+          });
         }
       }
 
-      // ── Upsell: always try to surface an open-to-register cohort, so it's ──
-      // never hidden just because the learner already has a personal cohort.
+      // ── Upsell: surface an open-to-register cohort, but only when the ──
+      // learner doesn't already have both personal slots filled (ongoing +
+      // upcoming) — two live enrollments are enough to look at without
+      // adding an upsell nobody asked for.
       let upsell: SpotlightState | null = null;
-
-      // 4) Next upcoming in catalog that user is NOT enrolled in, enrollment open → Register
-      const upcoming = catalog.find((c) => isJoinableUpcoming(c) && !enrolledIds.has(c.id));
-      if (upcoming) {
-        upsell = { mode: 'upcoming', cohort: upcoming, progress: 0 };
-      } else {
-        // 5) Next upcoming in catalog, enrollment closed → Coming soon (no Register)
-        const upcomingClosed = catalog.find(
-          (c) => isUpcomingDate(c) && c.enrollment_disabled && !enrolledIds.has(c.id),
-        );
-        if (upcomingClosed) {
-          upsell = { mode: 'upcoming_closed', cohort: upcomingClosed, progress: 0 };
+      if (personalCards.length < 2) {
+        // 4) Next upcoming in catalog that user is NOT enrolled in, enrollment open → Register
+        const upcoming = catalog.find((c) => isJoinableUpcoming(c) && !enrolledIds.has(c.id));
+        if (upcoming) {
+          upsell = { mode: 'upcoming', cohort: upcoming, progress: 0 };
         } else {
-          // 6) Waitlist / open catalog fallback
-          const waitlist =
-            catalog.find((c) => isWaitlist(c) && !enrolledIds.has(c.id)) ||
-            catalog.find((c) => !c.enrollment_disabled && !enrolledIds.has(c.id)) ||
-            null;
-          if (waitlist) {
-            // Only label it "upcoming" if the start date is genuinely in the future.
-            // Otherwise it's a past/started cohort that still has open enrollment.
-            const fallbackMode: SpotlightMode = isWaitlist(waitlist)
-              ? 'waitlist'
-              : isUpcomingDate(waitlist)
-                ? 'upcoming'
-                : 'open_enrollment';
-            upsell = { mode: fallbackMode, cohort: waitlist, progress: 0 };
+          // 5) Next upcoming in catalog, enrollment closed → Coming soon (no Register)
+          const upcomingClosed = catalog.find(
+            (c) => isUpcomingDate(c) && c.enrollment_disabled && !enrolledIds.has(c.id),
+          );
+          if (upcomingClosed) {
+            upsell = { mode: 'upcoming_closed', cohort: upcomingClosed, progress: 0 };
+          } else {
+            // 6) Waitlist / open catalog fallback. `hasEnded` keeps a cohort
+            // whose dates fully closed out of this suggestion even if its
+            // `enrollment_disabled` flag was never flipped — a stale cohort
+            // should never be surfaced as freshly open.
+            const waitlist =
+              catalog.find((c) => isWaitlist(c) && !enrolledIds.has(c.id) && !hasEnded(c)) ||
+              catalog.find((c) => !c.enrollment_disabled && !enrolledIds.has(c.id) && !hasEnded(c)) ||
+              null;
+            if (waitlist) {
+              // Only label it "upcoming" if the start date is genuinely in the future.
+              // Otherwise it's a past/started cohort that still has open enrollment.
+              const fallbackMode: SpotlightMode = isWaitlist(waitlist)
+                ? 'waitlist'
+                : isUpcomingDate(waitlist)
+                  ? 'upcoming'
+                  : 'open_enrollment';
+              upsell = { mode: fallbackMode, cohort: waitlist, progress: 0 };
+            }
           }
         }
       }
 
-      // Dedup: don't repeat the same cohort the learner is already registered for.
-      if (upsell && personal && upsell.cohort?.id === personal.cohort?.id) {
+      // Dedup: don't repeat a cohort already shown in a personal card.
+      if (upsell && personalCards.some((p) => p.cohort?.id === upsell?.cohort?.id)) {
         upsell = null;
       }
 
       // 7) Enrolled but between cohorts (upcoming/ended, not currently ongoing) and
       // nothing is open to join yet → nudge them to sign up once registration opens.
       // Learners actively in an ongoing cohort don't need this nudge.
-      if (!upsell && personal && personal.mode !== 'ongoing') {
+      const hasOngoingPersonal = personalCards.some((p) => p.mode === 'ongoing');
+      if (!upsell && personalCards.length > 0 && !hasOngoingPersonal) {
         upsell = { mode: 'signup_next', cohort: null, progress: 0 };
       }
 
       if (cancelled) return;
 
-      const result = [personal, upsell].filter((s): s is SpotlightState => s != null);
+      const result = [...personalCards, upsell].filter((s): s is SpotlightState => s != null);
       setStates(result);
     })();
 
