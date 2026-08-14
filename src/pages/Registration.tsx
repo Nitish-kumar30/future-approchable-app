@@ -24,6 +24,7 @@ import { isIOS } from "@/lib/platform";
 
 const COHORT_OPTIONS = [
   "Cohort 6",
+  "Cohort 8",
 ];
 
 /** Waitlist cohorts don't collect a commitment fee. */
