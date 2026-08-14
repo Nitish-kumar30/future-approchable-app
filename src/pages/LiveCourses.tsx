@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buildLoginUrl, courseDetailPath } from "@/lib/authRedirect";
 import PublicHeader from "@/components/layout/PublicHeader";
+import Footer from "@/components/layout/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,10 +63,10 @@ export default function LiveCourses() {
   const isEnrolled = (courseId: string) => enrolledCourseIds.includes(courseId);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
       <PublicHeader />
 
-      <main className="container py-8">
+      <main className="flex-1 container py-8">
         <div className="space-y-8 animate-fade-in">
           {/* Header */}
           <div className="space-y-2">
@@ -159,12 +160,7 @@ export default function LiveCourses() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-8 mt-12">
-        <div className="container text-center text-sm text-muted-foreground">
-          © 2024 approachable.dev. All rights reserved. For support, contact: ranbeer@gmail.com
-        </div>
-      </footer>
+      <Footer className="mt-12" />
     </div>
   );
 }

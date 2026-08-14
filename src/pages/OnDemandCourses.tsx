@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import PublicHeader from "@/components/layout/PublicHeader";
-import MainLayout from "@/components/layout/MainLayout";
+import AppShell from "@/components/layout/AppShell";
+import Footer from "@/components/layout/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -124,18 +125,14 @@ export default function OnDemandCourses() {
   );
 
   if (user) {
-    return <MainLayout>{content}</MainLayout>;
+    return <AppShell>{content}</AppShell>;
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
       <PublicHeader />
-      <main className="container py-8">{content}</main>
-      <footer className="border-t border-border py-8 mt-12">
-        <div className="container text-center text-sm text-muted-foreground">
-          © 2026 approachable.dev. All rights reserved. For support, contact: ranbeer@gmail.com
-        </div>
-      </footer>
+      <main className="flex-1 container py-8">{content}</main>
+      <Footer className="mt-12" />
     </div>
   );
 }

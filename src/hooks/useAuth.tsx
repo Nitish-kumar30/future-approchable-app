@@ -98,8 +98,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setIsAdmin(false);
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      // A stale/invalid local session (common after switching envs or a long
+      // idle period) can make signOut() itself throw. Log it, but don't let
+      // that prevent the user from actually being logged out below.
+      console.error('Sign out error:', err);
+    } finally {
+      // Clear local state unconditionally so the UI reflects "logged out"
+      // even if the server-side call failed — onAuthStateChange may not fire
+      // in that case.
+      setSession(null);
+      setUser(null);
+      setIsAdmin(false);
+    }
   };
 
   return (

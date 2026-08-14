@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import MainLayout from '@/components/layout/MainLayout';
+import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -160,12 +160,12 @@ export default function PromptLibrary() {
   const myPrompts = prompts.filter(p => p.user_id === user?.id);
 
   return (
-    <MainLayout>
+    <AppShell>
       <div className="space-y-8 animate-fade-in min-w-0 max-w-full">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1 min-w-0">
-            <h1 className="text-3xl font-display font-bold text-foreground">Prompt Library</h1>
-            <p className="text-muted-foreground">Browse shared prompts and manage your own collection</p>
+            <h2 className="text-xl font-display font-bold text-foreground">Prompt Library</h2>
+            <p className="text-sm text-muted-foreground">Browse shared prompts and manage your own collection</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:w-auto">
             <Button variant="outline" onClick={() => setGuideOpen(true)} className="gap-2">
@@ -258,6 +258,6 @@ export default function PromptLibrary() {
         </AlertDialogContent>
       </AlertDialog>
       <PromptingGuideModal open={guideOpen} onOpenChange={setGuideOpen} />
-    </MainLayout>
+    </AppShell>
   );
 }

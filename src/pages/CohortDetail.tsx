@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buildLoginUrl } from "@/lib/authRedirect";
 import { useToast } from "@/hooks/use-toast";
-import MainLayout from "@/components/layout/MainLayout";
+import AppShell from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -373,17 +373,42 @@ export default function CohortDetail() {
         },
       );
 
-      if (fnError || !data?.approved) {
+      // Distinguish transient errors (network / edge-function failure) from a
+      // genuine "not approved" response. A transient failure should surface a
+      // retry toast, not the payment gate — otherwise an already-paid,
+      // already-approved learner sees the misleading "Enrollment Requires
+      // Payment" dialog on any hiccup.
+      if (fnError) {
+        setIsEnrolling(false);
+        toast({
+          title: "Couldn't verify your registration",
+          description:
+            "Something went wrong checking your approval status. Please try again in a moment.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!data?.approved) {
         setIsEnrolling(false);
         setShowPaymentGateDialog(true);
         return;
       }
     } catch {
       setIsEnrolling(false);
-      setShowPaymentGateDialog(true);
+      toast({
+        title: "Couldn't verify your registration",
+        description:
+          "Something went wrong checking your approval status. Please try again in a moment.",
+        variant: "destructive",
+      });
       return;
     }
 
+    // LINT (BUG-09): seat cap is only enforced client-side via the disabled
+    // state of the Enroll button. This insert has no server-side check; two
+    // learners clicking with 1 seat left can both succeed. Move the seat
+    // check into a Postgres RPC / trigger.
     const { error } = await supabase.from("enrollments").insert({
       user_id: user.id,
       cohort_id: id,
@@ -413,6 +438,9 @@ export default function CohortDetail() {
     }
   };
 
+  // LINT (BUG-17): leaderboard is fetched at most once per mount. If the
+  // learner completes a session/quiz and comes back to this tab, they see
+  // stale rankings. Consider refetching on tab focus or a soft TTL.
   const fetchLeaderboard = useCallback(async () => {
     if (!user || !id || leaderboardFetched) return;
     setIsLeaderboardLoading(true);
@@ -464,9 +492,16 @@ export default function CohortDetail() {
   const completedSessions = sessions.filter((s) =>
     isSessionCompleted(s.id),
   ).length;
+  // LINT (BUG-13): overallProgress is computed differently here than in
+  // Cohorts.tsx / ContinueLearningRow (which call the RPC
+  // `compute_enrollment_progress_percent`). Numbers can disagree if the RPC
+  // weights quizzes. Pick one source of truth.
   const overallProgress =
     sessions.length > 0 ? (completedSessions / sessions.length) * 100 : 0;
 
+  // LINT (BUG-14): denominator is `quizSubmissions.length` (attempted only),
+  // not the total number of quizzes in the cohort. A learner who tries one
+  // quiz and gets 100% shows Avg Score: 100%.
   const averageScore =
     quizSubmissions.length > 0
       ? Math.round(
@@ -477,24 +512,24 @@ export default function CohortDetail() {
 
   if (isLoading) {
     return (
-      <MainLayout>
+      <AppShell>
         <div className="space-y-6">
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-10 w-2/3" />
           <Skeleton className="h-24 w-full" />
         </div>
-      </MainLayout>
+      </AppShell>
     );
   }
 
   if (!cohort) {
     return (
-      <MainLayout>
+      <AppShell>
         <div className="text-center py-12">
           <h2 className="text-2xl font-semibold mb-2">Cohort not found</h2>
           <Button onClick={() => navigate("/cohorts")}>Back to Cohorts</Button>
         </div>
-      </MainLayout>
+      </AppShell>
     );
   }
 
@@ -502,9 +537,27 @@ export default function CohortDetail() {
     ? cohort.max_seats - enrollmentCount
     : null;
 
+  // A cohort whose dates have fully passed shouldn't offer "Enroll Now" even
+  // if the admin never flipped enrollment_disabled — registering for
+  // something that already happened doesn't make sense to a new learner.
+  // LINT (BUG-01): this "past" definition disagrees with Cohorts.tsx and
+  // CohortSpotlightRow, which treat a null end_date + past start_date as
+  // Ongoing forever. Result: the list surfaces a "Register" button that
+  // dead-ends here on "Registration Ended".
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const isPastDated = cohort.end_date
+    ? cohort.end_date < todayIso
+    : cohort.start_date
+      ? cohort.start_date < todayIso
+      : false;
+  const isRegistrationClosed = cohort.enrollment_disabled || isPastDated;
+  const registrationClosedLabel = cohort.enrollment_disabled
+    ? "Enrollment Closed"
+    : "Registration Ended";
+
   return (
     <>
-      <MainLayout>
+      <AppShell>
         <div className="space-y-8 animate-fade-in">
           {/* Back Button */}
           <Button
@@ -556,9 +609,9 @@ export default function CohortDetail() {
                       <MessageSquare className="h-4 w-4" /> Feedback
                     </Button>
                   </div>
-                ) : cohort.enrollment_disabled ? (
+                ) : isRegistrationClosed ? (
                   <Badge variant="secondary" className="text-base px-4 py-2">
-                    Enrollment Closed
+                    {registrationClosedLabel}
                   </Badge>
                 ) : (
                   <Button
@@ -593,7 +646,7 @@ export default function CohortDetail() {
                   )}
                 </div>
               )}
-              {seatsLeft !== null && !cohort.enrollment_disabled && (
+              {seatsLeft !== null && !isRegistrationClosed && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Users className="h-4 w-4" />
                   {seatsLeft > 0 ? `${seatsLeft} seats left` : "Fully booked"}
@@ -607,19 +660,19 @@ export default function CohortDetail() {
           {/* Tabbed Content */}
           <Tabs defaultValue="about" onValueChange={handleTabChange}>
             <div className="-mx-8 overflow-x-auto md:mx-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <TabsList className="inline-flex w-max min-w-full flex-nowrap justify-start px-3 md:w-full md:px-0">
-                <TabsTrigger value="about" className="shrink-0">
+              <TabsList className="inline-flex h-11 w-max min-w-full flex-nowrap justify-start gap-1 bg-muted/70 p-1.5 px-3 md:w-full md:px-1.5">
+                <TabsTrigger value="about" className="h-8 shrink-0 rounded-md px-3.5 data-[state=active]:shadow-sm">
                   About
                 </TabsTrigger>
-                <TabsTrigger value="sessions" className="shrink-0">
+                <TabsTrigger value="sessions" className="h-8 shrink-0 rounded-md px-3.5 data-[state=active]:shadow-sm">
                   Sessions
                 </TabsTrigger>
-                <TabsTrigger value="mentor" className="shrink-0">
+                <TabsTrigger value="mentor" className="h-8 shrink-0 rounded-md px-3.5 data-[state=active]:shadow-sm">
                   Mentor
                 </TabsTrigger>
                 <TabsTrigger
                   value="leaderboard"
-                  className="shrink-0 gap-1.5"
+                  className="h-8 shrink-0 gap-1.5 rounded-md px-3.5 data-[state=active]:shadow-sm"
                 >
                   <Trophy className="h-4 w-4" /> Leaderboard
                 </TabsTrigger>
@@ -645,6 +698,11 @@ export default function CohortDetail() {
                         </span>
                       </div>
                       <Progress value={overallProgress} className="h-3" />
+                      {overallProgress < 100 && (
+                        <p className="text-sm text-muted-foreground pt-1">
+                          Complete your cohort
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1015,12 +1073,12 @@ export default function CohortDetail() {
                         track your progress.
                       </p>
                     </div>
-                    {cohort.enrollment_disabled ? (
+                    {isRegistrationClosed ? (
                       <Badge
                         variant="secondary"
                         className="text-base px-4 py-2"
                       >
-                        Enrollment Closed
+                        {registrationClosedLabel}
                       </Badge>
                     ) : (
                       <Button
@@ -1046,7 +1104,7 @@ export default function CohortDetail() {
             </TabsContent>
           </Tabs>
         </div>
-      </MainLayout>
+      </AppShell>
 
       {isEnrolled && cohort && (
         <FeedbackDialog
@@ -1057,6 +1115,9 @@ export default function CohortDetail() {
         />
       )}
 
+      {/* LINT (BUG-19): user-facing copy mentions "commitment fee" with no
+          amount, currency, or link to the actual price — inconsistent with
+          the localized pricing surface elsewhere in the app. */}
       <Dialog
         open={showPaymentGateDialog}
         onOpenChange={setShowPaymentGateDialog}

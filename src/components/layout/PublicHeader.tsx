@@ -15,8 +15,8 @@ export default function PublicHeader({ hideAuth = false }: { hideAuth?: boolean 
       <PromoBanner />
       <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-sm">
       <div className="container flex h-16 items-center justify-between">
-        {/* Logo & Tagline */}
-        <Link to="/" className="flex items-center space-x-3">
+        {/* Logo & Tagline — signed-in users go straight to their dashboard */}
+        <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-3">
           <img src={logo} alt="Approachable logo" className="h-9 w-9 rounded-lg" />
           <div className="flex flex-col">
             <span className="font-display font-bold text-xl text-foreground leading-tight">Approachable</span>

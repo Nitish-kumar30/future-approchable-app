@@ -45,7 +45,9 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub;
-    const userEmail = claimsData.claims.email;
+    // Registrations are inserted with email.trim().toLowerCase(), so the JWT
+    // email must be normalized the same way before comparing.
+    const userEmail = String(claimsData.claims.email ?? "").trim().toLowerCase();
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -81,22 +83,35 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Extract prefix like "Cohort 5" from "Cohort 5 - AI Fundamentals - Apr 23, 2026"
-    const match = cohort.name.match(/^(Cohort\s+\d+)/i);
-    const cohortPrefix = match ? match[1] : cohort.name.split(" - ")[0].trim();
+    // Whitespace-insensitive, case-insensitive matching. We cannot do this
+    // reliably in SQL because ilike does not collapse internal whitespace, and
+    // real cohort names in the DB have been observed with stray/double spaces
+    // (e.g. " cohort  6 "). Fetch this user's approved registrations and
+    // compare normalized strings in code.
+    const normalize = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+    const nameNorm = normalize(cohort.name);
+    const nameTokenMatch = nameNorm.match(/cohort\s+\d+/);
+    const nameToken = nameTokenMatch ? nameTokenMatch[0] : nameNorm;
 
-    // Check cohort_registrations for approved record with partial match
-    const { data: registration } = await supabaseAdmin
+    const { data: registrations } = await supabaseAdmin
       .from("cohort_registrations")
-      .select("id")
+      .select("id, cohort")
       .eq("email", userEmail)
-      .eq("status", "approved")
-      .ilike("cohort", `${cohortPrefix}%`)
-      .limit(1)
-      .maybeSingle();
+      .eq("status", "approved");
+
+    const approved = (registrations || []).some((r) => {
+      const regNorm = normalize(String(r.cohort || ""));
+      const regTokenMatch = regNorm.match(/cohort\s+\d+/);
+      const regToken = regTokenMatch ? regTokenMatch[0] : null;
+      // Match if the Cohort-N tokens agree, or if either normalized string
+      // contains the other (handles cohorts named without the "Cohort N"
+      // pattern by falling back to the full name).
+      if (regToken && regToken === nameToken) return true;
+      return regNorm.includes(nameToken) || nameNorm.includes(regNorm);
+    });
 
     return new Response(
-      JSON.stringify({ approved: !!registration }),
+      JSON.stringify({ approved }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
