@@ -3,7 +3,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import AppShell from '@/components/layout/AppShell';
-import FreeCoursesGrid from '@/components/courses/FreeCoursesGrid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -52,7 +51,7 @@ interface MyCourse extends Course {
   percent: number;
 }
 
-type TabValue = 'courses' | 'free' | 'my';
+type TabValue = 'courses' | 'my';
 type SortOption = 'newest' | 'name-asc';
 type PriceFilter = 'all' | 'paid' | 'free';
 
@@ -191,8 +190,7 @@ export default function Courses() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const activeTab: TabValue =
-    tabParam === 'free' || tabParam === 'my' ? tabParam : 'courses';
+  const activeTab: TabValue = tabParam === 'my' ? tabParam : 'courses';
 
   const [paidCourses, setPaidCourses] = useState<Course[]>([]);
   const [myCourses, setMyCourses] = useState<MyCourse[]>([]);
@@ -328,10 +326,10 @@ export default function Courses() {
 
         <Tabs value={activeTab} onValueChange={onTabChange}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-            <TabsList className="h-auto w-auto justify-start gap-5 rounded-none bg-transparent p-0">
+            <TabsList className="h-auto w-auto justify-start gap-7 rounded-none bg-transparent p-0">
               <TabsTrigger
                 value="courses"
-                className="h-auto gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-0.5 pb-2.5 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                className="h-auto gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-0.5 pt-1.5 pb-2.5 text-sm font-medium text-muted-foreground shadow-none transition-colors duration-200 hover:border-muted-foreground/30 hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
               >
                 Courses
                 {!loadingPaid && paidCourses.length > 0 && (
@@ -340,15 +338,15 @@ export default function Courses() {
                   </span>
                 )}
               </TabsTrigger>
-              <TabsTrigger
-                value="free"
-                className="h-auto gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-0.5 pb-2.5 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              <Link
+                to="/free"
+                className="inline-flex h-auto items-center gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-0.5 pt-1.5 pb-2.5 text-sm font-medium text-muted-foreground shadow-none transition-colors duration-200 hover:border-muted-foreground/30 hover:text-foreground"
               >
                 Free
-              </TabsTrigger>
+              </Link>
               <TabsTrigger
                 value="my"
-                className="h-auto gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-0.5 pb-2.5 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                className="h-auto gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-0.5 pt-1.5 pb-2.5 text-sm font-medium text-muted-foreground shadow-none transition-colors duration-200 hover:border-muted-foreground/30 hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
               >
                 My Courses
                 {!loadingMy && myCoursesFiltered.length > 0 && (
@@ -390,35 +388,31 @@ export default function Courses() {
                       </DropdownMenuRadioItem>
                     ))}
                   </DropdownMenuRadioGroup>
-                  {activeTab !== 'free' && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-xs"
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setPriceFilter(priceFilter === 'paid' ? 'all' : 'paid');
-                        }}
-                      >
-                        <Check
-                          className={`mr-2 h-3.5 w-3.5 ${priceFilter === 'paid' ? 'opacity-100' : 'opacity-0'}`}
-                        />
-                        Paid
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-xs"
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setPriceFilter(priceFilter === 'free' ? 'all' : 'free');
-                        }}
-                      >
-                        <Check
-                          className={`mr-2 h-3.5 w-3.5 ${priceFilter === 'free' ? 'opacity-100' : 'opacity-0'}`}
-                        />
-                        Unpaid
-                      </DropdownMenuItem>
-                    </>
-                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-xs"
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setPriceFilter(priceFilter === 'paid' ? 'all' : 'paid');
+                    }}
+                  >
+                    <Check
+                      className={`mr-2 h-3.5 w-3.5 ${priceFilter === 'paid' ? 'opacity-100' : 'opacity-0'}`}
+                    />
+                    Paid
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-xs"
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setPriceFilter(priceFilter === 'free' ? 'all' : 'free');
+                    }}
+                  >
+                    <Check
+                      className={`mr-2 h-3.5 w-3.5 ${priceFilter === 'free' ? 'opacity-100' : 'opacity-0'}`}
+                    />
+                    Unpaid
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -456,10 +450,6 @@ export default function Courses() {
                 ))}
               </div>
             )}
-          </TabsContent>
-
-          <TabsContent value="free" className="mt-4">
-            <FreeCoursesGrid searchQuery={search} sort={sort} />
           </TabsContent>
 
           <TabsContent value="my" className="mt-4">
