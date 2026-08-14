@@ -149,7 +149,7 @@ function SpotlightCard({ state }: { state: SpotlightState }) {
                 variant="secondary"
                 className={cn(
                   'text-[10px] h-5',
-                  isHighlighted && 'bg-accent/15 text-accent-foreground border border-accent/30',
+                  isHighlighted && 'bg-accent/15 text-accent border border-accent/30',
                 )}
               >
                 Upcoming

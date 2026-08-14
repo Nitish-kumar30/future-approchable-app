@@ -1,12 +1,19 @@
-import { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, Upload, X, ImageIcon } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Loader2, Upload, X, ImageIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Course {
   id?: string;
@@ -33,14 +40,14 @@ interface CourseFormProps {
 }
 
 const defaultCourse: Course = {
-  name: '',
-  slug: '',
-  description: '',
-  mentor_name: '',
-  mentor_info: '',
-  duration: '',
-  image_url: '',
-  start_date: '',
+  name: "",
+  slug: "",
+  description: "",
+  mentor_name: "",
+  mentor_info: "",
+  duration: "",
+  image_url: "",
+  start_date: "",
   is_published: false,
   enrollment_disabled: false,
   is_on_demand: false,
@@ -48,18 +55,23 @@ const defaultCourse: Course = {
   price_usd_cents: null,
 };
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormProps) {
+export function CourseForm({
+  open,
+  onOpenChange,
+  course,
+  onSave,
+}: CourseFormProps) {
   const [formData, setFormData] = useState<Course>(defaultCourse);
   const [isSaving, setIsSaving] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [priceError, setPriceError] = useState<string | null>(null);
-  const [priceInrRupees, setPriceInrRupees] = useState('');
-  const [priceUsdDollars, setPriceUsdDollars] = useState('');
+  const [priceInrRupees, setPriceInrRupees] = useState("");
+  const [priceUsdDollars, setPriceUsdDollars] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -67,13 +79,17 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
     if (course) {
       setFormData(course);
       setImagePreview(course.image_url || null);
-      setPriceInrRupees(course.price_inr_paise ? String(course.price_inr_paise / 100) : '');
-      setPriceUsdDollars(course.price_usd_cents ? String(course.price_usd_cents / 100) : '');
+      setPriceInrRupees(
+        course.price_inr_paise ? String(course.price_inr_paise / 100) : "",
+      );
+      setPriceUsdDollars(
+        course.price_usd_cents ? String(course.price_usd_cents / 100) : "",
+      );
     } else {
       setFormData(defaultCourse);
       setImagePreview(null);
-      setPriceInrRupees('');
-      setPriceUsdDollars('');
+      setPriceInrRupees("");
+      setPriceUsdDollars("");
     }
     setImageFile(null);
     setImageError(null);
@@ -83,7 +99,7 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
   // Cleanup blob URL on unmount or when preview changes
   useEffect(() => {
     return () => {
-      if (imagePreview && imagePreview.startsWith('blob:')) {
+      if (imagePreview && imagePreview.startsWith("blob:")) {
         URL.revokeObjectURL(imagePreview);
       }
     };
@@ -91,7 +107,7 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return 'Invalid file type. Please upload a JPEG, PNG, or WEBP image.';
+      return "Invalid file type. Please upload a JPEG, PNG, or WEBP image.";
     }
     if (file.size > MAX_FILE_SIZE) {
       return `File too large. Maximum size is 5MB. Your file is ${(file.size / (1024 * 1024)).toFixed(2)}MB.`;
@@ -113,13 +129,13 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
       setImageFile(null);
       // Clear the input
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
       return;
     }
 
     // Revoke previous blob URL if exists
-    if (imagePreview && imagePreview.startsWith('blob:')) {
+    if (imagePreview && imagePreview.startsWith("blob:")) {
       URL.revokeObjectURL(imagePreview);
     }
 
@@ -129,26 +145,26 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
   };
 
   const handleRemoveImage = () => {
-    if (imagePreview && imagePreview.startsWith('blob:')) {
+    if (imagePreview && imagePreview.startsWith("blob:")) {
       URL.revokeObjectURL(imagePreview);
     }
     setImageFile(null);
     setImagePreview(null);
-    setFormData({ ...formData, image_url: '' });
+    setFormData({ ...formData, image_url: "" });
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
   const uploadImage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
     const fileName = `${crypto.randomUUID()}.${fileExt}`;
     const filePath = `courses/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('course-images')
+      .from("course-images")
       .upload(filePath, file, {
-        cacheControl: '3600',
+        cacheControl: "3600",
         upsert: false,
       });
 
@@ -157,7 +173,7 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
     }
 
     const { data: urlData } = supabase.storage
-      .from('course-images')
+      .from("course-images")
       .getPublicUrl(filePath);
 
     return urlData.publicUrl;
@@ -178,7 +194,7 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
     const hasUsd = usdDollars > 0;
 
     if (hasInr !== hasUsd) {
-      setPriceError('Paid courses require both INR and USD prices.');
+      setPriceError("Paid courses require both INR and USD prices.");
       return;
     }
 
@@ -202,8 +218,10 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
       });
       onOpenChange(false);
     } catch (error) {
-      console.error('Error saving course:', error);
-      setImageError(error instanceof Error ? error.message : 'Failed to save course');
+      console.error("Error saving course:", error);
+      setImageError(
+        error instanceof Error ? error.message : "Failed to save course",
+      );
     } finally {
       setIsSaving(false);
       setIsUploading(false);
@@ -216,9 +234,13 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Edit Course' : 'Create New Course'}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Edit Course" : "Create New Course"}
+          </DialogTitle>
           <DialogDescription>
-            {isEditing ? 'Update course details below.' : 'Fill in the details to create a new course.'}
+            {isEditing
+              ? "Update course details below."
+              : "Fill in the details to create a new course."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -231,11 +253,24 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
                 value={formData.name}
                 onChange={(e) => {
                   const newName = e.target.value;
-                  const autoSlug = !formData.slug || formData.slug === formData.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+                  const autoSlug =
+                    !formData.slug ||
+                    formData.slug ===
+                      formData.name
+                        .toLowerCase()
+                        .replace(/[^a-z0-9\s-]/g, "")
+                        .replace(/\s+/g, "-");
                   setFormData({
                     ...formData,
                     name: newName,
-                    ...(autoSlug ? { slug: newName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-') } : {}),
+                    ...(autoSlug
+                      ? {
+                          slug: newName
+                            .toLowerCase()
+                            .replace(/[^a-z0-9\s-]/g, "")
+                            .replace(/\s+/g, "-"),
+                        }
+                      : {}),
                   });
                 }}
                 placeholder="e.g., Introduction to Machine Learning"
@@ -247,10 +282,19 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
               <Input
                 id="slug"
                 value={formData.slug}
-                onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    slug: e.target.value
+                      .toLowerCase()
+                      .replace(/[^a-z0-9-]/g, ""),
+                  })
+                }
                 placeholder="e.g., intro-to-machine-learning"
               />
-              <p className="text-xs text-muted-foreground">Used in the URL. Auto-generated from name if left empty.</p>
+              <p className="text-xs text-muted-foreground">
+                Used in the URL. Auto-generated from name if left empty.
+              </p>
             </div>
 
             <div className="space-y-2 md:col-span-2">
@@ -258,7 +302,9 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="Describe what learners will gain from this course..."
                 rows={3}
               />
@@ -269,7 +315,9 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
               <Input
                 id="mentor_name"
                 value={formData.mentor_name}
-                onChange={(e) => setFormData({ ...formData, mentor_name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, mentor_name: e.target.value })
+                }
                 placeholder="Jane Smith"
               />
             </div>
@@ -279,7 +327,9 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
               <Input
                 id="duration"
                 value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, duration: e.target.value })
+                }
                 placeholder="e.g., 8 weeks, 20 hours"
               />
             </div>
@@ -289,8 +339,17 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
               <Input
                 id="start_date"
                 type="datetime-local"
-                value={formData.start_date ? formData.start_date.slice(0, 16) : ''}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value ? new Date(e.target.value).toISOString() : '' })}
+                value={
+                  formData.start_date ? formData.start_date.slice(0, 16) : ""
+                }
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    start_date: e.target.value
+                      ? new Date(e.target.value).toISOString()
+                      : "",
+                  })
+                }
               />
             </div>
 
@@ -337,7 +396,7 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
                     disabled={isSaving}
                   >
                     <Upload className="mr-2 h-4 w-4" />
-                    {imagePreview ? 'Change Image' : 'Upload Image'}
+                    {imagePreview ? "Change Image" : "Upload Image"}
                   </Button>
                   <span className="text-sm text-muted-foreground">
                     JPEG, PNG, or WEBP (max 5MB)
@@ -345,7 +404,9 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
                 </div>
 
                 {imageError && (
-                  <p className="text-sm font-medium text-destructive">{imageError}</p>
+                  <p className="text-sm font-medium text-destructive">
+                    {imageError}
+                  </p>
                 )}
               </div>
             </div>
@@ -355,7 +416,9 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
               <Textarea
                 id="mentor_info"
                 value={formData.mentor_info}
-                onChange={(e) => setFormData({ ...formData, mentor_info: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, mentor_info: e.target.value })
+                }
                 placeholder="Brief introduction about the instructor..."
                 rows={2}
               />
@@ -393,7 +456,9 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
                 Paid courses must have both INR and USD prices set.
               </p>
               {priceError && (
-                <p className="text-sm font-medium text-destructive">{priceError}</p>
+                <p className="text-sm font-medium text-destructive">
+                  {priceError}
+                </p>
               )}
             </div>
 
@@ -401,18 +466,33 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
               <Switch
                 id="is_on_demand"
                 checked={formData.is_on_demand}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_on_demand: checked, enrollment_disabled: checked ? false : formData.enrollment_disabled })}
+                onCheckedChange={(checked) =>
+                  setFormData({
+                    ...formData,
+                    is_on_demand: checked,
+                    enrollment_disabled: checked
+                      ? false
+                      : formData.enrollment_disabled,
+                  })
+                }
               />
-              <Label htmlFor="is_on_demand">On-demand course (no enrollment required, content gated by login)</Label>
+              <Label htmlFor="is_on_demand">
+                On-demand course (no enrollment required, content gated by
+                login)
+              </Label>
             </div>
 
             <div className="flex items-center space-x-2 md:col-span-2">
               <Switch
                 id="is_published"
                 checked={formData.is_published}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, is_published: checked })
+                }
               />
-              <Label htmlFor="is_published">Publish course (visible to learners)</Label>
+              <Label htmlFor="is_published">
+                Publish course (visible to learners)
+              </Label>
             </div>
 
             {!formData.is_on_demand && (
@@ -420,24 +500,36 @@ export function CourseForm({ open, onOpenChange, course, onSave }: CourseFormPro
                 <Switch
                   id="enrollment_disabled"
                   checked={formData.enrollment_disabled}
-                  onCheckedChange={(checked) => setFormData({ ...formData, enrollment_disabled: checked })}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, enrollment_disabled: checked })
+                  }
                 />
-                <Label htmlFor="enrollment_disabled">Disable enrollment (new learners will see "Closed")</Label>
+                <Label htmlFor="enrollment_disabled">
+                  Disable enrollment (new learners will see "Closed")
+                </Label>
               </div>
             )}
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={isSaving}>
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isUploading ? 'Uploading...' : 'Saving...'}
+                  {isUploading ? "Uploading..." : "Saving..."}
                 </>
-              ) : isEditing ? 'Update Course' : 'Create Course'}
+              ) : isEditing ? (
+                "Update Course"
+              ) : (
+                "Create Course"
+              )}
             </Button>
           </DialogFooter>
         </form>

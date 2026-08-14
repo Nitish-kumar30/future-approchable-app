@@ -9,14 +9,27 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   BookOpen,
+  Check,
   Clock,
   Calendar,
   GraduationCap,
   ArrowRight,
   Image as ImageIcon,
-  PlayCircle,
+  Search,
+  ListFilter,
 } from 'lucide-react';
 import { formatDuration } from '@/lib/formatDuration';
 
@@ -31,6 +44,8 @@ interface Course {
   start_date?: string | null;
   enrollment_disabled?: boolean;
   is_on_demand?: boolean;
+  price_inr_paise?: number | null;
+  price_usd_cents?: number | null;
 }
 
 interface MyCourse extends Course {
@@ -38,13 +53,35 @@ interface MyCourse extends Course {
 }
 
 type TabValue = 'courses' | 'free' | 'my';
+type SortOption = 'newest' | 'name-asc';
+type PriceFilter = 'all' | 'paid' | 'free';
+
+const SORT_LABELS: Record<SortOption, string> = {
+  newest: 'Newest first',
+  'name-asc': 'Name (A–Z)',
+};
+
+function sortCourses<T extends { name: string; duration: string | null; start_date?: string | null }>(
+  courses: T[],
+  sort: SortOption,
+): T[] {
+  const sorted = [...courses];
+  if (sort === 'name-asc') {
+    sorted.sort((a, b) => a.name.localeCompare(b.name));
+  } else {
+    sorted.sort(
+      (a, b) => new Date(b.start_date || 0).getTime() - new Date(a.start_date || 0).getTime(),
+    );
+  }
+  return sorted;
+}
 
 function CourseGridSkeleton() {
   return (
     <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
       {[1, 2, 3].map((i) => (
-        <Card key={i} className="card-elevated overflow-hidden">
-          <Skeleton className="h-32 w-full" />
+        <Card key={i} className="card-elevated overflow-hidden flex flex-col">
+          <Skeleton className="h-36 w-full shrink-0 rounded-none" />
           <CardHeader className="p-4">
             <Skeleton className="h-5 w-3/4" />
             <Skeleton className="h-3 w-full mt-2" />
@@ -72,8 +109,8 @@ function CourseCard({
 }) {
   return (
     <Link to={href ?? `/courses/${course.slug}`}>
-      <Card className="relative card-elevated hover:shadow-md transition-all duration-200 cursor-pointer h-full group overflow-hidden">
-        <div className="relative h-24 bg-muted overflow-hidden">
+      <Card className="relative card-elevated hover:shadow-md transition-all duration-200 cursor-pointer group overflow-hidden flex flex-col h-full">
+        <div className="relative h-36 shrink-0 bg-muted overflow-hidden">
           {course.image_url ? (
             <img
               src={course.image_url}
@@ -102,7 +139,7 @@ function CourseCard({
           </CardTitle>
           <CardDescription className="line-clamp-2 text-xs">{course.description}</CardDescription>
         </CardHeader>
-        <CardContent className="p-4 pt-0 space-y-2">
+        <CardContent className="p-4 pt-0 pb-4 space-y-2 mt-auto">
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             {course.mentor_name && (
               <span className="flex items-center gap-1">
@@ -162,6 +199,9 @@ export default function Courses() {
   const [enrolledIds, setEnrolledIds] = useState<string[]>([]);
   const [loadingPaid, setLoadingPaid] = useState(true);
   const [loadingMy, setLoadingMy] = useState(true);
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<SortOption>('newest');
+  const [priceFilter, setPriceFilter] = useState<PriceFilter>('all');
 
   useEffect(() => {
     let cancelled = false;
@@ -170,7 +210,7 @@ export default function Courses() {
       const { data } = await supabase
         .from('courses')
         .select(
-          'id, slug, name, description, mentor_name, duration, image_url, start_date, enrollment_disabled',
+          'id, slug, name, description, mentor_name, duration, image_url, start_date, enrollment_disabled, price_inr_paise, price_usd_cents',
         )
         .eq('is_published', true)
         .eq('is_on_demand', false)
@@ -194,7 +234,7 @@ export default function Courses() {
       const { data: enrollments } = await supabase
         .from('enrollments')
         .select(
-          'course_id, courses (id, slug, name, description, mentor_name, duration, image_url, is_on_demand)',
+          'course_id, courses (id, slug, name, description, mentor_name, duration, image_url, is_on_demand, price_inr_paise, price_usd_cents)',
         )
         .eq('user_id', user.id)
         .not('course_id', 'is', null);
@@ -244,6 +284,29 @@ export default function Courses() {
     [myCourses],
   );
 
+  const matchesSearch = (c: { name: string; description: string | null }) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      c.name.toLowerCase().includes(q) || (c.description ?? '').toLowerCase().includes(q)
+    );
+  };
+
+  const matchesPrice = (c: { price_inr_paise?: number | null; price_usd_cents?: number | null }) => {
+    if (priceFilter === 'all') return true;
+    const isPaid = !!(c.price_inr_paise || c.price_usd_cents);
+    return priceFilter === 'paid' ? isPaid : !isPaid;
+  };
+
+  const visiblePaidCourses = useMemo(
+    () => sortCourses(paidCourses.filter((c) => matchesSearch(c) && matchesPrice(c)), sort),
+    [paidCourses, search, sort, priceFilter],
+  );
+  const visibleMyCourses = useMemo(
+    () => sortCourses(myCoursesFiltered.filter((c) => matchesSearch(c) && matchesPrice(c)), sort),
+    [myCoursesFiltered, search, sort, priceFilter],
+  );
+
   const onTabChange = (value: string) => {
     const next = value as TabValue;
     if (next === 'courses') {
@@ -264,39 +327,103 @@ export default function Courses() {
         </div>
 
         <Tabs value={activeTab} onValueChange={onTabChange}>
-          <TabsList className="h-12 w-full max-w-xl p-1.5 gap-1 bg-muted/70">
-            <TabsTrigger
-              value="courses"
-              className="flex-1 h-full text-sm gap-2 rounded-lg data-[state=active]:shadow-sm"
-            >
-              <BookOpen className="h-4 w-4" />
-              Courses
-              {!loadingPaid && paidCourses.length > 0 && (
-                <span className="text-[11px] text-muted-foreground tabular-nums">
-                  {paidCourses.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger
-              value="free"
-              className="flex-1 h-full text-sm gap-2 rounded-lg data-[state=active]:shadow-sm"
-            >
-              <PlayCircle className="h-4 w-4" />
-              Free
-            </TabsTrigger>
-            <TabsTrigger
-              value="my"
-              className="flex-1 h-full text-sm gap-2 rounded-lg data-[state=active]:shadow-sm"
-            >
-              <GraduationCap className="h-4 w-4" />
-              My Courses
-              {!loadingMy && myCoursesFiltered.length > 0 && (
-                <span className="text-[11px] text-muted-foreground tabular-nums">
-                  {myCoursesFiltered.length}
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+            <TabsList className="h-auto w-auto justify-start gap-5 rounded-none bg-transparent p-0">
+              <TabsTrigger
+                value="courses"
+                className="h-auto gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-0.5 pb-2.5 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              >
+                Courses
+                {!loadingPaid && paidCourses.length > 0 && (
+                  <span className="text-[11px] text-muted-foreground tabular-nums">
+                    {paidCourses.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger
+                value="free"
+                className="h-auto gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-0.5 pb-2.5 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              >
+                Free
+              </TabsTrigger>
+              <TabsTrigger
+                value="my"
+                className="h-auto gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-0.5 pb-2.5 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              >
+                My Courses
+                {!loadingMy && myCoursesFiltered.length > 0 && (
+                  <span className="text-[11px] text-muted-foreground tabular-nums">
+                    {myCoursesFiltered.length}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-64 shrink-0">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search courses..."
+                  className="h-9 pl-9 text-sm"
+                />
+              </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs shrink-0">
+                    <ListFilter className="h-3.5 w-3.5" />
+                    Filter
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel className="text-xs">Sort by</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuRadioGroup
+                    value={sort}
+                    onValueChange={(value) => setSort(value as SortOption)}
+                  >
+                    {(Object.keys(SORT_LABELS) as SortOption[]).map((option) => (
+                      <DropdownMenuRadioItem key={option} value={option} className="text-xs">
+                        {SORT_LABELS[option]}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                  {activeTab !== 'free' && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-xs"
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setPriceFilter(priceFilter === 'paid' ? 'all' : 'paid');
+                        }}
+                      >
+                        <Check
+                          className={`mr-2 h-3.5 w-3.5 ${priceFilter === 'paid' ? 'opacity-100' : 'opacity-0'}`}
+                        />
+                        Paid
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-xs"
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setPriceFilter(priceFilter === 'free' ? 'all' : 'free');
+                        }}
+                      >
+                        <Check
+                          className={`mr-2 h-3.5 w-3.5 ${priceFilter === 'free' ? 'opacity-100' : 'opacity-0'}`}
+                        />
+                        Unpaid
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          <div className="-mt-[1px] border-b border-border" />
 
           <TabsContent value="courses" className="mt-4">
             {loadingPaid ? (
@@ -309,9 +436,17 @@ export default function Courses() {
                   <p className="text-sm text-muted-foreground">Check back soon for new courses.</p>
                 </CardContent>
               </Card>
+            ) : visiblePaidCourses.length === 0 ? (
+              <Card className="card-elevated border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+                  <Search className="h-10 w-10 text-muted-foreground mb-3" />
+                  <h3 className="text-base font-semibold mb-1">No matching courses</h3>
+                  <p className="text-sm text-muted-foreground">Try a different search term.</p>
+                </CardContent>
+              </Card>
             ) : (
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {paidCourses.map((course) => (
+                {visiblePaidCourses.map((course) => (
                   <CourseCard
                     key={course.id}
                     course={course}
@@ -324,7 +459,7 @@ export default function Courses() {
           </TabsContent>
 
           <TabsContent value="free" className="mt-4">
-            <FreeCoursesGrid />
+            <FreeCoursesGrid searchQuery={search} sort={sort} />
           </TabsContent>
 
           <TabsContent value="my" className="mt-4">
@@ -343,9 +478,17 @@ export default function Courses() {
                   </Button>
                 </CardContent>
               </Card>
+            ) : visibleMyCourses.length === 0 ? (
+              <Card className="card-elevated border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+                  <Search className="h-10 w-10 text-muted-foreground mb-3" />
+                  <h3 className="text-base font-semibold mb-1">No matching courses</h3>
+                  <p className="text-sm text-muted-foreground">Try a different search term.</p>
+                </CardContent>
+              </Card>
             ) : (
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {myCoursesFiltered.map((course) => (
+                {visibleMyCourses.map((course) => (
                   <CourseCard
                     key={course.id}
                     course={course}

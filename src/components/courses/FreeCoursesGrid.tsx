@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Clock, GraduationCap, ArrowRight, Image as ImageIcon, PlayCircle } from 'lucide-react';
+import { Clock, GraduationCap, ArrowRight, Image as ImageIcon, PlayCircle, Search } from 'lucide-react';
 import { formatDuration } from '@/lib/formatDuration';
 
 interface FreeCourse {
@@ -15,18 +15,44 @@ interface FreeCourse {
   mentor_name: string | null;
   duration: string | null;
   image_url: string | null;
+  created_at: string | null;
 }
 
-export default function FreeCoursesGrid() {
+type SortOption = 'newest' | 'name-asc';
+
+export default function FreeCoursesGrid({
+  searchQuery = '',
+  sort = 'newest',
+}: {
+  searchQuery?: string;
+  sort?: SortOption;
+}) {
   const [courses, setCourses] = useState<FreeCourse[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const visibleCourses = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const filtered = !q
+      ? [...courses]
+      : courses.filter(
+          (c) => c.name.toLowerCase().includes(q) || (c.description ?? '').toLowerCase().includes(q),
+        );
+    if (sort === 'name-asc') {
+      filtered.sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+      filtered.sort(
+        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
+      );
+    }
+    return filtered;
+  }, [courses, searchQuery, sort]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from('courses')
-        .select('id, slug, name, description, mentor_name, duration, image_url')
+        .select('id, slug, name, description, mentor_name, duration, image_url, created_at')
         .eq('is_published', true)
         .eq('is_on_demand', true)
         .order('created_at', { ascending: false });
@@ -42,8 +68,8 @@ export default function FreeCoursesGrid() {
     return (
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {[1, 2, 3].map((i) => (
-          <Card key={i} className="card-elevated overflow-hidden">
-            <Skeleton className="h-32 w-full" />
+          <Card key={i} className="card-elevated overflow-hidden h-72 flex flex-col">
+            <Skeleton className="h-[60%] w-full shrink-0 rounded-none" />
             <CardHeader className="p-4">
               <Skeleton className="h-5 w-3/4" />
               <Skeleton className="h-3 w-full mt-2" />
@@ -66,12 +92,24 @@ export default function FreeCoursesGrid() {
     );
   }
 
+  if (visibleCourses.length === 0) {
+    return (
+      <Card className="card-elevated border-dashed">
+        <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+          <Search className="h-10 w-10 text-muted-foreground mb-3" />
+          <h3 className="text-base font-semibold mb-1">No matching courses</h3>
+          <p className="text-sm text-muted-foreground">Try a different search term.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-      {courses.map((course) => (
+      {visibleCourses.map((course) => (
         <Link key={course.id} to={`/on-demand/${course.slug}`}>
-          <Card className="card-elevated hover:shadow-md transition-all duration-200 cursor-pointer h-full group overflow-hidden">
-            <div className="relative h-32 bg-muted overflow-hidden">
+          <Card className="card-elevated hover:shadow-md transition-all duration-200 cursor-pointer h-72 group overflow-hidden flex flex-col">
+            <div className="relative h-[60%] shrink-0 bg-muted overflow-hidden">
               {course.image_url ? (
                 <img
                   src={course.image_url}
@@ -85,6 +123,7 @@ export default function FreeCoursesGrid() {
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
             </div>
+            <div className="flex-1 min-h-0 flex flex-col justify-end overflow-hidden pt-3">
             <CardHeader className="p-4 pb-2">
               <CardTitle className="text-base group-hover:text-primary transition-colors line-clamp-2">
                 {course.name}
@@ -107,11 +146,12 @@ export default function FreeCoursesGrid() {
                 )}
               </div>
               <div className="flex justify-end">
-                <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs">
+                <Button size="sm" className="gap-1 h-8 text-xs">
                   Start learning <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </CardContent>
+            </div>
           </Card>
         </Link>
       ))}

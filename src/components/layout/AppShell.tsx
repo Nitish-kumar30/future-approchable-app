@@ -57,7 +57,14 @@ interface AppShellProps {
   children: ReactNode;
 }
 
-const navItems = [
+interface NavItem {
+  path: string;
+  href?: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+}
+
+const navItems: NavItem[] = [
   { path: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { path: '/cohorts', label: 'Cohorts', icon: Users },
   { path: '/courses', label: 'Courses', icon: BookOpen },
@@ -65,22 +72,16 @@ const navItems = [
   { path: '/resources', label: 'Resources', icon: Library },
 ];
 
-const adminNavItems = [
+const adminNavItems: NavItem[] = [
   { path: '/admin', label: 'Admin', icon: Shield },
 ];
 
 function isNavActive(pathname: string, search: string, itemPath: string): boolean {
   if (itemPath === '/dashboard') return pathname === '/dashboard';
   if (itemPath === '/free') {
-    return (
-      pathname === '/free' ||
-      pathname.startsWith('/on-demand') ||
-      (pathname === '/courses' && new URLSearchParams(search).get('tab') === 'free')
-    );
+    return pathname === '/free' || pathname.startsWith('/on-demand');
   }
   if (itemPath === '/courses') {
-    const tab = new URLSearchParams(search).get('tab');
-    if (pathname === '/courses' && tab === 'free') return false;
     return pathname === '/courses' || pathname.startsWith('/courses/');
   }
   if (itemPath === '/resources') {
@@ -150,7 +151,7 @@ export default function AppShell({ children }: AppShellProps) {
                     return (
                       <SidebarMenuItem key={item.path}>
                         <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
-                          <Link to={item.path}>
+                          <Link to={item.href ?? item.path}>
                             <item.icon />
                             <span>{item.label}</span>
                           </Link>
@@ -328,7 +329,7 @@ export default function AppShell({ children }: AppShellProps) {
               {navItems.map((item) => {
                 const active = isNavActive(location.pathname, location.search, item.path);
                 return (
-                  <Link key={item.path} to={item.path}>
+                  <Link key={item.path} to={item.href ?? item.path}>
                     <Button
                       variant={active ? 'secondary' : 'ghost'}
                       size="sm"
