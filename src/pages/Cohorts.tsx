@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, Calendar, GraduationCap, ArrowRight } from 'lucide-react';
+import { Calendar, GraduationCap, ArrowRight } from 'lucide-react';
 import { formatCohortDateRange } from '@/lib/formatCohortDate';
 
 interface Cohort {
@@ -168,6 +168,34 @@ function CohortCard({ item }: { item: CohortListItem }) {
   );
 }
 
+// Shown whenever the catalog has no Ongoing or Upcoming cohort to offer —
+// mirrors the dashboard's spotlight nudge so learners landing directly on
+// this page get the same "get on the list" prompt instead of a dead end.
+function NextCohortCard() {
+  return (
+    <Card className="card-elevated overflow-hidden">
+      <CardContent className="p-4 flex flex-col sm:flex-row items-stretch gap-4">
+        <div className="min-w-0 space-y-2 flex-1">
+          <p className="section-label">Next cohort</p>
+          <h3 className="text-base font-semibold text-foreground leading-snug">
+            Signup for next Cohort when it opens
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Registration isn't open yet — get on the list to be first in line.
+          </p>
+          <div className="pt-1">
+            <Button size="sm" className="h-8 text-xs" asChild>
+              <Link to="/registration">
+                Signup for next Cohort <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Cohorts() {
   const { user, isAdmin } = useAuth();
   const [items, setItems] = useState<CohortListItem[]>([]);
@@ -325,6 +353,9 @@ export default function Cohorts() {
     category,
     items: items.filter((item) => item.category === category),
   }));
+  const hasLiveCohort = items.some(
+    (item) => item.category === 'Ongoing' || item.category === 'Upcoming',
+  );
 
   return (
     <AppShell>
@@ -351,30 +382,25 @@ export default function Cohorts() {
             ))}
           </div>
         ) : items.length === 0 ? (
-          <Card className="card-elevated border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-              <Users className="h-10 w-10 text-muted-foreground mb-3" />
-              <h3 className="text-base font-semibold mb-1">No cohorts yet</h3>
-              <p className="text-sm text-muted-foreground">
-                Check back soon for upcoming cohort programs.
-              </p>
-            </CardContent>
-          </Card>
+          <NextCohortCard />
         ) : (
-          grouped
-            .filter((group) => group.items.length > 0)
-            .map((group) => (
-              <div key={group.category} className="space-y-3">
-                <h3 className="text-base font-display font-bold text-foreground">
-                  {CATEGORY_META[group.category].label}
-                </h3>
-                <div className="grid gap-3 items-stretch md:grid-cols-2 lg:grid-cols-3">
-                  {group.items.map((item) => (
-                    <CohortCard key={item.cohort.id} item={item} />
-                  ))}
+          <>
+            {!hasLiveCohort && <NextCohortCard />}
+            {grouped
+              .filter((group) => group.items.length > 0)
+              .map((group) => (
+                <div key={group.category} className="space-y-3">
+                  <h3 className="text-base font-display font-bold text-foreground">
+                    {CATEGORY_META[group.category].label}
+                  </h3>
+                  <div className="grid gap-3 items-stretch md:grid-cols-2 lg:grid-cols-3">
+                    {group.items.map((item) => (
+                      <CohortCard key={item.cohort.id} item={item} />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))
+              ))}
+          </>
         )}
       </div>
     </AppShell>

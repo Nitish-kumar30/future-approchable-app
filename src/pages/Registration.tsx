@@ -119,7 +119,7 @@ function ThankYouScreen() {
 
     // Redirect after 10 seconds
     const timer = setTimeout(() => {
-      navigate("/on-demand");
+      navigate("/dashboard");
     }, 10000);
 
     return () => {
@@ -161,13 +161,13 @@ function ThankYouScreen() {
               </ul>
             </CardContent>
           </Card>
-          <p className="text-sm text-muted-foreground">You'll be redirected to on-demand courses shortly...</p>
+          <p className="text-sm text-muted-foreground">You'll be redirected to your dashboard shortly...</p>
           <Button
-            onClick={() => navigate("/on-demand")}
+            onClick={() => navigate("/dashboard")}
             size="lg"
             className="mt-2 bg-accent text-accent-foreground hover:bg-accent/90"
           >
-            Go to On-Demand Courses →
+            Go to Dashboard →
           </Button>
         </div>
       </main>

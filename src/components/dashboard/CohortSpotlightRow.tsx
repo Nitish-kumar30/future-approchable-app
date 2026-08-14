@@ -414,11 +414,15 @@ export default function CohortSpotlightRow() {
         upsell = null;
       }
 
-      // 7) Enrolled but between cohorts (upcoming/ended, not currently ongoing) and
-      // nothing is open to join yet → nudge them to sign up once registration opens.
-      // Learners actively in an ongoing cohort don't need this nudge.
-      const hasOngoingPersonal = personalCards.some((p) => p.mode === 'ongoing');
-      if (!upsell && personalCards.length > 0 && !hasOngoingPersonal) {
+      // 7) Enrolled but between cohorts (their last one ended, nothing upcoming
+      // or ongoing) and nothing is open to join yet → nudge them to sign up
+      // once registration opens. Learners who already have a live cohort —
+      // ongoing OR a confirmed upcoming seat — don't need this nudge, since
+      // their personal card already shows what's next for them.
+      const hasLivePersonal = personalCards.some(
+        (p) => p.mode === 'ongoing' || p.mode === 'enrolled_upcoming',
+      );
+      if (!upsell && personalCards.length > 0 && !hasLivePersonal) {
         upsell = { mode: 'signup_next', cohort: null, progress: 0 };
       }
 
