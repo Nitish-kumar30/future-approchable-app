@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
+import { Player } from '@gumlet/player.js';
 import { getVideoPlaybackPrefs } from '@/lib/videoPlaybackPrefs';
 import { shouldMarkVideoComplete } from '@/lib/recordingVideo';
-import { attachPlayerJs, timeupdateSeconds } from '@/lib/playerJs';
 import NextSessionOverlay from '@/components/session/NextSessionOverlay';
 import { useEndOfVideoOverlay } from '@/components/session/useEndOfVideoOverlay';
 import type { OnDemandPlayerProps } from '@/components/session/onDemandPlayerTypes';
@@ -16,86 +16,102 @@ export default function GumletPlayer({
   onAutoPlayConsumed,
   onPlay,
 }: OnDemandPlayerProps) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const completedFiredRef = useRef(false);
   const playFiredRef = useRef(false);
+  const onCompletedRef = useRef(onCompleted);
+  const onPlayRef = useRef(onPlay);
+  const onAutoPlayConsumedRef = useRef(onAutoPlayConsumed);
+  const openOverlayRef = useRef<() => void>(() => {});
+
   const { showOverlay, countdown, openOverlay, handleCancel, handleStartNow } = useEndOfVideoOverlay(
     nextSession,
     onNextSession,
   );
 
+  useEffect(() => {
+    onCompletedRef.current = onCompleted;
+    onPlayRef.current = onPlay;
+    onAutoPlayConsumedRef.current = onAutoPlayConsumed;
+    openOverlayRef.current = openOverlay;
+  }, [onCompleted, onPlay, onAutoPlayConsumed, openOverlay]);
+
   const assetMatch = videoUrl.match(/(?:gumlet\.tv\/watch\/|play\.gumlet\.io\/embed\/)([a-zA-Z0-9]+)/i);
   const assetId = assetMatch?.[1] ?? null;
-  const embedSrc = assetId
-    ? `https://play.gumlet.io/embed/${assetId}?autoplay=${autoPlay ? 'true' : 'false'}`
-    : null;
 
   useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe || !assetId) return;
+    const container = containerRef.current;
+    if (!container || !assetId) return;
 
     completedFiredRef.current = false;
     playFiredRef.current = false;
 
-    const player = attachPlayerJs(iframe);
+    // Create iframe via JS so player.js can attach before/during load (Gumlet docs).
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://play.gumlet.io/embed/${assetId}?autoplay=${autoPlay ? 'true' : 'false'}`;
+    iframe.className = 'w-full h-full';
+    iframe.allow =
+      'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+    iframe.allowFullscreen = true;
+    iframe.title = title;
+    container.appendChild(iframe);
 
-    player.on('ready', () => {
-      const prefs = getVideoPlaybackPrefs();
-      try {
-        player.setVolume?.(prefs.volume);
-        player.setPlaybackRate?.(prefs.playbackRate);
-      } catch {
-        /* optional methods */
-      }
-      if (autoPlay) {
-        try {
-          player.play();
-        } catch {
-          /* autoplay may be blocked */
-        }
-      }
-      onAutoPlayConsumed?.();
-    });
+    const player = new Player(iframe);
 
-    player.on('play', () => {
+    const onPlayHandler = () => {
       if (!playFiredRef.current) {
         playFiredRef.current = true;
-        onPlay?.();
+        onPlayRef.current?.();
       }
-    });
+    };
 
-    player.on('timeupdate', (data) => {
-      const t = timeupdateSeconds(data);
-      if (!t) return;
-      if (!completedFiredRef.current && shouldMarkVideoComplete(t.seconds, t.duration)) {
+    const onTimeupdateHandler = (data: { seconds?: number; duration?: number }) => {
+      const seconds = data?.seconds;
+      const duration = data?.duration;
+      if (typeof seconds !== 'number' || typeof duration !== 'number') return;
+      if (!completedFiredRef.current && shouldMarkVideoComplete(seconds, duration)) {
         completedFiredRef.current = true;
-        onCompleted();
+        onCompletedRef.current?.();
       }
-    });
+    };
 
-    player.on('ended', () => {
+    const onEndedHandler = () => {
       if (!completedFiredRef.current) {
         completedFiredRef.current = true;
-        onCompleted();
+        onCompletedRef.current?.();
       }
-      openOverlay();
-    });
+      openOverlayRef.current();
+    };
 
-    return () => player.destroy();
-  }, [assetId]);
+    const onReadyHandler = () => {
+      const prefs = getVideoPlaybackPrefs();
+      player.setVolume?.(Math.round(prefs.volume * 100));
+      player.setPlaybackRate?.(prefs.playbackRate);
+      if (autoPlay) {
+        player.play?.();
+      }
+      onAutoPlayConsumedRef.current?.();
+    };
 
-  if (!embedSrc) return null;
+    player.on('ready', onReadyHandler);
+    player.on('play', onPlayHandler);
+    player.on('timeupdate', onTimeupdateHandler);
+    player.on('ended', onEndedHandler);
+
+    return () => {
+      player.off('ready', onReadyHandler);
+      player.off('play', onPlayHandler);
+      player.off('timeupdate', onTimeupdateHandler);
+      player.off('ended', onEndedHandler);
+      container.innerHTML = '';
+    };
+  }, [assetId, autoPlay, title]);
+
+  if (!assetId) return null;
 
   return (
     <div className="relative aspect-video bg-black rounded-lg overflow-hidden border border-border">
-      <iframe
-        ref={iframeRef}
-        src={embedSrc}
-        className="w-full h-full"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-        allowFullScreen
-        title={title}
-      />
+      <div ref={containerRef} className="w-full h-full" />
       {showOverlay && (
         <NextSessionOverlay
           nextSession={nextSession}

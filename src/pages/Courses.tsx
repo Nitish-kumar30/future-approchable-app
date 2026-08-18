@@ -32,6 +32,7 @@ import {
   ListFilter,
 } from 'lucide-react';
 import { formatDuration } from '@/lib/formatDuration';
+import { computeOnDemandProgressPercents } from '@/lib/onDemandProgress';
 
 interface Course {
   id: string;
@@ -267,8 +268,14 @@ export default function Courses() {
         .map((e) => e.courses as unknown as Course | null)
         .filter((c): c is Course => !!c);
 
+      const onDemandIds = courses.filter((c) => c.is_on_demand).map((c) => c.id);
+      const onDemandPercents = await computeOnDemandProgressPercents(user.id, onDemandIds);
+
       const withProgress = await Promise.all(
         courses.map(async (course) => {
+          if (course.is_on_demand) {
+            return { ...course, percent: onDemandPercents.get(course.id) ?? 0 };
+          }
           const { data: percent } = await supabase.rpc('compute_enrollment_progress_percent', {
             p_user_id: user.id,
             p_course_id: course.id,
