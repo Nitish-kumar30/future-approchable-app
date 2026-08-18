@@ -66,6 +66,13 @@ export default function VimeoPlayer({
         } catch {
           /* ignore unsupported volume/rate on some mobile browsers */
         }
+        if (autoPlay) {
+          try {
+            await player.play();
+          } catch {
+            /* autoplay may be blocked */
+          }
+        }
         onAutoPlayConsumed?.();
       })
       .catch(() => {});

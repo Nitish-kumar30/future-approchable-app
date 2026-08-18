@@ -241,9 +241,10 @@ export default function OnDemandCourseDetail() {
     );
   }, [user, completedSessionIds, sessions, sessionQuizzes]);
 
-  const [autoPlayNext, setAutoPlayNext] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const autoEnrolledRef = useRef(false);
+  /** Session id that should autoplay when its player mounts (set by next-video flow). */
+  const autoPlaySessionIdRef = useRef<string | null>(null);
 
   // Reset auto-enroll ref when course changes
   useEffect(() => {
@@ -273,12 +274,19 @@ export default function OnDemandCourseDetail() {
   const handleNextSession = useCallback(() => {
     const currentIdx = sessions.findIndex(s => s.id === activeSessionId);
     if (currentIdx >= 0 && currentIdx < sessions.length - 1) {
-      setAutoPlayNext(true);
-      setActiveSessionId(sessions[currentIdx + 1].id);
+      const nextId = sessions[currentIdx + 1].id;
+      autoPlaySessionIdRef.current = nextId;
+      setActiveSessionId(nextId);
     }
   }, [sessions, activeSessionId]);
 
+  const consumeAutoPlay = useCallback(() => {
+    autoPlaySessionIdRef.current = null;
+  }, []);
+
   const activeSession = sessions.find(s => s.id === activeSessionId);
+  const shouldAutoPlay =
+    activeSessionId !== null && autoPlaySessionIdRef.current === activeSessionId;
 
   // Progress calculation: sessions with video OR quizzes count as trackable
   const trackableSessions = sessions.filter(s => {
@@ -363,7 +371,10 @@ export default function OnDemandCourseDetail() {
                 return (
                   <button
                     key={session.id}
-                    onClick={() => setActiveSessionId(session.id)}
+                    onClick={() => {
+                      autoPlaySessionIdRef.current = null;
+                      setActiveSessionId(session.id);
+                    }}
                     className={`w-full text-left rounded-lg px-3 py-3 flex items-start gap-3 transition-colors ${
                       isActive
                         ? 'bg-primary/10 text-foreground'
@@ -455,8 +466,8 @@ export default function OnDemandCourseDetail() {
                     nextSession={nextSessionForPlayer}
                     onCompleted={() => handleSessionCompleted(activeSession.id)}
                     onNextSession={handleNextSession}
-                    autoPlay={autoPlayNext}
-                    onAutoPlayConsumed={() => setAutoPlayNext(false)}
+                    autoPlay={shouldAutoPlay}
+                    onAutoPlayConsumed={consumeAutoPlay}
                     onPlay={handleAutoEnroll}
                     showUpsellOverlay={activeSession.session_order === 3}
                   />

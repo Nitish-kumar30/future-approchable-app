@@ -46,9 +46,11 @@ export default function GumletPlayer({
     completedFiredRef.current = false;
     playFiredRef.current = false;
 
+    const shouldAutoPlay = autoPlay;
+
     // Create iframe via JS so player.js can attach before/during load (Gumlet docs).
     const iframe = document.createElement('iframe');
-    iframe.src = `https://play.gumlet.io/embed/${assetId}?autoplay=${autoPlay ? 'true' : 'false'}`;
+    iframe.src = `https://play.gumlet.io/embed/${assetId}?autoplay=${shouldAutoPlay ? 'true' : 'false'}`;
     iframe.className = 'w-full h-full';
     iframe.allow =
       'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
@@ -83,12 +85,21 @@ export default function GumletPlayer({
       openOverlayRef.current();
     };
 
-    const onReadyHandler = () => {
+    const onReadyHandler = async () => {
       const prefs = getVideoPlaybackPrefs();
       player.setVolume?.(Math.round(prefs.volume * 100));
       player.setPlaybackRate?.(prefs.playbackRate);
-      if (autoPlay) {
-        player.play?.();
+      if (shouldAutoPlay) {
+        try {
+          await player.play?.();
+        } catch {
+          try {
+            await player.mute?.();
+            await player.play?.();
+          } catch {
+            /* browser blocked autoplay */
+          }
+        }
       }
       onAutoPlayConsumedRef.current?.();
     };
@@ -105,7 +116,7 @@ export default function GumletPlayer({
       player.off('ended', onEndedHandler);
       container.innerHTML = '';
     };
-  }, [assetId, autoPlay, title]);
+  }, [assetId, title]);
 
   if (!assetId) return null;
 
