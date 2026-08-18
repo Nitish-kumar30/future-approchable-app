@@ -334,7 +334,10 @@ export default function OnDemandCourseDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div
+      className="min-h-screen bg-background flex flex-col"
+      onContextMenu={(e) => e.preventDefault()}
+    >
       <PublicHeader />
 
       {/* Split pane - fills remaining viewport */}

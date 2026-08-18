@@ -3,6 +3,7 @@ import { Player } from '@gumlet/player.js';
 import { getVideoPlaybackPrefs } from '@/lib/videoPlaybackPrefs';
 import { shouldMarkVideoComplete } from '@/lib/recordingVideo';
 import NextSessionOverlay from '@/components/session/NextSessionOverlay';
+import { InspectShield } from '@/components/session/InspectShield';
 import { useEndOfVideoOverlay } from '@/components/session/useEndOfVideoOverlay';
 import type { OnDemandPlayerProps } from '@/components/session/onDemandPlayerTypes';
 
@@ -121,7 +122,7 @@ export default function GumletPlayer({
   if (!assetId) return null;
 
   return (
-    <div className="relative aspect-video bg-black rounded-lg overflow-hidden border border-border">
+    <InspectShield className="relative aspect-video bg-black rounded-lg overflow-hidden border border-border">
       <div ref={containerRef} className="w-full h-full" />
       {showOverlay && (
         <NextSessionOverlay
@@ -131,6 +132,6 @@ export default function GumletPlayer({
           onStartNow={handleStartNow}
         />
       )}
-    </div>
+    </InspectShield>
   );
 }
