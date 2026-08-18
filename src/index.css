@@ -57,6 +57,10 @@
     /* Sticky pay bar height — fallback until StickyPayBar measures the real bar */
     --sticky-pay-bar-height: 0px;
 
+    /* Sidebar width fallbacks when AppShell is not mounted */
+    --sidebar-width: 0px;
+    --sidebar-width-icon: 0px;
+
     /* Success state */
     --success: 152 60% 42%;
     --success-foreground: 0 0% 100%;
