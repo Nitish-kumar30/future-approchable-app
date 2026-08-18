@@ -68,7 +68,7 @@ const navItems: NavItem[] = [
   { path: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { path: '/cohorts', label: 'Cohorts', icon: Users },
   { path: '/courses', label: 'Courses', icon: BookOpen },
-  { path: '/free', label: 'Free', icon: PlayCircle },
+  { path: '/free', href: '/courses?tab=free', label: 'Free', icon: PlayCircle },
   { path: '/resources', label: 'Resources', icon: Library },
 ];
 
@@ -134,11 +134,13 @@ function ProfileMenuItems({
 }
 
 function isNavActive(pathname: string, search: string, itemPath: string): boolean {
+  const tab = new URLSearchParams(search).get('tab');
   if (itemPath === '/dashboard') return pathname === '/dashboard';
   if (itemPath === '/free') {
-    return pathname === '/free' || pathname.startsWith('/on-demand');
+    return (pathname === '/courses' && tab === 'free') || pathname.startsWith('/on-demand');
   }
   if (itemPath === '/courses') {
+    if (pathname === '/courses' && tab === 'free') return false;
     return pathname === '/courses' || pathname.startsWith('/courses/');
   }
   if (itemPath === '/resources') {

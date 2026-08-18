@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BookOpen, ArrowRight } from 'lucide-react';
+import { isVideoUrl } from '@/lib/recordingVideo';
 
 interface LearningItem {
   courseId: string;
@@ -22,10 +23,6 @@ interface EnrolledCourse {
   slug: string;
   name: string;
   is_on_demand: boolean | null;
-}
-
-function isVideoUrl(url: string) {
-  return url.includes('youtube') || url.includes('youtu.be') || url.includes('vimeo.com');
 }
 
 // Free / on-demand courses track progress at the session level (no chapters),

@@ -20,7 +20,6 @@ import Admin from "./pages/Admin";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import OnDemandCourseDetail from "./pages/OnDemandCourseDetail";
-import FreeCourses from "./pages/FreeCourses";
 import PromptLibrary from "./pages/PromptLibrary";
 import Resources from "./pages/Resources";
 import Registration from "./pages/Registration";
@@ -52,8 +51,8 @@ const App = () => (
             <Route path="/quiz/:id" element={<Quiz />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/admin" element={<Admin />} />
-            <Route path="/free" element={<FreeCourses />} />
-            <Route path="/on-demand" element={<Navigate to="/free" replace />} />
+            <Route path="/free" element={<Navigate to="/courses?tab=free" replace />} />
+            <Route path="/on-demand" element={<Navigate to="/courses?tab=free" replace />} />
             <Route path="/resources" element={<Resources />} />
             <Route path="/prompts" element={<PromptLibrary />} />
             <Route path="/on-demand/:slug" element={<OnDemandCourseDetail />} />
