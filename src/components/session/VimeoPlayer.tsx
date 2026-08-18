@@ -5,6 +5,7 @@ import { getVideoPlaybackPrefs, saveVideoPlaybackPrefs } from '@/lib/videoPlayba
 import { shouldMarkVideoComplete } from '@/lib/recordingVideo';
 import CohortUpsellCard from '@/components/session/CohortUpsellCard';
 import NextSessionOverlay from '@/components/session/NextSessionOverlay';
+import { InspectShield } from '@/components/session/InspectShield';
 import { useEndOfVideoOverlay } from '@/components/session/useEndOfVideoOverlay';
 import type { OnDemandPlayerProps } from '@/components/session/onDemandPlayerTypes';
 import { Button } from '@/components/ui/button';
@@ -110,7 +111,7 @@ export default function VimeoPlayer({
   if (!vimeoId) return null;
 
   return (
-    <div className="relative aspect-video bg-black rounded-lg overflow-hidden border border-border">
+    <InspectShield className="relative aspect-video bg-black rounded-lg overflow-hidden border border-border">
       <div ref={containerRef} className="w-full h-full" />
 
       {upsellVisible && (
@@ -144,6 +145,6 @@ export default function VimeoPlayer({
           onStartNow={handleStartNow}
         />
       )}
-    </div>
+    </InspectShield>
   );
 }

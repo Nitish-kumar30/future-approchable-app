@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import HlsPlayer from '@/components/video/HlsPlayer';
 import { shouldMarkVideoComplete } from '@/lib/recordingVideo';
 import NextSessionOverlay from '@/components/session/NextSessionOverlay';
+import { InspectShield } from '@/components/session/InspectShield';
 import { useEndOfVideoOverlay } from '@/components/session/useEndOfVideoOverlay';
 import type { OnDemandPlayerProps } from '@/components/session/onDemandPlayerTypes';
 
@@ -23,7 +24,7 @@ export default function HlsOnDemandPlayer({
   );
 
   return (
-    <div className="relative aspect-video bg-black rounded-lg overflow-hidden border border-border">
+    <InspectShield className="relative aspect-video bg-black rounded-lg overflow-hidden border border-border">
       <HlsPlayer
         key={videoUrl}
         src={videoUrl}
@@ -61,6 +62,6 @@ export default function HlsOnDemandPlayer({
           onStartNow={handleStartNow}
         />
       )}
-    </div>
+    </InspectShield>
   );
 }
