@@ -61,9 +61,9 @@ describe('isVideoUrl', () => {
 });
 
 describe('shouldMarkVideoComplete', () => {
-  it('is true when 20s or fewer remain', () => {
-    expect(shouldMarkVideoComplete(80, 100)).toBe(true);
-    expect(shouldMarkVideoComplete(79, 100)).toBe(false);
+  it('is true at 95% watched or later', () => {
+    expect(shouldMarkVideoComplete(95, 100)).toBe(true);
+    expect(shouldMarkVideoComplete(94, 100)).toBe(false);
     expect(shouldMarkVideoComplete(0, 0)).toBe(false);
   });
 });
