@@ -30,13 +30,14 @@ export default function HlsOnDemandPlayer({
     <InspectShield className="relative bg-black rounded-lg overflow-hidden border border-border">
       <div
         ref={wrapperRef}
-        className={`relative group ${isFullscreen ? 'w-screen h-screen rounded-none' : 'aspect-video'}`}
+        className={`relative isolate group ${isFullscreen ? 'w-screen h-screen rounded-none' : 'aspect-video'}`}
       >
         <HlsPlayer
           key={videoUrl}
           src={videoUrl}
           autoPlay={!!autoPlay}
-          className="w-full h-full bg-black"
+          showControls={!showOverlay}
+          className="relative z-0 w-full h-full bg-black"
           onPlay={() => {
             if (!autoPlayConsumedRef.current) {
               autoPlayConsumedRef.current = true;

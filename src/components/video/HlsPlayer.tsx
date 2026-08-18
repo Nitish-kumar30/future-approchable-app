@@ -6,6 +6,7 @@ interface HlsPlayerProps {
   src: string;
   poster?: string;
   autoPlay?: boolean;
+  showControls?: boolean;
   onPlay?: () => void;
   onProgress?: (currentTime: number, duration: number) => void;
   onEnded?: () => void;
@@ -23,6 +24,7 @@ export default function HlsPlayer({
   src,
   poster,
   autoPlay = true,
+  showControls = true,
   onPlay,
   onProgress,
   onEnded,
@@ -144,7 +146,7 @@ export default function HlsPlayer({
   return (
     <video
       ref={videoRef}
-      controls
+      controls={showControls}
       controlsList="nofullscreen"
       disablePictureInPicture
       playsInline
