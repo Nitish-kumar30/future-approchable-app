@@ -1,4 +1,4 @@
-export const COMPLETE_REMAINING_SECONDS = 20;
+export const COMPLETE_PROGRESS_RATIO = 0.95;
 
 export type RecordingVideo =
   | { kind: 'youtube'; videoId: string; embedUrl: string }
@@ -13,7 +13,7 @@ const VIMEO_RE = /vimeo\.com\/(?:video\/)?(\d+)/i;
 const GUMLET_WATCH_RE = /(?:gumlet\.tv\/watch\/|play\.gumlet\.io\/embed\/)([a-zA-Z0-9]+)/i;
 
 export function shouldMarkVideoComplete(seconds: number, duration: number): boolean {
-  return duration > 0 && duration - seconds <= COMPLETE_REMAINING_SECONDS;
+  return duration > 0 && seconds / duration >= COMPLETE_PROGRESS_RATIO;
 }
 
 export function detectRecordingVideo(url: string): RecordingVideo {
