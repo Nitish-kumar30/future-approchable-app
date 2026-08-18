@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BookOpen, ArrowRight } from 'lucide-react';
+import { fetchOnDemandLearningItems } from '@/lib/onDemandProgress';
 
 interface LearningItem {
   courseId: string;
@@ -22,75 +23,6 @@ interface EnrolledCourse {
   slug: string;
   name: string;
   is_on_demand: boolean | null;
-}
-
-function isVideoUrl(url: string) {
-  return url.includes('youtube') || url.includes('youtu.be') || url.includes('vimeo.com');
-}
-
-// Free / on-demand courses track progress at the session level (no chapters),
-// so they need their own percent + "last touched" computation.
-async function fetchOnDemandProgress(
-  userId: string,
-  courses: EnrolledCourse[],
-): Promise<LearningItem[]> {
-  const courseIds = courses.map((c) => c.id);
-
-  const { data: sessions } = await supabase
-    .from('sessions')
-    .select('id, title, session_order, recording_url, course_id')
-    .in('course_id', courseIds)
-    .order('session_order', { ascending: true });
-
-  const sessionIds = (sessions || []).map((s) => s.id);
-
-  const [{ data: quizRows }, { data: progressRows }] = await Promise.all([
-    sessionIds.length > 0
-      ? supabase.from('session_quizzes').select('session_id').in('session_id', sessionIds)
-      : Promise.resolve({ data: [] as { session_id: string }[] }),
-    sessionIds.length > 0
-      ? supabase
-          .from('session_progress')
-          .select('session_id, is_completed, completed_at')
-          .eq('user_id', userId)
-          .eq('is_completed', true)
-          .in('session_id', sessionIds)
-      : Promise.resolve({ data: [] as { session_id: string; is_completed: boolean; completed_at: string | null }[] }),
-  ]);
-
-  const quizSessionIds = new Set((quizRows || []).map((q) => q.session_id));
-  const completedAtBySession = new Map(
-    (progressRows || []).map((p) => [p.session_id, p.completed_at ?? '']),
-  );
-
-  return courses.map((course) => {
-    const courseSessions = (sessions || []).filter((s) => s.course_id === course.id);
-    const trackable = courseSessions.filter(
-      (s) => (s.recording_url && isVideoUrl(s.recording_url)) || quizSessionIds.has(s.id),
-    );
-    const completedCount = trackable.filter((s) => completedAtBySession.has(s.id)).length;
-    const percent =
-      trackable.length > 0 ? Math.round((completedCount / trackable.length) * 100) : 0;
-
-    let lastTitle: string | null = null;
-    let lastCompletedAt = '';
-    for (const s of courseSessions) {
-      const completedAt = completedAtBySession.get(s.id);
-      if (completedAt && completedAt > lastCompletedAt) {
-        lastCompletedAt = completedAt;
-        lastTitle = s.title;
-      }
-    }
-
-    return {
-      courseId: course.id,
-      slug: course.slug,
-      name: course.name,
-      percent,
-      lastChapterTitle: lastTitle,
-      isOnDemand: true,
-    };
-  });
 }
 
 export default function ContinueLearningRow() {
@@ -142,7 +74,7 @@ export default function ContinueLearningRow() {
           }),
         ),
         onDemandCourses.length > 0
-          ? fetchOnDemandProgress(user.id, onDemandCourses)
+          ? fetchOnDemandLearningItems(user.id, onDemandCourses)
           : Promise.resolve([] as LearningItem[]),
       ]);
 

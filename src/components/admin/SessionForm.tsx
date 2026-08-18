@@ -305,8 +305,11 @@ export function SessionForm({
                 type="url"
                 value={formData.recording_url}
                 onChange={(e) => setFormData({ ...formData, recording_url: e.target.value })}
-                placeholder="https://youtube.com/..."
+                placeholder="YouTube, Vimeo, or https://gumlet.tv/watch/..."
               />
+              <p className="text-xs text-muted-foreground">
+                Paste a YouTube, Vimeo, or Gumlet link. The player is chosen automatically.
+              </p>
             </div>
 
             <div className="space-y-2">

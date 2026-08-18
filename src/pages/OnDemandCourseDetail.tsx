@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { buildLoginUrl, courseDetailPath, onDemandCoursePath } from '@/lib/authRedirect';
 import PublicHeader from '@/components/layout/PublicHeader';
-import VimeoPlayer from '@/components/session/VimeoPlayer';
+import OnDemandVideoPlayer from '@/components/session/OnDemandVideoPlayer';
 import InlineQuiz from '@/components/session/InlineQuiz';
 
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import FeedbackDialog from '@/components/FeedbackDialog';
 import { canEnrollInCourse } from '@/lib/coursePayment';
+import { isVideoUrl } from '@/lib/recordingVideo';
 
 interface Course {
   id: string;
@@ -58,20 +59,6 @@ interface PreReadingMaterial {
   id: string;
   title: string;
   link: string;
-}
-
-function isVimeoUrl(url: string) {
-  return url.includes('vimeo.com');
-}
-
-function isVideoUrl(url: string) {
-  return url.includes('youtube') || url.includes('youtu.be') || url.includes('vimeo.com');
-}
-
-function getYouTubeEmbed(url: string): string | null {
-  const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
-  return null;
 }
 
 function getContentType(session: Session, hasQuizzes: boolean, hasReadings: boolean): string {
@@ -254,9 +241,10 @@ export default function OnDemandCourseDetail() {
     );
   }, [user, completedSessionIds, sessions, sessionQuizzes]);
 
-  const [autoPlayNext, setAutoPlayNext] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const autoEnrolledRef = useRef(false);
+  /** Session id that should autoplay when its player mounts (set by next-video flow). */
+  const autoPlaySessionIdRef = useRef<string | null>(null);
 
   // Reset auto-enroll ref when course changes
   useEffect(() => {
@@ -286,12 +274,19 @@ export default function OnDemandCourseDetail() {
   const handleNextSession = useCallback(() => {
     const currentIdx = sessions.findIndex(s => s.id === activeSessionId);
     if (currentIdx >= 0 && currentIdx < sessions.length - 1) {
-      setAutoPlayNext(true);
-      setActiveSessionId(sessions[currentIdx + 1].id);
+      const nextId = sessions[currentIdx + 1].id;
+      autoPlaySessionIdRef.current = nextId;
+      setActiveSessionId(nextId);
     }
   }, [sessions, activeSessionId]);
 
+  const consumeAutoPlay = useCallback(() => {
+    autoPlaySessionIdRef.current = null;
+  }, []);
+
   const activeSession = sessions.find(s => s.id === activeSessionId);
+  const shouldAutoPlay =
+    activeSessionId !== null && autoPlaySessionIdRef.current === activeSessionId;
 
   // Progress calculation: sessions with video OR quizzes count as trackable
   const trackableSessions = sessions.filter(s => {
@@ -332,7 +327,7 @@ export default function OnDemandCourseDetail() {
         <PublicHeader />
         <div className="container py-16 text-center">
           <h2 className="text-2xl font-bold mb-4">Course not found</h2>
-          <Button asChild><Link to="/on-demand"><ChevronLeft className="mr-2 h-4 w-4" />Back to courses</Link></Button>
+          <Button asChild><Link to="/courses?tab=free"><ChevronLeft className="mr-2 h-4 w-4" />Back to courses</Link></Button>
         </div>
       </div>
     );
@@ -348,8 +343,8 @@ export default function OnDemandCourseDetail() {
         <aside className="md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-border bg-card shrink-0 flex flex-col">
           {/* Course info merged into sidebar */}
           <div className="p-4 border-b border-border shrink-0">
-            <Link to="/on-demand" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-2">
-              <ChevronLeft className="h-3 w-3" /> Back to On-Demand Courses
+            <Link to="/courses?tab=free" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-2">
+              <ChevronLeft className="h-3 w-3" /> Back to Free Courses
             </Link>
             <h1 className="text-lg font-display font-bold text-foreground leading-tight">{course.name}</h1>
             {course.mentor_name && <p className="text-xs text-muted-foreground mt-1">by {course.mentor_name}</p>}
@@ -376,7 +371,10 @@ export default function OnDemandCourseDetail() {
                 return (
                   <button
                     key={session.id}
-                    onClick={() => setActiveSessionId(session.id)}
+                    onClick={() => {
+                      autoPlaySessionIdRef.current = null;
+                      setActiveSessionId(session.id);
+                    }}
                     className={`w-full text-left rounded-lg px-3 py-3 flex items-start gap-3 transition-colors ${
                       isActive
                         ? 'bg-primary/10 text-foreground'
@@ -460,50 +458,20 @@ export default function OnDemandCourseDetail() {
                 </div>
 
                 {/* Video embed */}
-                {activeSession.recording_url && (() => {
-                  const url = activeSession.recording_url;
-
-                  // Vimeo: use SDK player with popup + 20s completion
-                  if (isVimeoUrl(url)) {
-                    return (
-                      <VimeoPlayer
-                        key={activeSession.id}
-                        videoUrl={url}
-                        title={activeSession.title}
-                        nextSession={nextSessionForPlayer}
-                        onCompleted={() => handleSessionCompleted(activeSession.id)}
-                        onNextSession={handleNextSession}
-                        autoPlay={autoPlayNext}
-                        onAutoPlayConsumed={() => setAutoPlayNext(false)}
-                        onPlay={handleAutoEnroll}
-                        showUpsellOverlay={activeSession.session_order === 3}
-                      />
-                    );
-                  }
-
-                  // YouTube: plain iframe
-                  const ytEmbed = getYouTubeEmbed(url);
-                  if (ytEmbed) {
-                    return (
-                      <div className="aspect-video bg-muted rounded-lg overflow-hidden border border-border">
-                        <iframe
-                          src={ytEmbed}
-                          className="w-full h-full"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          title={activeSession.title}
-                        />
-                      </div>
-                    );
-                  }
-
-                  // External link fallback
-                  return (
-                    <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-primary hover:underline">
-                      <ExternalLink className="h-4 w-4" /> Open recording
-                    </a>
-                  );
-                })()}
+                {activeSession.recording_url && (
+                  <OnDemandVideoPlayer
+                    key={activeSession.id}
+                    videoUrl={activeSession.recording_url}
+                    title={activeSession.title}
+                    nextSession={nextSessionForPlayer}
+                    onCompleted={() => handleSessionCompleted(activeSession.id)}
+                    onNextSession={handleNextSession}
+                    autoPlay={shouldAutoPlay}
+                    onAutoPlayConsumed={consumeAutoPlay}
+                    onPlay={handleAutoEnroll}
+                    showUpsellOverlay={activeSession.session_order === 3}
+                  />
+                )}
 
                 {/* Quizzes */}
                 {sessionQuizzes[activeSession.id]?.length > 0 && (

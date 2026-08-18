@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import AppShell from '@/components/layout/AppShell';
+import FreeCoursesGrid from '@/components/courses/FreeCoursesGrid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ import {
   ListFilter,
 } from 'lucide-react';
 import { formatDuration } from '@/lib/formatDuration';
+import { computeOnDemandProgressPercents } from '@/lib/onDemandProgress';
 
 interface Course {
   id: string;
@@ -51,7 +53,7 @@ interface MyCourse extends Course {
   percent: number;
 }
 
-type TabValue = 'courses' | 'my';
+type TabValue = 'courses' | 'free' | 'my';
 type SortOption = 'newest' | 'name-asc';
 type PriceFilter = 'all' | 'paid' | 'free';
 
@@ -190,13 +192,15 @@ export default function Courses() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const activeTab: TabValue = tabParam === 'my' ? tabParam : 'courses';
+  const activeTab: TabValue = tabParam === 'my' || tabParam === 'free' ? tabParam : 'courses';
 
   const [paidCourses, setPaidCourses] = useState<Course[]>([]);
   const [myCourses, setMyCourses] = useState<MyCourse[]>([]);
   const [enrolledIds, setEnrolledIds] = useState<string[]>([]);
   const [loadingPaid, setLoadingPaid] = useState(true);
   const [loadingMy, setLoadingMy] = useState(true);
+  const [freeCount, setFreeCount] = useState(0);
+  const [loadingFree, setLoadingFree] = useState(true);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortOption>('newest');
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('all');
@@ -216,6 +220,24 @@ export default function Courses() {
       if (!cancelled) {
         setPaidCourses(data || []);
         setLoadingPaid(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from('courses')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_published', true)
+        .eq('is_on_demand', true);
+      if (!cancelled) {
+        setFreeCount(count || 0);
+        setLoadingFree(false);
       }
     })();
     return () => {
@@ -246,8 +268,14 @@ export default function Courses() {
         .map((e) => e.courses as unknown as Course | null)
         .filter((c): c is Course => !!c);
 
+      const onDemandIds = courses.filter((c) => c.is_on_demand).map((c) => c.id);
+      const onDemandPercents = await computeOnDemandProgressPercents(user.id, onDemandIds);
+
       const withProgress = await Promise.all(
         courses.map(async (course) => {
+          if (course.is_on_demand) {
+            return { ...course, percent: onDemandPercents.get(course.id) ?? 0 };
+          }
           const { data: percent } = await supabase.rpc('compute_enrollment_progress_percent', {
             p_user_id: user.id,
             p_course_id: course.id,
@@ -338,12 +366,17 @@ export default function Courses() {
                   </span>
                 )}
               </TabsTrigger>
-              <Link
-                to="/free"
-                className="inline-flex h-auto items-center gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-0.5 pt-1.5 pb-2.5 text-sm font-medium text-muted-foreground shadow-none transition-colors duration-200 hover:border-muted-foreground/30 hover:text-foreground"
+              <TabsTrigger
+                value="free"
+                className="h-auto gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-0.5 pt-1.5 pb-2.5 text-sm font-medium text-muted-foreground shadow-none transition-colors duration-200 hover:border-muted-foreground/30 hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
               >
                 Free
-              </Link>
+                {!loadingFree && freeCount > 0 && (
+                  <span className="text-[11px] text-muted-foreground tabular-nums">
+                    {freeCount}
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger
                 value="my"
                 className="h-auto gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-0.5 pt-1.5 pb-2.5 text-sm font-medium text-muted-foreground shadow-none transition-colors duration-200 hover:border-muted-foreground/30 hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
@@ -388,31 +421,35 @@ export default function Courses() {
                       </DropdownMenuRadioItem>
                     ))}
                   </DropdownMenuRadioGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-xs"
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      setPriceFilter(priceFilter === 'paid' ? 'all' : 'paid');
-                    }}
-                  >
-                    <Check
-                      className={`mr-2 h-3.5 w-3.5 ${priceFilter === 'paid' ? 'opacity-100' : 'opacity-0'}`}
-                    />
-                    Paid
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="text-xs"
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      setPriceFilter(priceFilter === 'free' ? 'all' : 'free');
-                    }}
-                  >
-                    <Check
-                      className={`mr-2 h-3.5 w-3.5 ${priceFilter === 'free' ? 'opacity-100' : 'opacity-0'}`}
-                    />
-                    Unpaid
-                  </DropdownMenuItem>
+                  {activeTab !== 'free' && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-xs"
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setPriceFilter(priceFilter === 'paid' ? 'all' : 'paid');
+                        }}
+                      >
+                        <Check
+                          className={`mr-2 h-3.5 w-3.5 ${priceFilter === 'paid' ? 'opacity-100' : 'opacity-0'}`}
+                        />
+                        Paid
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-xs"
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setPriceFilter(priceFilter === 'free' ? 'all' : 'free');
+                        }}
+                      >
+                        <Check
+                          className={`mr-2 h-3.5 w-3.5 ${priceFilter === 'free' ? 'opacity-100' : 'opacity-0'}`}
+                        />
+                        Unpaid
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -450,6 +487,10 @@ export default function Courses() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="free" className="mt-4">
+            <FreeCoursesGrid searchQuery={search} sort={sort} />
           </TabsContent>
 
           <TabsContent value="my" className="mt-4">

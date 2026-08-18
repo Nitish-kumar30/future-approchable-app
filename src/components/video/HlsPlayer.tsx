@@ -6,6 +6,7 @@ interface HlsPlayerProps {
   src: string;
   poster?: string;
   autoPlay?: boolean;
+  onPlay?: () => void;
   onProgress?: (currentTime: number, duration: number) => void;
   onEnded?: () => void;
   onNearEnd?: () => void;
@@ -22,6 +23,7 @@ export default function HlsPlayer({
   src,
   poster,
   autoPlay = true,
+  onPlay,
   onProgress,
   onEnded,
   onNearEnd,
@@ -32,10 +34,12 @@ export default function HlsPlayer({
   const nearEndFiredRef = useRef(false);
 
   // Keep latest callbacks in refs so the setup effect doesn't re-run on every render.
+  const onPlayRef = useRef(onPlay);
   const onProgressRef = useRef(onProgress);
   const onEndedRef = useRef(onEnded);
   const onNearEndRef = useRef(onNearEnd);
   const onErrorRef = useRef(onError);
+  useEffect(() => { onPlayRef.current = onPlay; }, [onPlay]);
   useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
   useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
   useEffect(() => { onNearEndRef.current = onNearEnd; }, [onNearEnd]);
@@ -145,6 +149,7 @@ export default function HlsPlayer({
       disablePictureInPicture
       playsInline
       poster={poster}
+      onPlay={() => onPlayRef.current?.()}
       onTimeUpdate={handleTimeUpdate}
       onEnded={() => onEndedRef.current?.()}
       className={className ?? 'w-full h-full bg-black'}
