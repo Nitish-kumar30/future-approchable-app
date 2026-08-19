@@ -18,7 +18,7 @@ interface HlsPlayerProps {
 /**
  * HLS video player. Prefers hls.js everywhere it's supported; falls back to
  * native HLS on Safari/iOS. Setup effect depends only on `src` — parent
- * callbacks are stored in refs so re-renders don't tear down the media.
+ * callbacks and autoPlay are stored in refs so re-renders don't tear down the media.
  */
 export default function HlsPlayer({
   src,
@@ -41,11 +41,13 @@ export default function HlsPlayer({
   const onEndedRef = useRef(onEnded);
   const onNearEndRef = useRef(onNearEnd);
   const onErrorRef = useRef(onError);
+  const autoPlayRef = useRef(autoPlay);
   useEffect(() => { onPlayRef.current = onPlay; }, [onPlay]);
   useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
   useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
   useEffect(() => { onNearEndRef.current = onNearEnd; }, [onNearEnd]);
   useEffect(() => { onErrorRef.current = onError; }, [onError]);
+  useEffect(() => { autoPlayRef.current = autoPlay; }, [autoPlay]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -86,7 +88,7 @@ export default function HlsPlayer({
     const tryPlay = () => {
       if (cancelled) return;
       applyVideoPlaybackPrefs(video);
-      if (!autoPlay) return;
+      if (!autoPlayRef.current) return;
       const p = video.play();
       if (p && typeof p.catch === 'function') {
         p.catch(() => {
@@ -131,7 +133,7 @@ export default function HlsPlayer({
       cancelled = true;
       if (hls) hls.destroy();
     };
-  }, [src, autoPlay]);
+  }, [src]);
 
   const handleTimeUpdate = () => {
     const v = videoRef.current;
