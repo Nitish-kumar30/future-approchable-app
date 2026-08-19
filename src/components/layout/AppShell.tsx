@@ -361,7 +361,7 @@ export default function AppShell({ children }: AppShellProps) {
             {children}
           </div>
 
-          <Footer className="mt-8 md:mt-auto px-4 md:px-6 pb-[calc(var(--mobile-nav-height)+env(safe-area-inset-bottom)+1.5rem)] md:pb-6" />
+          <Footer className="mt-8 md:mt-auto px-4 md:px-6 pb-[calc(var(--mobile-nav-height)+var(--sticky-pay-bar-height,0px)+env(safe-area-inset-bottom)+1.5rem)] md:pb-[calc(var(--sticky-pay-bar-height,0px)+1.5rem)]" />
         </SidebarInset>
 
         {/* ── Mobile bottom navigation ── */}
