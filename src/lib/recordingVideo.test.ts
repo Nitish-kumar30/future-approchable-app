@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { detectRecordingVideo, isVideoUrl, shouldMarkVideoComplete } from './recordingVideo';
+import {
+  detectRecordingVideo,
+  isVideoUrl,
+  shouldMarkVideoComplete,
+  type RecordingVideo,
+} from './recordingVideo';
+
+const videoIdOf = (v: RecordingVideo): string | undefined =>
+  'videoId' in v ? v.videoId : undefined;
 
 describe('detectRecordingVideo', () => {
   it('detects YouTube watch, embed, shorts, and youtu.be', () => {
