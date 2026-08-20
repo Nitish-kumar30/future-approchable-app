@@ -41,6 +41,7 @@ export function useEndOfVideoOverlay(nextSession: NextSessionInfo | null, onNext
       setCountdown((prev) => {
         if (prev <= 1) {
           clearCountdown();
+          setShowOverlay(false);
           onNextSession();
           return 0;
         }

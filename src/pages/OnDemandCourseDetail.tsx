@@ -512,7 +512,6 @@ export default function OnDemandCourseDetail() {
                 {/* Video embed */}
                 {activeSession.recording_url && (
                   <OnDemandVideoPlayer
-                    key={activeSession.id}
                     videoUrl={activeSession.recording_url}
                     title={activeSession.title}
                     nextSession={nextSessionForPlayer}

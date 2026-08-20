@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import CustomHlsPlayer from '@/components/video/custom-player/CustomHlsPlayer';
 import { shouldMarkVideoComplete } from '@/lib/recordingVideo';
 import NextSessionOverlay from '@/components/session/NextSessionOverlay';
@@ -20,6 +20,15 @@ export default function HlsOnDemandPlayer({
   const completedFiredRef = useRef(false);
   const playFiredRef = useRef(false);
   const autoPlayConsumedRef = useRef(false);
+
+  // The player no longer remounts between sessions (so fullscreen persists), so these
+  // per-video guards must be re-armed manually whenever the source changes.
+  useEffect(() => {
+    completedFiredRef.current = false;
+    playFiredRef.current = false;
+    autoPlayConsumedRef.current = false;
+  }, [videoUrl]);
+
   const { showOverlay, countdown, openOverlay, handleCancel, handleStartNow } = useEndOfVideoOverlay(
     nextSession,
     onNextSession,
