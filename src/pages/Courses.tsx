@@ -32,7 +32,7 @@ import {
   ListFilter,
 } from 'lucide-react';
 import { formatDuration } from '@/lib/formatDuration';
-import { computeOnDemandProgressPercents } from '@/lib/onDemandProgress';
+import { computeOnDemandProgressPercents, fetchOnDemandResumeSessionIds } from '@/lib/onDemandProgress';
 
 interface Course {
   id: string;
@@ -51,6 +51,12 @@ interface Course {
 
 interface MyCourse extends Course {
   percent: number;
+  resumeSessionId?: string | null;
+}
+
+function onDemandResumeHref(slug: string, resumeSessionId: string | null | undefined): string {
+  const base = `/on-demand/${slug}`;
+  return resumeSessionId ? `${base}?session=${resumeSessionId}` : base;
 }
 
 type TabValue = 'courses' | 'free' | 'my';
@@ -269,12 +275,19 @@ export default function Courses() {
         .filter((c): c is Course => !!c);
 
       const onDemandIds = courses.filter((c) => c.is_on_demand).map((c) => c.id);
-      const onDemandPercents = await computeOnDemandProgressPercents(user.id, onDemandIds);
+      const [onDemandPercents, onDemandResumeIds] = await Promise.all([
+        computeOnDemandProgressPercents(user.id, onDemandIds),
+        fetchOnDemandResumeSessionIds(user.id, onDemandIds),
+      ]);
 
       const withProgress = await Promise.all(
         courses.map(async (course) => {
           if (course.is_on_demand) {
-            return { ...course, percent: onDemandPercents.get(course.id) ?? 0 };
+            return {
+              ...course,
+              percent: onDemandPercents.get(course.id) ?? 0,
+              resumeSessionId: onDemandResumeIds.get(course.id) ?? null,
+            };
           }
           const { data: percent } = await supabase.rpc('compute_enrollment_progress_percent', {
             p_user_id: user.id,
@@ -527,7 +540,7 @@ export default function Courses() {
                     percent={course.percent}
                     href={
                       course.is_on_demand
-                        ? `/on-demand/${course.slug}`
+                        ? onDemandResumeHref(course.slug, course.resumeSessionId)
                         : `/courses/${course.slug}/learn`
                     }
                     ctaLabel={course.percent > 0 ? 'Resume' : 'Start'}
