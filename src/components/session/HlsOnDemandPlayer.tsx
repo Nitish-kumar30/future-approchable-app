@@ -1,6 +1,5 @@
 import { useRef } from 'react';
-import { Maximize, Minimize } from 'lucide-react';
-import HlsPlayer from '@/components/video/HlsPlayer';
+import CustomHlsPlayer from '@/components/video/custom-player/CustomHlsPlayer';
 import { shouldMarkVideoComplete } from '@/lib/recordingVideo';
 import NextSessionOverlay from '@/components/session/NextSessionOverlay';
 import { InspectShield } from '@/components/session/InspectShield';
@@ -10,6 +9,7 @@ import type { OnDemandPlayerProps } from '@/components/session/onDemandPlayerTyp
 
 export default function HlsOnDemandPlayer({
   videoUrl,
+  title,
   nextSession,
   onCompleted,
   onNextSession,
@@ -30,14 +30,17 @@ export default function HlsOnDemandPlayer({
     <InspectShield className="relative bg-black rounded-lg overflow-hidden border border-border">
       <div
         ref={wrapperRef}
-        className={`relative isolate group ${isFullscreen ? 'w-screen h-screen rounded-none' : 'aspect-video'}`}
+        className={`relative isolate ${isFullscreen ? 'w-screen h-screen rounded-none' : 'aspect-video'}`}
       >
-        <HlsPlayer
+        <CustomHlsPlayer
           key={videoUrl}
           src={videoUrl}
+          title={title}
           autoPlay={!!autoPlay}
-          showControls={!showOverlay}
-          className="relative z-0 w-full h-full bg-black"
+          interactive={!showOverlay}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={toggleFullscreen}
+          className="relative z-0 h-full w-full bg-black"
           onPlay={() => {
             if (!autoPlayConsumedRef.current) {
               autoPlayConsumedRef.current = true;
@@ -70,14 +73,6 @@ export default function HlsOnDemandPlayer({
             onStartNow={handleStartNow}
           />
         )}
-        <button
-          type="button"
-          onClick={toggleFullscreen}
-          aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-          className="absolute bottom-2 right-2 z-20 h-8 w-8 flex items-center justify-center rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-        >
-          {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-        </button>
       </div>
     </InspectShield>
   );
