@@ -15,7 +15,13 @@ interface LearningItem {
   name: string;
   percent: number;
   lastChapterTitle: string | null;
+  resumeSessionId: string | null;
   isOnDemand: boolean;
+}
+
+function onDemandResumeHref(slug: string, resumeSessionId: string | null): string {
+  const base = `/on-demand/${slug}`;
+  return resumeSessionId ? `${base}?session=${resumeSessionId}` : base;
 }
 
 interface EnrolledCourse {
@@ -190,7 +196,7 @@ export default function ContinueLearningRow() {
                 <Link
                   to={
                     item.isOnDemand
-                      ? `/on-demand/${item.slug}`
+                      ? onDemandResumeHref(item.slug, item.resumeSessionId)
                       : `/courses/${item.slug}/learn`
                   }
                 >

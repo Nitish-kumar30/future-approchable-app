@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import confetti from 'canvas-confetti';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { buildLoginUrl, courseDetailPath, onDemandCoursePath } from '@/lib/authRedirect';
@@ -29,6 +29,7 @@ import {
 import FeedbackDialog from '@/components/FeedbackDialog';
 import { canEnrollInCourse } from '@/lib/coursePayment';
 import { isVideoUrl } from '@/lib/recordingVideo';
+import { getResumeSessionId } from '@/lib/onDemandProgress';
 
 interface Course {
   id: string;
@@ -79,6 +80,7 @@ const contentIcons: Record<string, typeof PlayCircle> = {
 
 export default function OnDemandCourseDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -87,10 +89,19 @@ export default function OnDemandCourseDetail() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [completedSessionIds, setCompletedSessionIds] = useState<Set<string>>(new Set());
+  const [contentReady, setContentReady] = useState(false);
+  const [progressLoaded, setProgressLoaded] = useState(false);
+
+  const enrolledContentLoadedRef2 = useRef(false);
+  const initialSessionResolvedRef = useRef(false);
 
   useEffect(() => {
     if (slug) {
       enrolledContentLoadedRef2.current = false;
+      initialSessionResolvedRef.current = false;
+      setContentReady(false);
+      setProgressLoaded(false);
+      setActiveSessionId(null);
       fetchCourseData();
     }
   }, [slug]);
@@ -110,7 +121,10 @@ export default function OnDemandCourseDetail() {
   }, [user, sessions.length]);
 
   const fetchProgress = async (sessionIds: string[]) => {
-    if (!user || sessionIds.length === 0) return;
+    if (!user || sessionIds.length === 0) {
+      setProgressLoaded(true);
+      return;
+    }
     const { data } = await supabase
       .from('session_progress')
       .select('session_id')
@@ -121,9 +135,42 @@ export default function OnDemandCourseDetail() {
     if (data) {
       setCompletedSessionIds(new Set(data.map(p => p.session_id)));
     }
+    setProgressLoaded(true);
   };
 
-  const enrolledContentLoadedRef2 = useRef(false);
+  // Resolve initial active session from ?session= deep link or first incomplete lesson.
+  useEffect(() => {
+    if (initialSessionResolvedRef.current || sessions.length === 0 || !contentReady) return;
+    if (user && !progressLoaded) return;
+
+    const quizSessionIds = new Set(
+      Object.entries(sessionQuizzes)
+        .filter(([, quizzes]) => quizzes.length > 0)
+        .map(([sessionId]) => sessionId),
+    );
+
+    const qp = searchParams.get('session');
+    const validQp = qp && sessions.some((s) => s.id === qp) ? qp : null;
+    const resumeId = validQp ?? getResumeSessionId(sessions, completedSessionIds, quizSessionIds);
+
+    setActiveSessionId(resumeId ?? sessions[0]?.id ?? null);
+    initialSessionResolvedRef.current = true;
+
+    if (validQp) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('session');
+      setSearchParams(next, { replace: true });
+    }
+  }, [
+    sessions,
+    completedSessionIds,
+    user,
+    contentReady,
+    progressLoaded,
+    sessionQuizzes,
+    searchParams,
+    setSearchParams,
+  ]);
 
   const fetchCourseData = async () => {
     // First fetch the course by slug
@@ -151,11 +198,13 @@ export default function OnDemandCourseDetail() {
         // Only set public sessions if enrolled content hasn't loaded yet
         if (!enrolledContentLoadedRef2.current) {
           setSessions(publicSessions);
-          if (publicSessions.length > 0 && !activeSessionId) setActiveSessionId(publicSessions[0].id);
         }
       }
     } catch (e) {
       console.error('Failed to fetch public sessions:', e);
+    }
+    if (!user) {
+      setContentReady(true);
     }
     setIsLoading(false);
   };
@@ -185,7 +234,6 @@ export default function OnDemandCourseDetail() {
     if (sessionsRes.data) {
       enrolledContentLoadedRef2.current = true;
       setSessions(sessionsRes.data);
-      if (sessionsRes.data.length > 0 && !activeSessionId) setActiveSessionId(sessionsRes.data[0].id);
 
       const sessionIds = sessionsRes.data.map(s => s.id);
       if (sessionIds.length > 0) {
@@ -213,8 +261,9 @@ export default function OnDemandCourseDetail() {
         }
       }
     }
+    setContentReady(true);
     setIsLoading(false);
-  }, [user, course, activeSessionId]);
+  }, [user, course]);
 
   const handleSessionCompleted = useCallback(async (sessionId: string) => {
     if (!user || completedSessionIds.has(sessionId)) return;

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Player } from '@gumlet/player.js';
-import { getVideoPlaybackPrefs } from '@/lib/videoPlaybackPrefs';
+import { getVideoPlaybackPrefs, saveVideoPlaybackPrefs } from '@/lib/videoPlaybackPrefs';
 import { shouldMarkVideoComplete } from '@/lib/recordingVideo';
 import NextSessionOverlay from '@/components/session/NextSessionOverlay';
 import { InspectShield } from '@/components/session/InspectShield';
@@ -105,16 +105,42 @@ export default function GumletPlayer({
       onAutoPlayConsumedRef.current?.();
     };
 
+    const onVolumeChangeHandler = async () => {
+      try {
+        const volume = await player.getVolume?.();
+        if (typeof volume === 'number') {
+          saveVideoPlaybackPrefs({ volume: volume / 100 });
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const onPlaybackRateChangeHandler = async () => {
+      try {
+        const rate = await player.getPlaybackRate?.();
+        if (typeof rate === 'number') {
+          saveVideoPlaybackPrefs({ playbackRate: rate });
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
     player.on('ready', onReadyHandler);
     player.on('play', onPlayHandler);
     player.on('timeupdate', onTimeupdateHandler);
     player.on('ended', onEndedHandler);
+    player.on('volumeChange', onVolumeChangeHandler);
+    player.on('playbackRateChange', onPlaybackRateChangeHandler);
 
     return () => {
       player.off('ready', onReadyHandler);
       player.off('play', onPlayHandler);
       player.off('timeupdate', onTimeupdateHandler);
       player.off('ended', onEndedHandler);
+      player.off('volumeChange', onVolumeChangeHandler);
+      player.off('playbackRateChange', onPlaybackRateChangeHandler);
       container.innerHTML = '';
     };
   }, [assetId, title]);
