@@ -3,8 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createRazorpayOrder, getRazorpayKeyId } from "../_shared/razorpay.ts";
 
 // Commitment fee (smallest currency unit) — keep in sync with COHORT_CONFIG in src/lib/constants.ts
-const COMMITMENT_FEE_INR_PAISE = 399900;
-const COMMITMENT_FEE_USD_CENTS = 9900;
+const COMMITMENT_FEE_INR_PAISE = 499900;
+const COMMITMENT_FEE_USD_CENTS = 12900;
 
 // CORS origin whitelist
 const ALLOWED_ORIGINS = [
