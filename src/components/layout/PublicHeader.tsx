@@ -14,12 +14,12 @@ export default function PublicHeader({ hideAuth = false }: { hideAuth?: boolean 
     <>
       <PromoBanner />
       <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-sm">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center justify-between gap-3 pl-3 pr-4 sm:pl-4 sm:pr-6 lg:pl-5 lg:pr-8">
         {/* Logo & Tagline — signed-in users go straight to their dashboard */}
-        <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-3">
-          <img src={logo} alt="Approachable logo" className="h-9 w-9 rounded-lg" />
-          <div className="flex flex-col">
-            <span className="font-display font-bold text-xl text-foreground leading-tight">Approachable</span>
+        <Link to={user ? "/dashboard" : "/"} className="flex min-w-0 shrink items-center gap-2.5 sm:gap-3">
+          <img src={logo} alt="Approachable logo" className="h-9 w-9 shrink-0 rounded-lg" />
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate font-display text-lg font-bold leading-tight text-foreground sm:text-xl">Approachable</span>
             <span className="text-[10px] text-muted-foreground leading-none hidden sm:block">making learning AI approachable for everyone</span>
           </div>
         </Link>
@@ -30,10 +30,13 @@ export default function PublicHeader({ hideAuth = false }: { hideAuth?: boolean 
 
         {/* Auth Buttons */}
         {!hideAuth && (
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {user ? (
-              <Button asChild>
-                <Link to="/dashboard">Go to Dashboard</Link>
+              <Button size="sm" asChild className="whitespace-nowrap px-3 sm:px-4">
+                <Link to="/dashboard">
+                  <span className="sm:hidden">Dashboard</span>
+                  <span className="hidden sm:inline">Go to Dashboard</span>
+                </Link>
               </Button>
             ) : (
               <>
