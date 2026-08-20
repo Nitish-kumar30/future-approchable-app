@@ -207,7 +207,7 @@ serve(async (req) => {
     }
 
     // Trigger n8n webhook (fire-and-forget, don't block response)
-    const webhookUrl = "https://bigintsolutions-dev.app.n8n.cloud/webhook-test/a08ddc13-2299-43c7-bfe6-df8b6053ad07";
+    const webhookUrl = "https://bigintsolutions-dev.app.n8n.cloud/webhook/a08ddc13-2299-43c7-bfe6-df8b6053ad07";
     fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
