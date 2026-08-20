@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { detectRecordingVideo, isVideoUrl, shouldMarkVideoComplete } from './recordingVideo';
+import {
+  detectRecordingVideo,
+  isVideoUrl,
+  shouldMarkVideoComplete,
+  type RecordingVideo,
+} from './recordingVideo';
+
+const videoIdOf = (v: RecordingVideo): string | undefined =>
+  'videoId' in v ? v.videoId : undefined;
 
 describe('detectRecordingVideo', () => {
   it('detects YouTube watch, embed, shorts, and youtu.be', () => {
@@ -9,10 +17,10 @@ describe('detectRecordingVideo', () => {
       embedUrl: 'https://www.youtube.com/embed/dQw4w9wgGcQ',
     });
     expect(detectRecordingVideo('https://www.youtube.com/embed/dQw4w9wgGcQ').kind).toBe('youtube');
-    expect(detectRecordingVideo('https://youtu.be/dQw4w9wgGcQ').videoId).toBe('dQw4w9wgGcQ');
-    expect(detectRecordingVideo('https://www.youtube.com/watch?feature=share&v=dQw4w9wgGcQ').videoId).toBe(
-      'dQw4w9wgGcQ',
-    );
+    expect(videoIdOf(detectRecordingVideo('https://youtu.be/dQw4w9wgGcQ'))).toBe('dQw4w9wgGcQ');
+    expect(
+      videoIdOf(detectRecordingVideo('https://www.youtube.com/watch?feature=share&v=dQw4w9wgGcQ')),
+    ).toBe('dQw4w9wgGcQ');
     expect(detectRecordingVideo('https://www.youtube.com/shorts/dQw4w9wgGcQ').kind).toBe('youtube');
   });
 
