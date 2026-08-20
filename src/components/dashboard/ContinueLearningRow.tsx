@@ -106,6 +106,7 @@ export default function ContinueLearningRow() {
         name: course.name,
         percent: percentByCourse.get(course.id) ?? 0,
         lastChapterTitle: lastChapterByCourse.get(course.id) ?? null,
+        resumeSessionId: null,
         isOnDemand: false,
       }));
 
