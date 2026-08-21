@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from 'react';
 import { Play } from 'lucide-react';
@@ -397,7 +398,13 @@ export default function CustomHlsPlayer({
     [bumpSpeed, kickIdle, onToggleFullscreen, skip, toggleMute, togglePlay, flash],
   );
 
-  const handlePointerLeaveContainer = useCallback(() => {
+  const handlePointerLeaveContainer = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    // iOS/Android Safari fire a synthetic "pointerleave" immediately after
+    // pointerup for touch pointers (a touch always "leaves" once lifted).
+    // Reacting to that here would hide the chrome right after the tap that
+    // was meant to reveal it, permanently stranding touch users with no way
+    // to bring the controls back. Only real mouse hover-out should hide it.
+    if (e.pointerType !== 'mouse') return;
     const video = videoRef.current;
     if (video && !video.paused) setIdle(true);
   }, []);
