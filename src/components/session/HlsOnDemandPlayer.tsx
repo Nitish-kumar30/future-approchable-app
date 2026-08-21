@@ -34,7 +34,18 @@ export default function HlsOnDemandPlayer({
     onNextSession,
   );
   const videoElRef = useRef<HTMLVideoElement>(null);
-  const { wrapperRef, isFullscreen, toggleFullscreen } = useVideoFullscreen(videoElRef);
+  const { wrapperRef, isFullscreen, toggleFullscreen, enterFullscreen, exitFullscreen, usesNativeVideoFullscreen } =
+    useVideoFullscreen(videoElRef);
+  // On iPhone, fullscreen only applies to the raw <video> (native OS
+  // fullscreen), so the "up next" overlay — a sibling <div> — never appears on
+  // top of it. Drop out of native fullscreen just long enough to show the
+  // overlay, then re-enter it automatically once the next video starts.
+  const wantsFullscreenOnNextRef = useRef(false);
+
+  const handleCancelOverlay = () => {
+    wantsFullscreenOnNextRef.current = false;
+    handleCancel();
+  };
 
   return (
     <InspectShield className="relative rounded-lg border border-border bg-black">
@@ -61,6 +72,10 @@ export default function HlsOnDemandPlayer({
               playFiredRef.current = true;
               onPlay?.();
             }
+            if (wantsFullscreenOnNextRef.current) {
+              wantsFullscreenOnNextRef.current = false;
+              enterFullscreen();
+            }
           }}
           onProgress={(currentTime, duration) => {
             if (!completedFiredRef.current && shouldMarkVideoComplete(currentTime, duration)) {
@@ -73,6 +88,10 @@ export default function HlsOnDemandPlayer({
               completedFiredRef.current = true;
               onCompleted();
             }
+            if (usesNativeVideoFullscreen && isFullscreen) {
+              wantsFullscreenOnNextRef.current = true;
+              exitFullscreen();
+            }
             openOverlay();
           }}
         />
@@ -80,7 +99,7 @@ export default function HlsOnDemandPlayer({
           <NextSessionOverlay
             nextSession={nextSession}
             countdown={countdown}
-            onCancel={handleCancel}
+            onCancel={handleCancelOverlay}
             onStartNow={handleStartNow}
           />
         )}

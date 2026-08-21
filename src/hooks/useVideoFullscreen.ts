@@ -24,7 +24,10 @@ function getFullscreenElement(): Element | null {
  * iPhone Safari (unlike iPadOS/desktop Safari) does not support the Fullscreen
  * API on arbitrary elements — `div.requestFullscreen()` silently rejects there.
  * The only fullscreen affordance it exposes is `HTMLVideoElement.webkitEnterFullscreen()`,
- * which puts just the <video> into the native iOS fullscreen player.
+ * which puts just the <video> into the native iOS fullscreen player. This means
+ * any DOM overlay rendered as a sibling (e.g. an "up next" countdown) is NOT
+ * visible while this native fullscreen is active — the OS renders the video in
+ * a layer above the page, and only the video's own native controls sit on top.
  */
 function isIphoneSafari(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -41,6 +44,7 @@ function isIphoneSafari(): boolean {
 export function useVideoFullscreen(videoRef?: RefObject<HTMLVideoElement | null>) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [usesNativeVideoFullscreen] = useState(() => isIphoneSafari());
 
   useEffect(() => {
     const onChange = () => setIsFullscreen(!!getFullscreenElement());
@@ -53,39 +57,76 @@ export function useVideoFullscreen(videoRef?: RefObject<HTMLVideoElement | null>
   }, []);
 
   useEffect(() => {
-    const video = videoRef?.current as IosVideoElement | null | undefined;
-    if (!video) return;
-    const onBegin = () => setIsFullscreen(true);
-    const onEnd = () => setIsFullscreen(false);
-    video.addEventListener('webkitbeginfullscreen', onBegin);
-    video.addEventListener('webkitendfullscreen', onEnd);
-    return () => {
-      video.removeEventListener('webkitbeginfullscreen', onBegin);
-      video.removeEventListener('webkitendfullscreen', onEnd);
+    // Listen on the document in the *capture* phase rather than attaching
+    // directly to `videoRef.current`. `webkitbeginfullscreen`/`webkitendfullscreen`
+    // don't bubble, but capture-phase listeners still see them as they travel
+    // down to the target. This matters because pages that swap out the <video>
+    // element (e.g. a new element per lesson via a `key` prop) would otherwise
+    // leave the old element's listeners orphaned and never learn about
+    // fullscreen changes on the replacement element.
+    const onBegin = (e: Event) => {
+      if (e.target === videoRef?.current) setIsFullscreen(true);
     };
+    const onEnd = (e: Event) => {
+      if (e.target === videoRef?.current) setIsFullscreen(false);
+    };
+    document.addEventListener('webkitbeginfullscreen', onBegin, true);
+    document.addEventListener('webkitendfullscreen', onEnd, true);
+    return () => {
+      document.removeEventListener('webkitbeginfullscreen', onBegin, true);
+      document.removeEventListener('webkitendfullscreen', onEnd, true);
+    };
+  }, [videoRef]);
+
+  const enterFullscreen = useCallback(() => {
+    const video = videoRef?.current as IosVideoElement | null | undefined;
+    if (isIphoneSafari() && video?.webkitEnterFullscreen) {
+      if (!video.webkitDisplayingFullscreen) video.webkitEnterFullscreen();
+      return;
+    }
+    const el = wrapperRef.current;
+    if (!el || getFullscreenElement()) return;
+    const target = el as FullscreenElement;
+    el.requestFullscreen?.().catch(() => target.webkitRequestFullscreen?.().catch(() => {}));
+  }, [videoRef]);
+
+  const exitFullscreen = useCallback(() => {
+    const video = videoRef?.current as IosVideoElement | null | undefined;
+    if (isIphoneSafari() && video?.webkitDisplayingFullscreen) {
+      video.webkitExitFullscreen?.();
+      return;
+    }
+    if (getFullscreenElement()) {
+      const doc = document as FullscreenDocument;
+      document.exitFullscreen?.().catch(() => doc.webkitExitFullscreen?.().catch(() => {}));
+    }
   }, [videoRef]);
 
   const toggleFullscreen = useCallback(() => {
     const video = videoRef?.current as IosVideoElement | null | undefined;
     if (isIphoneSafari() && video?.webkitEnterFullscreen) {
       if (video.webkitDisplayingFullscreen) {
-        video.webkitExitFullscreen?.();
+        exitFullscreen();
       } else {
-        video.webkitEnterFullscreen();
+        enterFullscreen();
       }
       return;
     }
 
-    const el = wrapperRef.current;
-    if (!el) return;
-    const doc = document as FullscreenDocument;
     if (getFullscreenElement()) {
-      document.exitFullscreen?.().catch(() => doc.webkitExitFullscreen?.().catch(() => {}));
+      exitFullscreen();
     } else {
-      const target = el as FullscreenElement;
-      el.requestFullscreen?.().catch(() => target.webkitRequestFullscreen?.().catch(() => {}));
+      enterFullscreen();
     }
-  }, [videoRef]);
+  }, [videoRef, enterFullscreen, exitFullscreen]);
 
-  return { wrapperRef, isFullscreen, toggleFullscreen };
+  return {
+    wrapperRef,
+    isFullscreen,
+    toggleFullscreen,
+    enterFullscreen,
+    exitFullscreen,
+    /** True on iPhone Safari, where fullscreen is native-video-only and DOM overlays can't render on top of it. */
+    usesNativeVideoFullscreen,
+  };
 }
