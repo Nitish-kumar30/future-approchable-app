@@ -33,7 +33,8 @@ export default function HlsOnDemandPlayer({
     nextSession,
     onNextSession,
   );
-  const { wrapperRef, isFullscreen, toggleFullscreen } = useVideoFullscreen();
+  const videoElRef = useRef<HTMLVideoElement>(null);
+  const { wrapperRef, isFullscreen, toggleFullscreen } = useVideoFullscreen(videoElRef);
 
   return (
     <InspectShield className="relative rounded-lg border border-border bg-black">
@@ -43,6 +44,7 @@ export default function HlsOnDemandPlayer({
       >
         <CustomHlsPlayer
           key={videoUrl}
+          videoRef={videoElRef}
           src={videoUrl}
           title={title}
           autoPlay={!!autoPlay}

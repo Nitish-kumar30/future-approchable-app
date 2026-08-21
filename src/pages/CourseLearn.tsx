@@ -257,7 +257,8 @@ export default function CourseLearn() {
   const currentTimeRef = useRef<Record<string, number>>({});
 
   // Fullscreen wrapper (contains video + countdown overlay)
-  const { wrapperRef: playerWrapperRef, isFullscreen, toggleFullscreen } = useVideoFullscreen();
+  const liveVideoRef = useRef<HTMLVideoElement>(null);
+  const { wrapperRef: playerWrapperRef, isFullscreen, toggleFullscreen } = useVideoFullscreen(liveVideoRef);
 
   // Auto-advance countdown after a video ends.
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -581,6 +582,7 @@ export default function CourseLearn() {
                     {currentChapter?.can_watch && currentChapter.hls_url ? (
                       <HlsPlayer
                         key={currentChapter.id}
+                        videoRef={liveVideoRef}
                         src={currentChapter.hls_url}
                         autoPlay
                         showControls={countdown === null}
