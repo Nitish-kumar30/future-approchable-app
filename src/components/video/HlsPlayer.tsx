@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import Hls from 'hls.js';
 import { applyVideoPlaybackPrefs, saveVideoPlaybackPrefs } from '@/lib/videoPlaybackPrefs';
 
@@ -13,6 +13,8 @@ interface HlsPlayerProps {
   onNearEnd?: () => void;
   onError?: (msg: string) => void;
   className?: string;
+  /** Exposes the underlying <video> element to the parent (e.g. for iOS-native fullscreen). */
+  videoRef?: RefObject<HTMLVideoElement | null>;
 }
 
 /**
@@ -31,8 +33,13 @@ export default function HlsPlayer({
   onNearEnd,
   onError,
   className,
+  videoRef: externalVideoRef,
 }: HlsPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const setVideoRef = (el: HTMLVideoElement | null) => {
+    videoRef.current = el;
+    if (externalVideoRef) externalVideoRef.current = el;
+  };
   const nearEndFiredRef = useRef(false);
 
   // Keep latest callbacks in refs so the setup effect doesn't re-run on every render.
@@ -147,7 +154,7 @@ export default function HlsPlayer({
 
   return (
     <video
-      ref={videoRef}
+      ref={setVideoRef}
       controls={showControls}
       controlsList="nofullscreen"
       disablePictureInPicture

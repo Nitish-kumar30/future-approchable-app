@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
+  type RefObject,
 } from 'react';
 import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,8 @@ export interface CustomHlsPlayerProps {
   onNearEnd?: () => void;
   onError?: (message: string) => void;
   className?: string;
+  /** Exposes the underlying <video> element to the parent (e.g. for iOS-native fullscreen). */
+  videoRef?: RefObject<HTMLVideoElement | null>;
 }
 
 const IDLE_DELAY_MS = 2600;
@@ -49,9 +52,17 @@ export default function CustomHlsPlayer({
   onNearEnd,
   onError,
   className,
+  videoRef: externalVideoRef,
 }: CustomHlsPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const setVideoRef = useCallback(
+    (el: HTMLVideoElement | null) => {
+      videoRef.current = el;
+      if (externalVideoRef) externalVideoRef.current = el;
+    },
+    [externalVideoRef],
+  );
 
   const initialPrefs = useMemo(() => getVideoPlaybackPrefs(), []);
 
@@ -435,18 +446,20 @@ export default function CustomHlsPlayer({
       onPointerDown={kickIdle}
       onPointerLeave={handlePointerLeaveContainer}
       className={cn(
-        'relative touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+        // touch-pan-y (not touch-none) so iOS Safari still lets the page scroll
+        // vertically when a touch starts over the video; touch-none here was
+        // blocking all scrolling on iPhone/iPad while the player was on screen.
+        'relative touch-pan-y select-none outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
         idle && 'cursor-none',
         className,
       )}
     >
       <div className={cn('absolute inset-0 overflow-hidden', !isFullscreen && 'rounded-lg')}>
         <video
-          ref={videoRef}
+          ref={setVideoRef}
           playsInline
-          crossOrigin="anonymous"
           poster={poster}
-          className="h-full w-full bg-black object-contain"
+          className="h-full w-full bg-black object-contain [-webkit-touch-callout:none]"
           onPlay={handleVideoPlay}
           onPause={handleVideoPause}
           onEnded={handleVideoEnded}

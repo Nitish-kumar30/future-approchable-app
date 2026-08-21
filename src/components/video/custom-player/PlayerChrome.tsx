@@ -92,7 +92,7 @@ export default function PlayerChrome({ state, actions, visible }: PlayerChromePr
       <div
         ref={progressRef}
         className={cn(
-          'group relative mb-0.5 flex h-4 cursor-pointer items-center',
+          'group relative mb-0.5 flex h-4 touch-none cursor-pointer items-center',
           visible && 'pointer-events-auto',
         )}
         onPointerDown={handleProgressPointerDown}
@@ -162,7 +162,7 @@ export default function PlayerChrome({ state, actions, visible }: PlayerChromePr
           >
             <div
               ref={volTrackRef}
-              className="relative ml-1 h-[3px] w-16 cursor-pointer rounded-full bg-white/28"
+              className="relative ml-1 h-[3px] w-16 touch-none cursor-pointer rounded-full bg-white/28"
               onPointerDown={handleVolPointerDown}
               onPointerMove={handleVolPointerMove}
               onPointerUp={handleVolPointerUp}
