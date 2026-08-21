@@ -44,6 +44,7 @@ export interface CS_MiniProject {
 }
 
 interface Props {
+  className?: string;
   sessions: CS_Session[];
   chapters: CS_Chapter[];
   quizzes: CS_Quiz[];
@@ -69,7 +70,27 @@ function formatDuration(sec: number | null | undefined): string {
   return `Video · ${m}m`;
 }
 
+/** Shared session-progress calculation, reused by CourseLearn's mobile "above video" progress bar. */
+export function getSessionProgress(
+  chapters: CS_Chapter[],
+  currentSessionId: string | null | undefined,
+  chapterProgress: Record<string, { is_completed: boolean }>,
+  sessionProgress: Record<string, boolean>,
+) {
+  const chs = chapters.filter((c) => c.session_id === currentSessionId);
+  const total = chs.length;
+  const completed = chs.filter((c) => chapterProgress[c.id]?.is_completed).length;
+  const pct =
+    total > 0
+      ? Math.round((completed / total) * 100)
+      : currentSessionId && sessionProgress[currentSessionId]
+        ? 100
+        : 0;
+  return { total, completed, pct };
+}
+
 export default function CourseSidebar({
+  className,
   sessions,
   chapters,
   quizzes,
@@ -95,17 +116,15 @@ export default function CourseSidebar({
   const mps = miniProjects.filter((m) => m.session_id === currentSession?.id);
 
 
-  const sessionTotal = chs.length;
-  const sessionCompleted = chs.filter((c) => chapterProgress[c.id]?.is_completed).length;
-  const sessionPct =
-    sessionTotal > 0
-      ? Math.round((sessionCompleted / sessionTotal) * 100)
-      : currentSession && sessionProgress[currentSession.id]
-        ? 100
-        : 0;
+  const { total: sessionTotal, completed: sessionCompleted, pct: sessionPct } = getSessionProgress(
+    chapters,
+    currentSession?.id,
+    chapterProgress,
+    sessionProgress,
+  );
 
   return (
-    <aside className="flex flex-col h-full min-h-0 border-r bg-card overflow-hidden">
+    <aside className={cn("flex flex-col h-full min-h-0 border-r bg-card overflow-hidden", className)}>
       {/* Session picker */}
       <div className="p-4 border-b">
         <DropdownMenu>
@@ -221,8 +240,8 @@ export default function CourseSidebar({
         )}
       </div>
 
-      {/* Footer: current session progress */}
-      <div className="p-4 border-t space-y-1">
+      {/* Footer: current session progress (shown above the video on mobile instead — see CourseLearn.tsx) */}
+      <div className="hidden md:block p-4 border-t space-y-1">
         <div className="flex items-center justify-between text-xs gap-2">
           <span className="font-medium truncate">Session {currentSession?.session_order ?? ""}</span>
           <span className="text-muted-foreground shrink-0">

@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buildLoginUrl } from "@/lib/authRedirect";
 import HlsPlayer from "@/components/video/HlsPlayer";
-import CourseSidebar from "@/components/course/CourseSidebar";
+import CourseSidebar, { getSessionProgress } from "@/components/course/CourseSidebar";
+import { Progress } from "@/components/ui/progress";
 import RateCourseDialog from "@/components/course/RateCourseDialog";
 import InlineQuiz from "@/components/session/InlineQuiz";
 import NextSessionOverlay, { type NextSessionInfo } from "@/components/session/NextSessionOverlay";
@@ -448,7 +449,12 @@ export default function CourseLearn() {
             <ChevronRight className="h-4 w-4" />
           </Button>
           {isEnrolled && (
-            <Button variant="outline" size="sm" onClick={() => setRateOpen(true)} className="gap-1 ml-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRateOpen(true)}
+              className="gap-1 ml-1 hidden md:inline-flex"
+            >
               <Star className="h-4 w-4" /> Rate
             </Button>
           )}
@@ -458,6 +464,7 @@ export default function CourseLearn() {
       {/* Body */}
       <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[300px_1fr] overflow-hidden">
         <CourseSidebar
+          className="order-2 md:order-1"
           sessions={sessions}
           chapters={chapters}
           quizzes={sessionQuizzes}
@@ -502,9 +509,38 @@ export default function CourseLearn() {
         />
 
         {/* Main viewer */}
-        <main className="min-h-0 h-full overflow-hidden relative">
+        <main className="order-1 md:order-2 min-h-0 h-full overflow-hidden relative">
           <div className="h-full overflow-y-auto">
             <div className="max-w-5xl mx-auto p-4 space-y-4">
+              {isEnrolled && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRateOpen(true)}
+                  className="gap-1 w-full justify-center md:hidden"
+                >
+                  <Star className="h-4 w-4" /> Rate this course
+                </Button>
+              )}
+              {currentSession && (() => {
+                const { total, completed, pct } = getSessionProgress(
+                  chapters,
+                  currentSession.id,
+                  chapterProgress,
+                  sessionProgress,
+                );
+                return (
+                  <div className="md:hidden space-y-1">
+                    <div className="flex items-center justify-between text-xs gap-2">
+                      <span className="font-medium truncate">Session {currentSession.session_order}</span>
+                      <span className="text-muted-foreground shrink-0">
+                        {total > 0 ? `${completed} of ${total} · ${pct}%` : `${pct}%`}
+                      </span>
+                    </div>
+                    <Progress value={pct} className="h-1.5" />
+                  </div>
+                );
+              })()}
               {selected?.kind === "quiz" ? (
                 (() => {
                   const sq = sessionQuizzes.find((q) => q.quiz?.id === selected.id);
@@ -602,7 +638,7 @@ export default function CourseLearn() {
                         type="button"
                         onClick={toggleFullscreen}
                         aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-                        className="absolute bottom-2 right-2 z-20 h-8 w-8 flex items-center justify-center rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                        className="absolute bottom-2 right-2 z-20 flex h-8 w-8 items-center justify-center rounded bg-black/60 text-white opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
                       >
                         {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
                       </button>

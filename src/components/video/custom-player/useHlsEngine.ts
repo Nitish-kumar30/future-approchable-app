@@ -103,6 +103,7 @@ export function useHlsEngine({ src, videoRef, autoPlay, onError }: UseHlsEngineO
         if (cancelled) return;
         const parsed = data.levels
           .map((level, index) => ({ index, height: level.height ?? 0, bitrate: level.bitrate ?? 0 }))
+          .filter((level) => level.height !== 360)
           .sort((a, b) => b.height - a.height);
         setLevels(parsed);
         tryPlay();

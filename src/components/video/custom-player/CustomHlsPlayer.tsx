@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
 } from 'react';
 import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -82,7 +81,6 @@ export default function CustomHlsPlayer({
   const idleTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const toastTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const rippleTimerRef = useRef<{ left?: ReturnType<typeof setTimeout>; right?: ReturnType<typeof setTimeout> }>({});
-  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nearEndFiredRef = useRef(false);
 
   const onPlayRef = useRef(onPlay);
@@ -139,9 +137,16 @@ export default function CustomHlsPlayer({
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    if (video.paused) video.play().catch(() => {});
-    else video.pause();
-  }, []);
+    if (video.paused) {
+      setPlaying(true);
+      setStarted(true);
+      video.play().catch(() => setPlaying(false));
+    } else {
+      setPlaying(false);
+      video.pause();
+    }
+    showChrome();
+  }, [showChrome]);
 
   const seekTo = useCallback((time: number) => {
     const video = videoRef.current;
@@ -303,27 +308,21 @@ export default function CustomHlsPlayer({
     saveVideoPlaybackPrefs({ playbackRate: video.playbackRate });
   }, []);
 
-  const handleSurfaceClick = useCallback(
-    (e: ReactMouseEvent<HTMLDivElement>) => {
+  const handleSurfaceClick = useCallback(() => {
+    if (!interactiveRef.current) return;
+    if (settingsOpen) {
+      setSettingsOpen(false);
+      return;
+    }
+    togglePlay();
+  }, [settingsOpen, togglePlay]);
+
+  const handleSurfaceDoubleClick = useCallback(
+    (side: 'left' | 'right') => {
       if (!interactiveRef.current) return;
-      if (settingsOpen) {
-        // Outside-pointerdown listener already closes the menu; just swallow this click.
-        setSettingsOpen(false);
-        return;
-      }
-      const side = (e.target as HTMLElement).dataset.side;
-      if (clickTimerRef.current) {
-        clearTimeout(clickTimerRef.current);
-        clickTimerRef.current = null;
-        skip(side === 'left' ? -SKIP_SECONDS : SKIP_SECONDS);
-      } else {
-        clickTimerRef.current = setTimeout(() => {
-          clickTimerRef.current = null;
-          togglePlay();
-        }, 220);
-      }
+      skip(side === 'left' ? -SKIP_SECONDS : SKIP_SECONDS);
     },
-    [settingsOpen, skip, togglePlay],
+    [skip],
   );
 
   const handleKeyDown = useCallback(
@@ -441,26 +440,28 @@ export default function CustomHlsPlayer({
         className,
       )}
     >
-      <video
-        ref={videoRef}
-        playsInline
-        crossOrigin="anonymous"
-        poster={poster}
-        className="h-full w-full bg-black object-contain"
-        onPlay={handleVideoPlay}
-        onPause={handleVideoPause}
-        onEnded={handleVideoEnded}
-        onTimeUpdate={handleTimeUpdate}
-        onProgress={paintProgress}
-        onLoadedMetadata={paintProgress}
-        onWaiting={() => setBuffering(true)}
-        onSeeking={() => setBuffering(true)}
-        onPlaying={() => setBuffering(false)}
-        onCanPlay={() => setBuffering(false)}
-        onSeeked={() => setBuffering(false)}
-        onVolumeChange={handleVolumeChange}
-        onRateChange={handleRateChange}
-      />
+      <div className={cn('absolute inset-0 overflow-hidden', !isFullscreen && 'rounded-lg')}>
+        <video
+          ref={videoRef}
+          playsInline
+          crossOrigin="anonymous"
+          poster={poster}
+          className="h-full w-full bg-black object-contain"
+          onPlay={handleVideoPlay}
+          onPause={handleVideoPause}
+          onEnded={handleVideoEnded}
+          onTimeUpdate={handleTimeUpdate}
+          onProgress={paintProgress}
+          onLoadedMetadata={paintProgress}
+          onWaiting={() => setBuffering(true)}
+          onSeeking={() => setBuffering(true)}
+          onPlaying={() => setBuffering(false)}
+          onCanPlay={() => setBuffering(false)}
+          onSeeked={() => setBuffering(false)}
+          onVolumeChange={handleVolumeChange}
+          onRateChange={handleRateChange}
+        />
+      </div>
 
       {title && (
         <div
@@ -473,10 +474,15 @@ export default function CustomHlsPlayer({
         </div>
       )}
 
-      <div className="absolute inset-0 flex" onClick={handleSurfaceClick}>
-        <div className="flex-1" data-side="left" />
-        <div className="flex-1" data-side="right" />
-      </div>
+      <div
+        className="absolute inset-0 z-[1]"
+        onClick={handleSurfaceClick}
+        onDoubleClick={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const side = e.clientX < rect.left + rect.width / 2 ? 'left' : 'right';
+          handleSurfaceDoubleClick(side);
+        }}
+      />
 
       <div
         className={cn(
@@ -526,7 +532,7 @@ export default function CustomHlsPlayer({
         </div>
       )}
 
-      <div data-settings-menu>
+      <div data-settings-menu className="pointer-events-none">
         <SettingsMenu
           open={settingsOpen}
           levels={engine.levels}

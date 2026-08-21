@@ -83,15 +83,18 @@ export default function PlayerChrome({ state, actions, visible }: PlayerChromePr
   return (
     <div
       className={cn(
-        'absolute inset-x-0 bottom-0 px-3.5 pb-3 pt-11 transition-all duration-300 ease-out',
+        'pointer-events-none absolute inset-x-0 bottom-0 z-[2] px-2 pb-2 pt-9 transition-all duration-300 ease-out sm:px-3.5 sm:pb-3 sm:pt-11',
         'bg-gradient-to-t from-black/80 via-black/40 to-transparent',
-        visible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-2.5 opacity-0',
+        visible ? 'translate-y-0 opacity-100' : 'translate-y-2.5 opacity-0',
       )}
     >
       {/* progress rail */}
       <div
         ref={progressRef}
-        className="group relative mb-0.5 flex h-4 cursor-pointer items-center"
+        className={cn(
+          'group relative mb-0.5 flex h-4 cursor-pointer items-center',
+          visible && 'pointer-events-auto',
+        )}
         onPointerDown={handleProgressPointerDown}
         onPointerMove={handleProgressPointerMove}
         onPointerUp={handleProgressPointerUp}
@@ -130,17 +133,17 @@ export default function PlayerChrome({ state, actions, visible }: PlayerChromePr
       </div>
 
       {/* button row */}
-      <div className="flex items-center gap-0.5">
+      <div className={cn('flex min-w-0 items-center gap-0.5', visible && 'pointer-events-auto')}>
         <ChromeButton label={state.playing ? 'Pause (k)' : 'Play (k)'} onClick={actions.togglePlay}>
           {state.playing ? <Pause className="h-[19px] w-[19px] fill-current" /> : <Play className="h-[19px] w-[19px] fill-current" />}
         </ChromeButton>
 
         <ChromeButton label="Back 10s" onClick={() => actions.skip(-10)}>
-          <RotateCcw className="h-[18px] w-[18px]" />
+          <RotateCcw className="h-[17px] w-[17px] sm:h-[18px] sm:w-[18px]" />
         </ChromeButton>
 
         <ChromeButton label="Forward 10s" onClick={() => actions.skip(10)}>
-          <RotateCw className="h-[18px] w-[18px]" />
+          <RotateCw className="h-[17px] w-[17px] sm:h-[18px] sm:w-[18px]" />
         </ChromeButton>
 
         <div
@@ -173,25 +176,29 @@ export default function PlayerChrome({ state, actions, visible }: PlayerChromePr
           </div>
         </div>
 
-        <div className="whitespace-nowrap px-2.5 text-[12.5px] font-medium tabular-nums text-white/90">
+        <div className="min-w-0 truncate whitespace-nowrap px-1 text-[11px] font-medium tabular-nums text-white/90 sm:px-2.5 sm:text-[12.5px]">
           {formatPlayerTime(state.currentTime)}
           <span className="mx-0.5 text-white/45">/</span>
           {formatPlayerTime(state.duration)}
         </div>
 
-        <div className="flex-1" />
+        <div className="min-w-0 flex-1" />
 
         <ChromeButton label="Settings" onClick={actions.toggleSettings} active={state.settingsOpen} markerAttr="data-settings-trigger">
           <Settings className="h-[19px] w-[19px]" />
         </ChromeButton>
 
         {state.pipSupported && (
-          <ChromeButton label="Picture in picture" onClick={actions.togglePip}>
+          <ChromeButton className="hidden sm:flex" label="Picture in picture" onClick={actions.togglePip}>
             <PictureInPicture2 className="h-[19px] w-[19px]" />
           </ChromeButton>
         )}
 
-        <ChromeButton label={state.isFullscreen ? 'Exit fullscreen (f)' : 'Fullscreen (f)'} onClick={actions.toggleFullscreen}>
+        <ChromeButton
+          className="shrink-0"
+          label={state.isFullscreen ? 'Exit fullscreen (f)' : 'Fullscreen (f)'}
+          onClick={actions.toggleFullscreen}
+        >
           {state.isFullscreen ? <Minimize className="h-[19px] w-[19px]" /> : <Maximize className="h-[19px] w-[19px]" />}
         </ChromeButton>
       </div>
@@ -206,6 +213,7 @@ function ChromeButton({
   active,
   disabled,
   markerAttr,
+  className,
 }: {
   label: string;
   onClick: () => void;
@@ -213,6 +221,7 @@ function ChromeButton({
   active?: boolean;
   disabled?: boolean;
   markerAttr?: string;
+  className?: string;
 }) {
   return (
     <button
@@ -225,8 +234,9 @@ function ChromeButton({
         if (!disabled) onClick();
       }}
       className={cn(
-        'relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white transition-colors',
+        'relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white transition-colors sm:h-9 sm:w-9',
         disabled ? 'opacity-40' : 'hover:bg-white/15 active:scale-[0.94]',
+        className,
       )}
     >
       {children}

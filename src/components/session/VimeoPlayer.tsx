@@ -1,14 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import Player from '@vimeo/player';
 import { getVideoPlaybackPrefs, saveVideoPlaybackPrefs } from '@/lib/videoPlaybackPrefs';
 import { shouldMarkVideoComplete } from '@/lib/recordingVideo';
-import CohortUpsellCard from '@/components/session/CohortUpsellCard';
 import NextSessionOverlay from '@/components/session/NextSessionOverlay';
 import { InspectShield } from '@/components/session/InspectShield';
 import { useEndOfVideoOverlay } from '@/components/session/useEndOfVideoOverlay';
 import type { OnDemandPlayerProps } from '@/components/session/onDemandPlayerTypes';
-import { Button } from '@/components/ui/button';
 
 export default function VimeoPlayer({
   videoUrl,
@@ -18,25 +15,14 @@ export default function VimeoPlayer({
   autoPlay,
   onAutoPlayConsumed,
   onPlay,
-  showUpsellOverlay,
 }: OnDemandPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const completedFiredRef = useRef(false);
   const playFiredRef = useRef(false);
-  const [upsellVisible, setUpsellVisible] = useState(!!showUpsellOverlay);
-  const upsellDismissedRef = useRef(false);
   const { showOverlay, countdown, openOverlay, handleCancel, handleStartNow } = useEndOfVideoOverlay(
     nextSession,
     onNextSession,
   );
-
-  useEffect(() => {
-    if (showUpsellOverlay && !upsellDismissedRef.current) {
-      setUpsellVisible(true);
-    } else if (!showUpsellOverlay) {
-      setUpsellVisible(false);
-    }
-  }, [showUpsellOverlay]);
 
   const vimeoMatch = videoUrl.match(/vimeo\.com\/(?:video\/)?(\d+)/);
   const vimeoId = vimeoMatch ? vimeoMatch[1] : null;
@@ -111,31 +97,8 @@ export default function VimeoPlayer({
   if (!vimeoId) return null;
 
   return (
-    <InspectShield className="relative aspect-video bg-black rounded-lg overflow-hidden border border-border">
+    <InspectShield className="relative aspect-video overflow-hidden rounded-lg border border-border bg-black">
       <div ref={containerRef} className="w-full h-full" />
-
-      {upsellVisible && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-20 overflow-y-auto p-3">
-          <div className="max-w-xs w-full space-y-3">
-            <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
-              <CohortUpsellCard variant="mid-course" />
-            </div>
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setUpsellVisible(false);
-                  upsellDismissedRef.current = true;
-                }}
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white gap-1 text-xs h-7"
-              >
-                <X className="h-3 w-3" /> Continue Watching
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showOverlay && (
         <NextSessionOverlay

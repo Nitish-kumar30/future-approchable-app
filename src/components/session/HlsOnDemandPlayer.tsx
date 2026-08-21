@@ -36,7 +36,7 @@ export default function HlsOnDemandPlayer({
   const { wrapperRef, isFullscreen, toggleFullscreen } = useVideoFullscreen();
 
   return (
-    <InspectShield className="relative bg-black rounded-lg overflow-hidden border border-border">
+    <InspectShield className="relative rounded-lg border border-border bg-black">
       <div
         ref={wrapperRef}
         className={`relative isolate ${isFullscreen ? 'w-screen h-screen rounded-none' : 'aspect-video'}`}

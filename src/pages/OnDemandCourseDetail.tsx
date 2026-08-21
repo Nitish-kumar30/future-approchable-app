@@ -3,10 +3,12 @@ import confetti from 'canvas-confetti';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { buildLoginUrl, courseDetailPath, onDemandCoursePath } from '@/lib/authRedirect';
 import PublicHeader from '@/components/layout/PublicHeader';
 import OnDemandVideoPlayer from '@/components/session/OnDemandVideoPlayer';
 import InlineQuiz from '@/components/session/InlineQuiz';
+import MentorshipUpsellModal from '@/components/session/MentorshipUpsellModal';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -82,6 +84,7 @@ export default function OnDemandCourseDetail() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [course, setCourse] = useState<Course | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [sessionQuizzes, setSessionQuizzes] = useState<Record<string, SessionQuiz[]>>({});
@@ -291,6 +294,7 @@ export default function OnDemandCourseDetail() {
   }, [user, completedSessionIds, sessions, sessionQuizzes]);
 
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [upsellOpen, setUpsellOpen] = useState(false);
   const autoEnrolledRef = useRef(false);
   /** Session id that should autoplay when its player mounts (set by next-video flow). */
   const autoPlaySessionIdRef = useRef<string | null>(null);
@@ -348,6 +352,15 @@ export default function OnDemandCourseDetail() {
 
   // Next session for popup
   const currentIdx = sessions.findIndex(s => s.id === activeSessionId);
+
+  // Show the live-mentorship upsell modal every time the user lands on the 3rd lesson
+  // (by display position, not the raw DB session_order value).
+  useEffect(() => {
+    if (currentIdx === 2) {
+      setUpsellOpen(true);
+    }
+  }, [activeSessionId, currentIdx]);
+
   const nextSessionRaw = currentIdx >= 0 && currentIdx < sessions.length - 1 ? sessions[currentIdx + 1] : null;
   const nextSessionForPlayer = nextSessionRaw ? {
     id: nextSessionRaw.id,
@@ -382,6 +395,222 @@ export default function OnDemandCourseDetail() {
     );
   }
 
+  // Header block: back link, course title, mentor name, and the feedback trigger.
+  const headerBlock = (
+    <div className="p-4 border-b border-border shrink-0">
+      <Link to="/courses?tab=free" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-2">
+        <ChevronLeft className="h-3 w-3" /> Back to Free Courses
+      </Link>
+      <h1 className="text-lg font-display font-bold text-foreground leading-tight">{course.name}</h1>
+      {course.mentor_name && <p className="text-xs text-muted-foreground mt-1">by {course.mentor_name}</p>}
+      {user && (
+        <Button variant="ghost" size="sm" onClick={() => setFeedbackOpen(true)} className="gap-1.5 mt-2 -ml-2 text-xs h-7 px-2">
+          <MessageSquare className="h-3 w-3" /> Feedback
+        </Button>
+      )}
+    </div>
+  );
+
+  // Lesson list rows (rendering wrapper differs between mobile and desktop).
+  const lessonListItems = sessions.map((session, idx) => {
+    const hasQuizzes = (sessionQuizzes[session.id]?.length || 0) > 0;
+    const hasReadings = (sessionReadings[session.id]?.length || 0) > 0;
+    const type = getContentType(session, hasQuizzes, hasReadings);
+    const Icon = contentIcons[type];
+    const isActive = activeSessionId === session.id;
+    const isCompleted = completedSessionIds.has(session.id);
+
+    return (
+      <button
+        key={session.id}
+        onClick={() => {
+          autoPlaySessionIdRef.current = null;
+          setActiveSessionId(session.id);
+        }}
+        className={`w-full text-left rounded-lg px-3 py-3 flex items-start gap-3 transition-colors ${
+          isActive
+            ? 'bg-primary/10 text-foreground'
+            : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        <div className={`mt-0.5 shrink-0 ${isActive ? 'text-primary' : ''}`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className={`text-sm font-medium leading-snug ${isActive ? 'text-foreground' : ''}`}>
+            {idx + 1}. {session.title}
+          </p>
+          {session.description && (
+            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{session.description}</p>
+          )}
+        </div>
+        {user && isCompleted && (
+          <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" style={{ color: 'hsl(142 71% 45%)' }} />
+        )}
+      </button>
+    );
+  });
+
+  const lessonListSectionDesktop = (
+    <ScrollArea className="flex-1">
+      <div className="p-4 space-y-1">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+          Lessons ({sessions.length})
+        </h2>
+        {lessonListItems}
+      </div>
+    </ScrollArea>
+  );
+
+  const lessonListSectionMobile = (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+        Lessons ({sessions.length})
+      </h3>
+      <div className="space-y-1">{lessonListItems}</div>
+    </div>
+  );
+
+  // Progress bar (desktop lives in the sidebar footer, mobile is an inline section).
+  const progressBlockDesktop = user && trackableSessions.length > 0 && (
+    <div className="p-4 border-t border-border bg-card shrink-0">
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-xs text-muted-foreground font-medium">Your progress</span>
+        <span className="text-xs font-semibold text-foreground">{completionPercent}%</span>
+      </div>
+      <Progress value={completionPercent} className="h-2" />
+      <p className="text-xs text-muted-foreground mt-1.5">
+        {completedTrackableCount} of {trackableSessions.length} lessons completed
+      </p>
+    </div>
+  );
+
+  const progressBlockMobile = user && trackableSessions.length > 0 && (
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <span className="text-xs text-muted-foreground font-medium">Your progress</span>
+        <span className="text-xs font-semibold text-foreground">{completionPercent}%</span>
+      </div>
+      <Progress value={completionPercent} className="h-2" />
+      <p className="text-xs text-muted-foreground">
+        {completedTrackableCount} of {trackableSessions.length} lessons completed
+      </p>
+    </div>
+  );
+
+  // Session title/description + video player.
+  const videoBlock = (
+    <div>
+      <h2 className="text-xl font-display font-bold">{activeSession?.title}</h2>
+      {activeSession?.description &&
+        activeSession.description.trim() !== activeSession.title.trim() && (
+          <p className="text-muted-foreground mt-1">{activeSession.description}</p>
+        )}
+      {activeSession?.recording_url && (
+        <div className="mt-4">
+          <OnDemandVideoPlayer
+            videoUrl={activeSession.recording_url}
+            nextSession={nextSessionForPlayer}
+            onCompleted={() => handleSessionCompleted(activeSession.id)}
+            onNextSession={handleNextSession}
+            autoPlay={shouldAutoPlay}
+            onAutoPlayConsumed={consumeAutoPlay}
+            onPlay={handleAutoEnroll}
+          />
+        </div>
+      )}
+    </div>
+  );
+
+  const quizBlock = activeSession && sessionQuizzes[activeSession.id]?.length > 0 && (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Quizzes</h3>
+      <div className="space-y-2">
+        {sessionQuizzes[activeSession.id].map((sq) => (
+          <InlineQuiz
+            key={sq.quiz_id}
+            quizId={sq.quiz_id}
+            quizTitle={sq.quizzes?.title || 'Quiz'}
+            onCompleted={() => {
+              handleAutoEnroll();
+              handleSessionCompleted(activeSession.id);
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+
+  const resourcesBlock = activeSession?.presentation_url && (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Resources</h3>
+      <a
+        href={activeSession.presentation_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted transition-colors"
+      >
+        <ExternalLink className="h-5 w-5 text-primary shrink-0" />
+        <span className="font-medium text-sm">Presentation / Slides</span>
+      </a>
+    </div>
+  );
+
+  const readingsBlock = activeSession && sessionReadings[activeSession.id]?.length > 0 && (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Reading Materials</h3>
+      <div className="space-y-2">
+        {sessionReadings[activeSession.id].map((m) => (
+          <a
+            key={m.id}
+            href={m.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted transition-colors"
+          >
+            <BookOpen className="h-5 w-5 text-primary shrink-0" />
+            <span className="font-medium text-sm">{m.title}</span>
+            <ExternalLink className="h-4 w-4 text-muted-foreground ml-auto" />
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+
+  const authOverlay = !user ? (
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+      <div className="text-center max-w-md p-8">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+          <Lock className="h-8 w-8 text-primary" />
+        </div>
+        <h3 className="text-xl font-display font-bold mb-2">Sign in to continue learning</h3>
+        <p className="text-muted-foreground mb-2 text-sm">{course.name}</p>
+        <p className="text-muted-foreground mb-6 text-sm">
+          Create a free account to access all on-demand course content.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button asChild>
+            <Link to={slug ? buildLoginUrl(onDemandCoursePath(slug), { tab: "signup" }) : "/login?tab=signup"}>
+              <UserPlus className="mr-2 h-4 w-4" /> Sign Up Free
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link to={slug ? buildLoginUrl(onDemandCoursePath(slug)) : "/login"}>
+              <LogIn className="mr-2 h-4 w-4" /> Log In
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  const noSessionsBlock = (
+    <div className="text-center py-16 text-muted-foreground">
+      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+      <p>No sessions available for this course yet.</p>
+    </div>
+  );
+
   return (
     <div
       className="min-h-screen bg-background flex flex-col"
@@ -389,209 +618,61 @@ export default function OnDemandCourseDetail() {
     >
       <PublicHeader />
 
-      {/* Split pane - fills remaining viewport */}
-      <div className="flex-1 flex flex-col md:flex-row h-[calc(100vh-4rem)] overflow-hidden">
-        {/* Left sidebar - session list */}
-        <aside className="md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-border bg-card shrink-0 flex flex-col">
-          {/* Course info merged into sidebar */}
-          <div className="p-4 border-b border-border shrink-0">
-            <Link to="/courses?tab=free" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-2">
-              <ChevronLeft className="h-3 w-3" /> Back to Free Courses
-            </Link>
-            <h1 className="text-lg font-display font-bold text-foreground leading-tight">{course.name}</h1>
-            {course.mentor_name && <p className="text-xs text-muted-foreground mt-1">by {course.mentor_name}</p>}
-            {user && (
-              <Button variant="ghost" size="sm" onClick={() => setFeedbackOpen(true)} className="gap-1.5 mt-2 -ml-2 text-xs h-7 px-2">
-                <MessageSquare className="h-3 w-3" /> Feedback
-              </Button>
-            )}
-          </div>
+      {isMobile ? (
+        /* Mobile: single column — header/feedback, video, progress, list, quiz, resources, readings */
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          <aside className="border-b border-border bg-card shrink-0 flex flex-col">
+            {headerBlock}
+          </aside>
 
-          <ScrollArea className="flex-1">
-            <div className="p-4 space-y-1">
-              <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                Lessons ({sessions.length})
-              </h2>
-              {sessions.map((session, idx) => {
-                const hasQuizzes = (sessionQuizzes[session.id]?.length || 0) > 0;
-                const hasReadings = (sessionReadings[session.id]?.length || 0) > 0;
-                const type = getContentType(session, hasQuizzes, hasReadings);
-                const Icon = contentIcons[type];
-                const isActive = activeSessionId === session.id;
-                const isCompleted = completedSessionIds.has(session.id);
-
-                return (
-                  <button
-                    key={session.id}
-                    onClick={() => {
-                      autoPlaySessionIdRef.current = null;
-                      setActiveSessionId(session.id);
-                    }}
-                    className={`w-full text-left rounded-lg px-3 py-3 flex items-start gap-3 transition-colors ${
-                      isActive
-                        ? 'bg-primary/10 text-foreground'
-                        : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    <div className={`mt-0.5 shrink-0 ${isActive ? 'text-primary' : ''}`}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className={`text-sm font-medium leading-snug ${isActive ? 'text-foreground' : ''}`}>
-                        {idx + 1}. {session.title}
-                      </p>
-                      {session.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{session.description}</p>
-                      )}
-                    </div>
-                    {user && isCompleted && (
-                      <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" style={{ color: 'hsl(142 71% 45%)' }} />
-                    )}
-                  </button>
-                );
-              })}
+          <div className="flex-1 relative">
+            {authOverlay}
+            <div className={`p-3 space-y-6 ${!user ? 'filter blur-sm pointer-events-none select-none' : ''}`}>
+              {activeSession ? (
+                <>
+                  {progressBlockMobile}
+                  {videoBlock}
+                  {lessonListSectionMobile}
+                  {quizBlock}
+                  {resourcesBlock}
+                  {readingsBlock}
+                </>
+              ) : (
+                noSessionsBlock
+              )}
             </div>
-          </ScrollArea>
-
-          {/* Progress bar at bottom of sidebar */}
-          {user && trackableSessions.length > 0 && (
-            <div className="p-4 border-t border-border bg-card shrink-0">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs text-muted-foreground font-medium">Your progress</span>
-                <span className="text-xs font-semibold text-foreground">{completionPercent}%</span>
-              </div>
-              <Progress value={completionPercent} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-1.5">
-                {completedTrackableCount} of {trackableSessions.length} lessons completed
-              </p>
-            </div>
-          )}
-        </aside>
-
-        {/* Right panel - content area */}
-        <div className="flex-1 relative">
-          {!user ? (
-            /* Auth gate overlay */
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-              <div className="text-center max-w-md p-8">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                  <Lock className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="text-xl font-display font-bold mb-2">Sign in to continue learning</h3>
-                <p className="text-muted-foreground mb-2 text-sm">{course.name}</p>
-                <p className="text-muted-foreground mb-6 text-sm">
-                  Create a free account to access all on-demand course content.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button asChild>
-                    <Link to={slug ? buildLoginUrl(onDemandCoursePath(slug), { tab: "signup" }) : "/login?tab=signup"}>
-                      <UserPlus className="mr-2 h-4 w-4" /> Sign Up Free
-                    </Link>
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <Link to={slug ? buildLoginUrl(onDemandCoursePath(slug)) : "/login"}>
-                      <LogIn className="mr-2 h-4 w-4" /> Log In
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {/* Content (blurred when not logged in) */}
-          <div className={`p-4 md:p-6 ${!user ? 'filter blur-sm pointer-events-none select-none' : ''}`}>
-            {activeSession ? (
-              <div className="max-w-4xl space-y-6">
-                <div>
-                  <h2 className="text-xl font-display font-bold">{activeSession.title}</h2>
-                  {activeSession.description && (
-                    <p className="text-muted-foreground mt-1">{activeSession.description}</p>
-                  )}
-                </div>
-
-                {/* Video embed */}
-                {activeSession.recording_url && (
-                  <OnDemandVideoPlayer
-                    videoUrl={activeSession.recording_url}
-                    title={activeSession.title}
-                    nextSession={nextSessionForPlayer}
-                    onCompleted={() => handleSessionCompleted(activeSession.id)}
-                    onNextSession={handleNextSession}
-                    autoPlay={shouldAutoPlay}
-                    onAutoPlayConsumed={consumeAutoPlay}
-                    onPlay={handleAutoEnroll}
-                    showUpsellOverlay={activeSession.session_order === 3}
-                  />
-                )}
-
-                {/* Quizzes */}
-                {sessionQuizzes[activeSession.id]?.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Quizzes</h3>
-                    <div className="space-y-2">
-                      {sessionQuizzes[activeSession.id].map((sq) => (
-                        <InlineQuiz
-                          key={sq.quiz_id}
-                          quizId={sq.quiz_id}
-                          quizTitle={sq.quizzes?.title || 'Quiz'}
-                          onCompleted={() => {
-                            handleAutoEnroll();
-                            handleSessionCompleted(activeSession.id);
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* External link */}
-                {activeSession.presentation_url && (
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Resources</h3>
-                    <a
-                      href={activeSession.presentation_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted transition-colors"
-                    >
-                      <ExternalLink className="h-5 w-5 text-primary shrink-0" />
-                      <span className="font-medium text-sm">Presentation / Slides</span>
-                    </a>
-                  </div>
-                )}
-
-                {/* Pre-reading materials */}
-                {sessionReadings[activeSession.id]?.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Reading Materials</h3>
-                    <div className="space-y-2">
-                      {sessionReadings[activeSession.id].map((m) => (
-                        <a
-                          key={m.id}
-                          href={m.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted transition-colors"
-                        >
-                          <BookOpen className="h-5 w-5 text-primary shrink-0" />
-                          <span className="font-medium text-sm">{m.title}</span>
-                          <ExternalLink className="h-4 w-4 text-muted-foreground ml-auto" />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            ) : (
-              <div className="text-center py-16 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No sessions available for this course yet.</p>
-              </div>
-            )}
           </div>
         </div>
-      </div>
+      ) : (
+        /* Desktop: two-column split pane */
+        <div className="flex-1 flex flex-row h-[calc(100vh-4rem)] overflow-hidden">
+          {/* Left sidebar - session list */}
+          <aside className="md:w-80 lg:w-96 md:border-r border-border bg-card shrink-0 flex flex-col">
+            {headerBlock}
+            {lessonListSectionDesktop}
+            {progressBlockDesktop}
+          </aside>
+
+          {/* Right panel - content area */}
+          <div className="flex-1 relative">
+            {authOverlay}
+
+            {/* Content (blurred when not logged in) */}
+            <div className={`p-3 md:p-6 ${!user ? 'filter blur-sm pointer-events-none select-none' : ''}`}>
+              {activeSession ? (
+                <div className="max-w-4xl space-y-6">
+                  {videoBlock}
+                  {quizBlock}
+                  {resourcesBlock}
+                  {readingsBlock}
+                </div>
+              ) : (
+                noSessionsBlock
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {user && course && (
         <FeedbackDialog
@@ -601,6 +682,8 @@ export default function OnDemandCourseDetail() {
           entityName={course.name}
         />
       )}
+
+      <MentorshipUpsellModal open={upsellOpen} onOpenChange={setUpsellOpen} />
     </div>
   );
 }
