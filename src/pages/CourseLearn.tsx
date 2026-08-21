@@ -258,11 +258,25 @@ export default function CourseLearn() {
 
   // Fullscreen wrapper (contains video + countdown overlay)
   const liveVideoRef = useRef<HTMLVideoElement>(null);
-  const { wrapperRef: playerWrapperRef, isFullscreen, toggleFullscreen } = useVideoFullscreen(liveVideoRef);
+  const {
+    wrapperRef: playerWrapperRef,
+    isFullscreen,
+    toggleFullscreen,
+    enterFullscreen,
+    exitFullscreen,
+    usesNativeVideoFullscreen,
+  } = useVideoFullscreen(liveVideoRef);
 
   // Auto-advance countdown after a video ends.
   const [countdown, setCountdown] = useState<number | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // On iPhone, fullscreen only ever applies to the raw <video> element (native
+  // OS fullscreen), which sits above the whole page — the "up next" countdown
+  // overlay is a sibling <div> and never appears on top of it. So when a video
+  // ends while fullscreen, we drop out of native fullscreen just long enough to
+  // show the overlay, then re-enter fullscreen automatically once the next
+  // video actually starts playing (see the HlsPlayer onPlay handler below).
+  const wantsFullscreenOnNextRef = useRef(false);
 
   const currentIdx = selected ? curriculum.findIndex((p) => p.kind === selected.kind && p.id === selected.id) : -1;
 
@@ -295,8 +309,16 @@ export default function CourseLearn() {
     const next = curriculum[currentIdx + delta];
     if (!next) return;
     clearCountdown();
+    // A quiz has no <video> to re-enter fullscreen on, so drop the pending
+    // re-enter request rather than carrying it over to some later video.
+    if (next.kind === "quiz") wantsFullscreenOnNextRef.current = false;
     setSelected({ kind: next.kind, id: next.id });
     setCurrentSessionId(next.sessionId);
+  };
+
+  const handleCancelAutoAdvance = () => {
+    wantsFullscreenOnNextRef.current = false;
+    clearCountdown();
   };
 
   const handleQuizCompleted = () => {
@@ -306,6 +328,10 @@ export default function CourseLearn() {
 
   const startAutoAdvance = () => {
     if (!nextItem) return;
+    if (usesNativeVideoFullscreen && isFullscreen) {
+      wantsFullscreenOnNextRef.current = true;
+      exitFullscreen();
+    }
     clearCountdown();
     setCountdown(5);
     countdownRef.current = setInterval(() => {
@@ -587,6 +613,12 @@ export default function CourseLearn() {
                         autoPlay
                         showControls={countdown === null}
                         className="relative z-0 w-full h-full bg-black"
+                        onPlay={() => {
+                          if (wantsFullscreenOnNextRef.current) {
+                            wantsFullscreenOnNextRef.current = false;
+                            enterFullscreen();
+                          }
+                        }}
                         onNearEnd={() => {
                           if (completedChapterRef.current.has(currentChapter.id)) return;
                           markChapterComplete(currentChapter.id, currentChapter.duration_seconds ?? 0, true);
@@ -628,7 +660,7 @@ export default function CourseLearn() {
                       <NextSessionOverlay
                         nextSession={nextSessionInfo}
                         countdown={countdown}
-                        onCancel={clearCountdown}
+                        onCancel={handleCancelAutoAdvance}
                         onStartNow={() => go(1)}
                         startLabel={nextItem?.kind === "quiz" ? "Start now" : "Play now"}
                       />
