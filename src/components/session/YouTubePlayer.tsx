@@ -174,7 +174,7 @@ export default function YouTubePlayer({
   if (!videoId) return null;
 
   return (
-    <InspectShield className="relative aspect-video bg-black rounded-lg overflow-hidden border border-border">
+    <InspectShield className="relative aspect-video overflow-hidden rounded-lg border border-border bg-black">
       <div ref={hostRef} className="w-full h-full" title={title} />
       {showOverlay && (
         <NextSessionOverlay

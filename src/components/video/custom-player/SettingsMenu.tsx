@@ -34,10 +34,10 @@ function Row({
       role="menuitemradio"
       aria-checked={selected}
       onClick={onClick}
-      className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-[12.5px] font-medium transition-colors hover:bg-white/10"
+      className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-[12px] font-medium transition-colors hover:bg-white/10"
     >
-      <Check className={cn('h-3.5 w-3.5 shrink-0 text-primary', selected ? 'opacity-100' : 'opacity-0')} />
-      <span className="flex-1 whitespace-nowrap">{label}</span>
+      <Check className={cn('h-3 w-3 shrink-0 text-primary', selected ? 'opacity-100' : 'opacity-0')} />
+      <span className="min-w-0 flex-1 truncate">{label}</span>
       {trailing}
     </div>
   );
@@ -47,9 +47,9 @@ function PaneHead({ label, onBack }: { label: string; onBack: () => void }) {
   return (
     <div
       onClick={onBack}
-      className="mb-1 flex cursor-pointer items-center gap-1.5 border-b border-white/10 px-2 py-2 text-[12.5px] font-semibold tracking-wide"
+      className="mb-0.5 flex cursor-pointer items-center gap-1 border-b border-white/10 px-1.5 py-1 text-[12px] font-semibold tracking-wide"
     >
-      <ChevronLeft className="h-4 w-4" />
+      <ChevronLeft className="h-3.5 w-3.5" />
       {label}
     </div>
   );
@@ -72,21 +72,21 @@ export default function SettingsMenu({
     ? 'Auto'
     : autoLevelActive
       ? activeLevelLabel
-        ? `Auto \u00b7 ${activeLevelLabel}`
+        ? `Auto · ${activeLevelLabel}`
         : 'Auto'
       : (() => {
           const level = levels.find((l) => l.index === currentLevelIndex);
           return level?.height ? `${level.height}p` : 'Auto';
         })();
 
-  const speedValue = playbackRate === 1 ? 'Normal' : `${playbackRate}\u00d7`;
+  const speedValue = playbackRate === 1 ? 'Normal' : `${playbackRate}×`;
 
   return (
     <div
       role="menu"
       onClick={(e) => e.stopPropagation()}
       className={cn(
-        'absolute bottom-[60px] right-3.5 z-40 w-[210px] origin-bottom-right overflow-hidden rounded-[13px] border border-white/10 bg-[rgba(18,18,22,0.9)] p-1.5 text-white shadow-2xl backdrop-blur-2xl transition-all duration-150 ease-out',
+        'absolute bottom-[48px] right-2 z-40 w-[min(200px,calc(100%-1rem))] max-h-[min(11rem,calc(100%-3.5rem))] origin-bottom-right overflow-y-auto rounded-[10px] border border-white/10 bg-[rgba(18,18,22,0.92)] p-1 text-white shadow-2xl backdrop-blur-2xl transition-all duration-150 ease-out sm:right-3 sm:bottom-[52px]',
         open ? 'pointer-events-auto scale-100 opacity-100' : 'pointer-events-none scale-95 opacity-0 translate-y-2',
       )}
       onTransitionEnd={() => {
@@ -100,9 +100,9 @@ export default function SettingsMenu({
             selected={false}
             onClick={() => setPane('quality')}
             trailing={
-              <span className="flex items-center gap-1 text-[12px] text-white/55">
-                {qualityValue}
-                <ChevronRight className="h-3.5 w-3.5" />
+              <span className="flex min-w-0 max-w-[7rem] items-center gap-0.5 text-[11px] text-white/55">
+                <span className="truncate">{qualityValue}</span>
+                <ChevronRight className="h-3 w-3 shrink-0" />
               </span>
             }
           />
@@ -111,9 +111,9 @@ export default function SettingsMenu({
             selected={false}
             onClick={() => setPane('speed')}
             trailing={
-              <span className="flex items-center gap-1 text-[12px] text-white/55">
+              <span className="flex shrink-0 items-center gap-0.5 text-[11px] text-white/55">
                 {speedValue}
-                <ChevronRight className="h-3.5 w-3.5" />
+                <ChevronRight className="h-3 w-3" />
               </span>
             }
           />
@@ -123,9 +123,9 @@ export default function SettingsMenu({
       {pane === 'quality' && (
         <div className="animate-fade-in">
           <PaneHead label="Quality" onBack={() => setPane('main')} />
-          <div className="max-h-[216px] overflow-y-auto">
+          <div>
             {!levels.length ? (
-              <Row label="Auto" selected trailing={<span className="text-[12px] text-white/55">{isNativeHls ? 'native' : 'adaptive'}</span>} onClick={() => {}} />
+              <Row label="Auto" selected trailing={<span className="shrink-0 text-[11px] text-white/55">{isNativeHls ? 'native' : 'adaptive'}</span>} onClick={() => {}} />
             ) : (
               <>
                 <Row label="Auto" selected={autoLevelActive} onClick={() => onSelectQuality(-1)} />
@@ -137,7 +137,7 @@ export default function SettingsMenu({
                     onClick={() => onSelectQuality(level.index)}
                     trailing={
                       level.height >= 1080 ? (
-                        <span className="rounded border border-white/35 px-1 py-px text-[8.5px] font-bold tracking-wider text-white/80">
+                        <span className="shrink-0 rounded border border-white/35 px-1 py-px text-[8px] font-bold tracking-wider text-white/80">
                           HD
                         </span>
                       ) : undefined
@@ -153,11 +153,11 @@ export default function SettingsMenu({
       {pane === 'speed' && (
         <div className="animate-fade-in">
           <PaneHead label="Playback speed" onBack={() => setPane('main')} />
-          <div className="max-h-[216px] overflow-y-auto">
+          <div>
             {PLAYBACK_SPEEDS.map((speed) => (
               <Row
                 key={speed}
-                label={speed === 1 ? 'Normal' : `${speed}\u00d7`}
+                label={speed === 1 ? 'Normal' : `${speed}×`}
                 selected={Math.abs(playbackRate - speed) < 0.01}
                 onClick={() => onSelectSpeed(speed)}
               />
