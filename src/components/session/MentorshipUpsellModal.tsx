@@ -21,12 +21,12 @@ export default function MentorshipUpsellModal({ open, onOpenChange }: Mentorship
             An invitation to join a live mentorship cohort on the Claude ecosystem.
           </DialogPrimitive.Description>
           <div className="relative">
-            <DialogPrimitive.Close className="absolute -top-3 -right-3 z-10 rounded-full bg-white shadow-md p-1.5 text-foreground/70 hover:text-foreground hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
+            <DialogPrimitive.Close className="absolute -top-3 -right-3 z-10 rounded-full border border-indigo-200/80 bg-white p-1.5 text-slate-600 shadow-md transition-colors hover:bg-indigo-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-400/50">
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
             </DialogPrimitive.Close>
-            <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
-              <CohortUpsellCard variant="mid-course" />
+            <div className="overflow-hidden rounded-xl shadow-2xl ring-1 ring-indigo-200/60">
+              <CohortUpsellCard variant="mid-course" tone="light" />
             </div>
           </div>
         </DialogPrimitive.Content>
