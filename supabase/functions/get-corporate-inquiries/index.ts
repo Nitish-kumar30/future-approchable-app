@@ -155,7 +155,8 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    const token = rawToken.trim();
+    // Tolerate quotes/whitespace accidentally pasted with the token.
+    const token = rawToken.trim().replace(/^["']+|["']+$/g, "");
     // Structural diagnostics only — never log/return the token itself.
     const tokenInfo = {
       hasVercelPrefix: token.startsWith("vercel_blob_rw_"),
