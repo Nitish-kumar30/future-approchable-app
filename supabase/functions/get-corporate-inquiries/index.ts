@@ -56,7 +56,8 @@ async function listSubmissions(token: string): Promise<BlobListItem[]> {
       headers: blobHeaders(token),
     });
     if (!res.ok) {
-      throw new Error(`Blob list failed: ${res.status}`);
+      const detail = await res.text().catch(() => "");
+      throw new Error(`Blob list failed: ${res.status} ${detail.slice(0, 300)}`);
     }
     const data = await res.json();
     items.push(...(data.blobs ?? []));
