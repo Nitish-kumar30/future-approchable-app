@@ -41,6 +41,7 @@ import {
   Download,
   CreditCard,
   Award,
+  Briefcase,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -58,6 +59,7 @@ import { SessionForm } from "@/components/admin/SessionForm";
 import { ChapterManager } from "@/components/admin/ChapterManager";
 import { QuizForm } from "@/components/admin/QuizForm";
 import CertificatesAdminTab from "@/components/admin/CertificatesAdminTab";
+import CorporateInquiriesAdminTab from "@/components/admin/CorporateInquiriesAdminTab";
 
 interface Cohort {
   id: string;
@@ -1391,6 +1393,9 @@ export default function Admin() {
             >
               <ClipboardList className="h-4 w-4" /> Registrations
             </TabsTrigger>
+            <TabsTrigger value="inquiries" className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm">
+              <Briefcase className="h-4 w-4" /> Inquiries
+            </TabsTrigger>
             <TabsTrigger
               value="payments"
               className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm"
@@ -2719,6 +2724,10 @@ export default function Admin() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="inquiries">
+            <CorporateInquiriesAdminTab />
           </TabsContent>
 
           {/* Payments Tab */}

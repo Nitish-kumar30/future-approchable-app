@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.regenerate-certificate]
 verify_jwt = false
+
+[functions.get-corporate-inquiries]
+verify_jwt = false
