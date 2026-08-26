@@ -146,8 +146,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const token = Deno.env.get("BLOB_READ_WRITE_TOKEN");
-    if (!token) {
+    const rawToken = Deno.env.get("BLOB_READ_WRITE_TOKEN");
+    if (!rawToken) {
       return new Response(
         JSON.stringify({
           error: "Could not load inquiries. Check BLOB_READ_WRITE_TOKEN in secrets.",
@@ -155,6 +155,14 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+    const token = rawToken.trim();
+    // Structural diagnostics only — never log/return the token itself.
+    const tokenInfo = {
+      hasVercelPrefix: token.startsWith("vercel_blob_rw_"),
+      segments: token.split("_").length,
+      hasWhitespace: /\s/.test(rawToken),
+      storeIdSet: !!Deno.env.get("BLOB_STORE_ID"),
+    };
 
     const blobs = await listSubmissions(token);
 
