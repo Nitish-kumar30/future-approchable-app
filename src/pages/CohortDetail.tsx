@@ -558,7 +558,7 @@ export default function CohortDetail() {
   return (
     <>
       <AppShell>
-        <div className="space-y-8 animate-fade-in">
+        <div className="space-y-5 animate-fade-in">
           {/* Back Button */}
           <Button
             variant="ghost"
@@ -570,14 +570,14 @@ export default function CohortDetail() {
           </Button>
 
           {/* Header */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="space-y-2">
-                <h1 className="text-3xl font-display font-bold text-foreground">
+              <div className="space-y-1">
+                <h1 className="text-2xl font-display font-bold text-foreground">
                   {cohort.name}
                 </h1>
                 {cohort.mentor_name && (
-                  <p className="text-lg text-muted-foreground flex items-center gap-2">
+                  <p className="text-base text-muted-foreground flex items-center gap-2">
                     <GraduationCap className="h-5 w-5" />
                     Mentored by {cohort.mentor_name}
                   </p>
@@ -590,13 +590,13 @@ export default function CohortDetail() {
                       variant={
                         overallProgress === 100 ? "default" : "secondary"
                       }
-                      className="text-base px-4 py-2"
+                      className="text-sm px-3 py-1"
                     >
                       <CheckCircle2 className="h-4 w-4 mr-2" />
                       {overallProgress === 100 ? "Completed" : "Enrolled"}
                     </Badge>
                     {averageScore !== null && (
-                      <Badge variant="outline" className="text-base px-4 py-2">
+                      <Badge variant="outline" className="text-sm px-3 py-1">
                         Avg Score: {averageScore}%
                       </Badge>
                     )}
@@ -635,7 +635,7 @@ export default function CohortDetail() {
             </div>
 
             {/* Meta Info */}
-            <div className="flex flex-wrap gap-4 text-sm">
+            <div className="flex flex-wrap gap-3 text-xs">
               {(cohort.start_date || cohort.session_time) && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Calendar className="h-4 w-4" />
@@ -660,19 +660,19 @@ export default function CohortDetail() {
           {/* Tabbed Content */}
           <Tabs defaultValue="about" onValueChange={handleTabChange}>
             <div className="-mx-8 overflow-x-auto md:mx-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <TabsList className="inline-flex h-11 w-max min-w-full flex-nowrap justify-start gap-1 bg-muted/70 p-1.5 px-3 md:w-full md:px-1.5">
-                <TabsTrigger value="about" className="h-8 shrink-0 rounded-md px-3.5 data-[state=active]:shadow-sm">
+              <TabsList className="inline-flex h-9 w-max min-w-full flex-nowrap justify-start gap-1 bg-muted/70 p-1 px-3 md:w-full md:px-1">
+                <TabsTrigger value="about" className="h-7 shrink-0 rounded-md px-3 data-[state=active]:shadow-sm">
                   About
                 </TabsTrigger>
-                <TabsTrigger value="sessions" className="h-8 shrink-0 rounded-md px-3.5 data-[state=active]:shadow-sm">
+                <TabsTrigger value="sessions" className="h-7 shrink-0 rounded-md px-3 data-[state=active]:shadow-sm">
                   Sessions
                 </TabsTrigger>
-                <TabsTrigger value="mentor" className="h-8 shrink-0 rounded-md px-3.5 data-[state=active]:shadow-sm">
+                <TabsTrigger value="mentor" className="h-7 shrink-0 rounded-md px-3 data-[state=active]:shadow-sm">
                   Mentor
                 </TabsTrigger>
                 <TabsTrigger
                   value="leaderboard"
-                  className="h-8 shrink-0 gap-1.5 rounded-md px-3.5 data-[state=active]:shadow-sm"
+                  className="h-7 shrink-0 gap-1.5 rounded-md px-3 data-[state=active]:shadow-sm"
                 >
                   <Trophy className="h-4 w-4" /> Leaderboard
                 </TabsTrigger>
