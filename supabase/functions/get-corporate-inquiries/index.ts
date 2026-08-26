@@ -10,10 +10,13 @@ const BLOB_API_BASE = "https://blob.vercel-storage.com";
 const BLOB_API_VERSION = "8";
 
 function blobHeaders(token: string): HeadersInit {
-  return {
+  const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
     "x-api-version": BLOB_API_VERSION,
   };
+  const storeId = Deno.env.get("BLOB_STORE_ID");
+  if (storeId) headers["x-store-id"] = storeId;
+  return headers;
 }
 
 type CorporateInquiryRecord = {
