@@ -157,26 +157,8 @@ Deno.serve(async (req) => {
     }
     // Tolerate quotes/whitespace accidentally pasted with the token.
     const token = rawToken.trim().replace(/^["']+|["']+$/g, "");
-    // Structural diagnostics only — never log/return the token itself.
-    const tokenInfo = {
-      hasVercelPrefix: token.startsWith("vercel_blob_rw_"),
-      segments: token.split("_").length,
-      hasWhitespace: /\s/.test(rawToken),
-      storeIdSet: !!Deno.env.get("BLOB_STORE_ID"),
-    };
 
-    let blobs: BlobListItem[];
-    try {
-      blobs = await listSubmissions(token);
-    } catch (err) {
-      return new Response(
-        JSON.stringify({
-          error: err instanceof Error ? err.message : "Blob list failed",
-          tokenInfo,
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    const blobs = await listSubmissions(token);
 
     const inquiries = await Promise.all(blobs.map((blob) => readSubmission(blob, token)));
 
