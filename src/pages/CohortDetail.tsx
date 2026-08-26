@@ -681,7 +681,7 @@ export default function CohortDetail() {
 
             {/* About Tab */}
             <TabsContent value="about" className="space-y-6">
-{isEnrolled{isEnrolled && sessions.length > 0 && (
+              {isEnrolled && sessions.length > 0 && (
                 <Card className="card-elevated border-primary/20 bg-primary/5">
                   <CardContent className="space-y-4">
                     <div className="flex items-center gap-3">
