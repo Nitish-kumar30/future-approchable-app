@@ -681,35 +681,23 @@ export default function CohortDetail() {
 
             {/* About Tab */}
             <TabsContent value="about" className="space-y-6">
-              {isEnrolled && sessions.length > 0 && (
+{isEnrolled && sessions.length > 0 && (
                 <Card className="card-elevated border-primary/20 bg-primary/5">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">Your Progress</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          {completedSessions} of {sessions.length} sessions
-                          completed
-                        </span>
-                        <span className="font-medium">
-                          {Math.round(overallProgress)}%
-                        </span>
-                      </div>
-                      <Progress value={overallProgress} className="h-3" />
-                      {overallProgress < 100 && (
-                        <p className="text-sm text-muted-foreground pt-1">
-                          Complete your cohort
-                        </p>
-                      )}
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold shrink-0">
+                        Your Progress
+                      </span>
+                      <Progress value={overallProgress} className="h-2 flex-1" />
+                      <span className="text-sm font-medium tabular-nums shrink-0">
+                        {Math.round(overallProgress)}%
+                      </span>
                     </div>
+                    {isEnrolled && cohort && (
+                      <CertificatePanel cohortId={cohort.id} programName={cohort.name} />
+                    )}
                   </CardContent>
                 </Card>
-              )}
-
-              {isEnrolled && cohort && (
-                <CertificatePanel cohortId={cohort.id} programName={cohort.name} />
               )}
 
               <Card className="card-elevated">
