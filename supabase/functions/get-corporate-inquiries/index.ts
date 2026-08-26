@@ -53,7 +53,7 @@ async function listSubmissions(token: string): Promise<BlobListItem[]> {
     if (cursor) url.searchParams.set("cursor", cursor);
 
     const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: blobHeaders(token),
     });
     if (!res.ok) {
       throw new Error(`Blob list failed: ${res.status}`);
@@ -72,7 +72,7 @@ async function readSubmission(
 ): Promise<CorporateInquiryRecord | null> {
   try {
     const res = await fetch(blob.downloadUrl, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: blobHeaders(token),
     });
     if (!res.ok) return null;
     return (await res.json()) as CorporateInquiryRecord;
