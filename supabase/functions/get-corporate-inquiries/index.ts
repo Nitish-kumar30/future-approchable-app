@@ -6,6 +6,15 @@ const corsHeaders = {
 };
 
 const BLOB_API_BASE = "https://blob.vercel-storage.com";
+// Matches @vercel/blob@0.27.1 — the API rejects requests without this header.
+const BLOB_API_VERSION = "8";
+
+function blobHeaders(token: string): HeadersInit {
+  return {
+    Authorization: `Bearer ${token}`,
+    "x-api-version": BLOB_API_VERSION,
+  };
+}
 
 type CorporateInquiryRecord = {
   id: string;
