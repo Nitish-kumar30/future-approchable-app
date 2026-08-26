@@ -71,3 +71,19 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+## Corporate training inquiries (Admin → Inquiries tab)
+
+The **Inquiries** admin tab reads corporate form submissions from the same Vercel Blob store used by `approachable-landing` (`submissions/*.json`).
+
+Deploy the edge function and set this Supabase secret (Dashboard → Edge Functions → Secrets):
+
+```sh
+supabase functions deploy get-corporate-inquiries
+```
+
+| Secret | Value |
+|--------|--------|
+| `BLOB_READ_WRITE_TOKEN` | Same token as approachable-landing Vercel Blob (`BLOB_READ_WRITE_TOKEN` in landing `.env`) |
+
+Only authenticated admin users can load inquiries via the `get-corporate-inquiries` function.
