@@ -164,7 +164,18 @@ Deno.serve(async (req) => {
       storeIdSet: !!Deno.env.get("BLOB_STORE_ID"),
     };
 
-    const blobs = await listSubmissions(token);
+    let blobs: BlobListItem[];
+    try {
+      blobs = await listSubmissions(token);
+    } catch (err) {
+      return new Response(
+        JSON.stringify({
+          error: err instanceof Error ? err.message : "Blob list failed",
+          tokenInfo,
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const inquiries = await Promise.all(blobs.map((blob) => readSubmission(blob, token)));
 
