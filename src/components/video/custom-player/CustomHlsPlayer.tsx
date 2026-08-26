@@ -6,7 +6,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
-  type RefObject,
+  type MutableRefObject,
 } from 'react';
 import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -33,7 +33,7 @@ export interface CustomHlsPlayerProps {
   onError?: (message: string) => void;
   className?: string;
   /** Exposes the underlying <video> element to the parent (e.g. for iOS-native fullscreen). */
-  videoRef?: RefObject<HTMLVideoElement | null>;
+  videoRef?: MutableRefObject<HTMLVideoElement | null>;
 }
 
 const IDLE_DELAY_MS = 2600;
