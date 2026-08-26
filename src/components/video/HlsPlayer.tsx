@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from 'react';
+import { useEffect, useRef, type MutableRefObject } from 'react';
 import Hls from 'hls.js';
 import { applyVideoPlaybackPrefs, saveVideoPlaybackPrefs } from '@/lib/videoPlaybackPrefs';
 
@@ -14,7 +14,7 @@ interface HlsPlayerProps {
   onError?: (msg: string) => void;
   className?: string;
   /** Exposes the underlying <video> element to the parent (e.g. for iOS-native fullscreen). */
-  videoRef?: RefObject<HTMLVideoElement | null>;
+  videoRef?: MutableRefObject<HTMLVideoElement | null>;
 }
 
 /**
