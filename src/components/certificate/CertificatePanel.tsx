@@ -37,7 +37,7 @@ type Props = {
   cohortId?: string;
   courseId?: string;
   programName?: string;
-  variant?: "panel" | "header";
+  variant?: "panel" | "header" | "course";
 };
 
 const TIERS: CertificateTier[] = ["foundation", "practitioner", "expert"];
