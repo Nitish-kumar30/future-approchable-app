@@ -583,7 +583,7 @@ export default function CohortDetail() {
                   </p>
                 )}
               </div>
-              <div className="flex items-center gap-3">
+<div className="flex items-center gap-3">
                 {isEnrolled ? (
                   <div className="flex items-center gap-3">
                     <Badge
@@ -600,6 +600,11 @@ export default function CohortDetail() {
                         Avg Score: {averageScore}%
                       </Badge>
                     )}
+                    <CertificatePanel
+                      cohortId={cohort.id}
+                      programName={cohort.name}
+                      variant="header"
+                    />
                     <Button
                       variant="ghost"
                       size="sm"
