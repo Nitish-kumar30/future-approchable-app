@@ -583,7 +583,7 @@ export default function CohortDetail() {
                   </p>
                 )}
               </div>
-              <div className="flex items-center gap-3">
+<div className="flex items-center gap-3">
                 {isEnrolled ? (
                   <div className="flex items-center gap-3">
                     <Badge
@@ -600,6 +600,11 @@ export default function CohortDetail() {
                         Avg Score: {averageScore}%
                       </Badge>
                     )}
+                    <CertificatePanel
+                      cohortId={cohort.id}
+                      programName={cohort.name}
+                      variant="header"
+                    />
                     <Button
                       variant="ghost"
                       size="sm"
@@ -679,23 +684,26 @@ export default function CohortDetail() {
               </TabsList>
             </div>
 
-            {/* About Tab */}
+{/* About Tab */}
             <TabsContent value="about" className="space-y-6">
               {isEnrolled && sessions.length > 0 && (
                 <Card className="card-elevated border-primary/20 bg-primary/5">
-                  <CardContent className="space-y-4">
+                  <CardContent>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold shrink-0">
-                        Your Progress
-                      </span>
+                      <div className="shrink-0">
+                        <span className="text-sm font-semibold block">
+                          Your Progress
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {completedSessions} / {sessions.length} sessions
+                          completed
+                        </span>
+                      </div>
                       <Progress value={overallProgress} className="h-2 flex-1" />
                       <span className="text-sm font-medium tabular-nums shrink-0">
                         {Math.round(overallProgress)}%
                       </span>
                     </div>
-                    {isEnrolled && cohort && (
-                      <CertificatePanel cohortId={cohort.id} programName={cohort.name} />
-                    )}
                   </CardContent>
                 </Card>
               )}
