@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Award, Download, Loader2, RefreshCw } from "lucide-react";
+import { Award, Download, Loader2, RefreshCw, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -36,13 +37,19 @@ type Props = {
   cohortId?: string;
   courseId?: string;
   programName?: string;
-  variant?: "course" | "cohort";
+  variant?: "panel" | "header";
 };
 
 const TIERS: CertificateTier[] = ["foundation", "practitioner", "expert"];
 
-export default function CertificatePanel({ cohortId, courseId, variant }: Props) {
+export default function CertificatePanel({
+  cohortId,
+  courseId,
+  programName,
+  variant = "panel",
+}: Props) {
   const isCourseMode = variant === "course" || (!!courseId && !cohortId);
+  const isHeaderMode = variant === "header";
   const { toast } = useToast();
   const [eligibility, setEligibility] = useState<CertificateEligibility | null>(null);
   const [loading, setLoading] = useState(true);
@@ -161,6 +168,7 @@ export default function CertificatePanel({ cohortId, courseId, variant }: Props)
   );
 
   if (loading) {
+    if (isHeaderMode) return null;
     return (
       <Card>
         <CardContent className="py-8 flex justify-center">
@@ -172,6 +180,7 @@ export default function CertificatePanel({ cohortId, courseId, variant }: Props)
 
   if (!eligibility?.enrolled) return null;
 
+  // ---- Course mode (panel only) ----
   if (isCourseMode) {
     const foundationCert = eligibility.existing_certificates.find((c) => c.tier === "foundation");
     const canDownload = eligibility.foundation_requestable && !foundationCert;
@@ -225,6 +234,145 @@ export default function CertificatePanel({ cohortId, courseId, variant }: Props)
     t === "foundation" && !eligibility.foundation_requestable;
   const canRequestAny = availableTiers.length > 0;
 
+  // ---- Header mode: compact trigger button + management dialog ----
+  if (isHeaderMode) {
+    return (
+      <>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => setModalOpen(true)}
+          title="Manage certificates"
+        >
+          <Trophy className="h-4 w-4" />
+          Certificate
+        </Button>
+
+        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Certificates</DialogTitle>
+              <DialogDescription>
+                Manage your certificates for {programName || "this cohort"}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {eligibility.existing_certificates.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Issued</Label>
+                  {eligibility.existing_certificates.map((cert) => (
+                    <div
+                      key={cert.certificate_id}
+                      className="flex items-center justify-between rounded-lg border p-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Badge>{tierLabel(cert.tier)}</Badge>
+                        <span className="text-sm text-muted-foreground">{cert.certificate_id}</span>
+                      </div>
+                      {renderCertActions(cert.certificate_id)}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {eligibility.pending_requests.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Pending</Label>
+                  {eligibility.pending_requests.map((req) => (
+                    <div key={req.id} className="rounded-lg border border-dashed p-3 text-sm">
+                      <Badge variant="secondary">{tierLabel(req.tier)}</Badge>
+                      <span className="ml-2 text-muted-foreground">Request {req.status}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {canRequestAny && (
+                <>
+                  <Separator />
+                  <div className="space-y-3">
+                    <Label>Tier</Label>
+                    <Select value={tier} onValueChange={(v) => setTier(v as CertificateTier)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableTiers.map((t) => (
+                          <SelectItem key={t} value={t} disabled={isTierDisabled(t)}>
+                            {tierLabel(t)}
+                            {isTierDisabled(t) ? " (requires 100% progress)" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="linkedin-header">
+                        LinkedIn post URL <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="linkedin-header"
+                        placeholder="https://linkedin.com/posts/..."
+                        value={linkedinUrl}
+                        onChange={(e) => setLinkedinUrl(e.target.value)}
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Share a LinkedIn post about your learning to submit your request.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="note-header">Note (optional)</Label>
+                      <Textarea
+                        id="note-header"
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        rows={2}
+                      />
+                    </div>
+
+                    {!eligibility.foundation_requestable &&
+                      !issuedTiers.has("foundation") &&
+                      !pendingTiers.has("foundation") && (
+                        <p className="text-xs text-muted-foreground">
+                          Foundation certificate requires 100% progress (all videos and quizzes).
+                        </p>
+                      )}
+                  </div>
+                </>
+              )}
+
+              {!canRequestAny && eligibility.existing_certificates.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No certificates available for this cohort yet.
+                </p>
+              )}
+            </div>
+            {canRequestAny && (
+              <DialogFooter>
+                <Button
+                  onClick={() => handleRequest()}
+                  disabled={submitting || isTierDisabled(tier) || !linkedinUrl.trim()}
+                >
+                  {submitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : tier === "foundation" ? (
+                    "Get Certificate"
+                  ) : (
+                    "Submit Request"
+                  )}
+                </Button>
+              </DialogFooter>
+            )}
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
+  // ---- Panel mode (cohort) ----
   const openRequestModal = () => {
     setTier(availableTiers[0] ?? "foundation");
     setModalOpen(true);
