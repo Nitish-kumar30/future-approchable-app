@@ -13,7 +13,7 @@ export default function PromoBanner() {
       <div className="container flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center">
         <span className="text-sm font-medium">
           {showAIMasteryPromo
-            ? "Master AI for Work — On-Demand Course for Professionals"
+            ? "🔥 Master AI for Work — On-Demand Course for Professionals"
             : `🔥 Next live cohort on 'Master the Claude ecosystem' with ${c.mentorName} starts ${c.date}· ${localizedCohortPrice(currency)}`}
         </span>
 
