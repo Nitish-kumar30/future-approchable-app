@@ -11,28 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { CheckCircle2, PartyPopper } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -41,7 +22,7 @@ import { COHORT_CONFIG } from "@/lib/constants";
 import { loadRazorpayCheckout } from "@/lib/loadRazorpay";
 import { isIOS } from "@/lib/platform";
 
-const COHORT_OPTIONS = ["Cohort 7: Master Claude Ecosystem Aug 27th, 7:30PM IST"];
+const COHORT_OPTIONS = ["Cohort Next Waitlist"];
 
 /** Waitlist cohorts don't collect a commitment fee. */
 const isWaitlistCohort = (cohort?: string) => /waitlist/i.test(cohort || "");
@@ -69,10 +50,7 @@ const registrationSchema = z
     whatsapp_number: z
       .string()
       .trim()
-      .regex(
-        /^\+?\d{7,15}$/,
-        "Enter a valid number with country code, digits only (e.g. +919876543210)",
-      ),
+      .regex(/^\+?\d{7,15}$/, "Enter a valid number with country code, digits only (e.g. +919876543210)"),
     country: z.string().min(1, "Please select your country"),
     state: z.string().optional(),
     cohort: z.string().min(1, "Please select a cohort"),
@@ -86,10 +64,7 @@ const registrationSchema = z
     fee_acknowledged: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
-    if (
-      data.country === "India" &&
-      (!data.state || data.state.trim().length === 0)
-    ) {
+    if (data.country === "India" && (!data.state || data.state.trim().length === 0)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["state"],
@@ -115,10 +90,7 @@ function ThankYouScreen() {
     import("canvas-confetti").then((mod) => {
       const confetti = mod.default;
       confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-      setTimeout(
-        () => confetti({ particleCount: 100, spread: 100, origin: { y: 0.5 } }),
-        300,
-      );
+      setTimeout(() => confetti({ particleCount: 100, spread: 100, origin: { y: 0.5 } }), 300);
     });
 
     // Load Google Analytics
@@ -172,13 +144,9 @@ function ThankYouScreen() {
           <h1 className="text-3xl font-bold text-primary">You're In!</h1>
           <Card>
             <CardContent className="pt-6 space-y-4">
-              <p className="font-semibold text-lg">
-                Welcome to the Approachable community!
-              </p>
+              <p className="font-semibold text-lg">Welcome to the Approachable community!</p>
               <p className="text-muted-foreground">
-                We'll email you within{" "}
-                <span className="font-bold text-foreground">12 hours</span>{" "}
-                with:
+                We'll email you within <span className="font-bold text-foreground">12 hours</span> with:
               </p>
               <ul className="text-left space-y-3 pt-2">
                 {steps.map((step) => (
@@ -190,9 +158,7 @@ function ThankYouScreen() {
               </ul>
             </CardContent>
           </Card>
-          <p className="text-sm text-muted-foreground">
-            You'll be redirected to your dashboard shortly...
-          </p>
+          <p className="text-sm text-muted-foreground">You'll be redirected to your dashboard shortly...</p>
           <Button
             onClick={() => navigate("/dashboard")}
             size="lg"
@@ -249,34 +215,30 @@ export default function Registration() {
     try {
       if (!waitlist) await loadRazorpayCheckout();
 
-      const { data: result, error } = await supabase.functions.invoke(
-        "trigger-registration-webhook",
-        {
-          body: {
-            name: data.name,
-            email: data.email,
-            whatsapp_number: data.whatsapp_number,
-            country: data.country,
-            state: data.country === "India" ? data.state : null,
-            cohort: data.cohort,
-            interests: data.interests,
-            capstone_office_hours: data.capstone_office_hours,
-            other_interest: data.other_interest || null,
-            company: data.company,
-            role: data.role,
-            reason: data.reason,
-            additional_info: data.additional_info || null,
-            price_india: COHORT_CONFIG.priceIndia,
-            price_international: COHORT_CONFIG.priceInternational,
-          },
+      const { data: result, error } = await supabase.functions.invoke("trigger-registration-webhook", {
+        body: {
+          name: data.name,
+          email: data.email,
+          whatsapp_number: data.whatsapp_number,
+          country: data.country,
+          state: data.country === "India" ? data.state : null,
+          cohort: data.cohort,
+          interests: data.interests,
+          capstone_office_hours: data.capstone_office_hours,
+          other_interest: data.other_interest || null,
+          company: data.company,
+          role: data.role,
+          reason: data.reason,
+          additional_info: data.additional_info || null,
+          price_india: COHORT_CONFIG.priceIndia,
+          price_international: COHORT_CONFIG.priceInternational,
         },
-      );
+      });
 
       if (error || result?.error) {
         toast({
           title: "Registration failed",
-          description:
-            result?.error || "Something went wrong. Please try again.",
+          description: result?.error || "Something went wrong. Please try again.",
           variant: "destructive",
         });
         console.error("Registration error:", error || result?.error);
@@ -327,36 +289,30 @@ export default function Registration() {
         }) => {
           setStatus("confirming");
           try {
-            const { data: verifyData, error: verifyError } =
-              await supabase.functions.invoke("verify-registration-payment", {
+            const { data: verifyData, error: verifyError } = await supabase.functions.invoke(
+              "verify-registration-payment",
+              {
                 body: {
                   razorpay_order_id: response.razorpay_order_id,
                   razorpay_payment_id: response.razorpay_payment_id,
                   razorpay_signature: response.razorpay_signature,
                 },
-              });
+              },
+            );
 
             if (verifyError || verifyData?.error) {
-              throw new Error(
-                verifyData?.error ||
-                  verifyError?.message ||
-                  "Verification failed",
-              );
+              throw new Error(verifyData?.error || verifyError?.message || "Verification failed");
             }
 
             setStatus("success");
             setSubmitted(true);
           } catch (err) {
-            failPayment(
-              err instanceof Error ? err.message : "Verification failed.",
-            );
+            failPayment(err instanceof Error ? err.message : "Verification failed.");
           }
         },
         modal: {
           ondismiss: () => {
-            setStatus((s) =>
-              s === "confirming" || s === "success" ? s : "idle",
-            );
+            setStatus((s) => (s === "confirming" || s === "success" ? s : "idle"));
           },
         },
       });
@@ -398,16 +354,12 @@ export default function Registration() {
           <CardHeader>
             <CardTitle className="text-2xl">Cohort Registration</CardTitle>
             <CardDescription>
-              Fill out this form to register for a cohort. We'll review your
-              application and get back to you.
+              Fill out this form to register for a cohort. We'll review your application and get back to you.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-6"
-              >
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Name */}
                 <FormField
                   control={form.control}
@@ -430,11 +382,7 @@ export default function Registration() {
                     <FormItem>
                       <FormLabel>Email *</FormLabel>
                       <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="you@example.com"
-                          {...field}
-                        />
+                        <Input type="email" placeholder="you@example.com" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -446,18 +394,14 @@ export default function Registration() {
                   name="whatsapp_number"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        WhatsApp Number (with country code) *
-                      </FormLabel>
+                      <FormLabel>WhatsApp Number (with country code) *</FormLabel>
                       <FormControl>
                         <Input
                           type="tel"
                           inputMode="tel"
                           placeholder="+919876543210"
                           {...field}
-                          onChange={(e) =>
-                            field.onChange(sanitizePhone(e.target.value))
-                          }
+                          onChange={(e) => field.onChange(sanitizePhone(e.target.value))}
                         />
                       </FormControl>
                       <FormMessage />
@@ -484,9 +428,9 @@ export default function Registration() {
                             },
                             {
                               heading: "All Countries",
-                              items: COUNTRIES.filter(
-                                (c) => !PRIORITY_COUNTRIES.includes(c),
-                              ).sort((a, b) => a.localeCompare(b)),
+                              items: COUNTRIES.filter((c) => !PRIORITY_COUNTRIES.includes(c)).sort((a, b) =>
+                                a.localeCompare(b),
+                              ),
                             },
                           ]}
                         />
@@ -524,10 +468,7 @@ export default function Registration() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Select Cohort *</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Choose a cohort" />
@@ -552,9 +493,7 @@ export default function Registration() {
                   name="interests"
                   render={() => (
                     <FormItem>
-                      <FormLabel>
-                        What do you want to learn? (select all that apply) *
-                      </FormLabel>
+                      <FormLabel>What do you want to learn? (select all that apply) *</FormLabel>
                       <div className="space-y-3 pt-1">
                         {INTEREST_OPTIONS.map((interest) => (
                           <FormField
@@ -569,16 +508,12 @@ export default function Registration() {
                                     onCheckedChange={(checked) => {
                                       const updated = checked
                                         ? [...(field.value || []), interest]
-                                        : (field.value || []).filter(
-                                            (v) => v !== interest,
-                                          );
+                                        : (field.value || []).filter((v) => v !== interest);
                                       field.onChange(updated);
                                     }}
                                   />
                                 </FormControl>
-                                <FormLabel className="font-normal cursor-pointer">
-                                  {interest}
-                                </FormLabel>
+                                <FormLabel className="font-normal cursor-pointer">{interest}</FormLabel>
                               </FormItem>
                             )}
                           />
@@ -591,10 +526,7 @@ export default function Registration() {
                           render={({ field }) => (
                             <FormItem className="pt-2">
                               <FormControl>
-                                <Input
-                                  placeholder="Please specify your interest"
-                                  {...field}
-                                />
+                                <Input placeholder="Please specify your interest" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -627,10 +559,7 @@ export default function Registration() {
                     <FormItem>
                       <FormLabel>Role *</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="e.g. Product Manager, Developer"
-                          {...field}
-                        />
+                        <Input placeholder="e.g. Product Manager, Developer" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -644,11 +573,7 @@ export default function Registration() {
                     <FormItem>
                       <FormLabel>Why do you want to join? *</FormLabel>
                       <FormControl>
-                        <Textarea
-                          placeholder="Tell us what you hope to learn and achieve..."
-                          rows={4}
-                          {...field}
-                        />
+                        <Textarea placeholder="Tell us what you hope to learn and achieve..." rows={4} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -660,9 +585,7 @@ export default function Registration() {
                   name="additional_info"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Anything else you'd like us to know?
-                      </FormLabel>
+                      <FormLabel>Anything else you'd like us to know?</FormLabel>
                       <FormControl>
                         <Textarea placeholder="Optional" rows={3} {...field} />
                       </FormControl>
@@ -678,23 +601,16 @@ export default function Registration() {
                     render={({ field }) => (
                       <FormItem className="flex items-start space-x-3 space-y-0 rounded-md border border-border p-4">
                         <FormControl>
-                          <Checkbox
-                            checked={field.value === true}
-                            onCheckedChange={field.onChange}
-                          />
+                          <Checkbox checked={field.value === true} onCheckedChange={field.onChange} />
                         </FormControl>
                         <div className="space-y-1 leading-none">
                           <FormLabel className="cursor-pointer font-medium">
                             I agree to the Commitment fee (non-refundable) *
                           </FormLabel>
-                          <p className="text-sm text-muted-foreground pt-1">
-                            ​
-                          </p>
+                          <p className="text-sm text-muted-foreground pt-1">​</p>
                           <p className="text-sm text-muted-foreground">
-                            In previous cohorts, many registered but didn't show
-                            up. To ensure a serious, engaged learning experience
-                            for everyone, we now require a commitment fee to
-                            reserve your seat.
+                            In previous cohorts, many registered but didn't show up. To ensure a serious, engaged
+                            learning experience for everyone, we now require a commitment fee to reserve your seat.
                           </p>
                         </div>
                         <FormMessage />
@@ -702,15 +618,8 @@ export default function Registration() {
                     )}
                   />
                 )}
-                <Button
-                  type="submit"
-                  className="w-full"
-                  size="lg"
-                  disabled={status !== "idle"}
-                >
-                  {status !== "idle" && status !== "success" && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
+                <Button type="submit" className="w-full" size="lg" disabled={status !== "idle"}>
+                  {status !== "idle" && status !== "success" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {status === "opening"
                     ? "Processing…"
                     : status === "confirming"
