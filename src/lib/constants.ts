@@ -4,6 +4,7 @@ export const COHORT_FORM_URL =
     : "/registration";
 
 export const COHORT_CONFIG = {
+  showAIMasteryPromo: true,
   date: "Aug 27th",
   mentorName: "Ranbeer",
   totalSeats: 20,
