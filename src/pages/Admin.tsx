@@ -60,6 +60,7 @@ import { ChapterManager } from "@/components/admin/ChapterManager";
 import { QuizForm } from "@/components/admin/QuizForm";
 import CertificatesAdminTab from "@/components/admin/CertificatesAdminTab";
 import InquiriesAdminTab from "@/components/admin/InquiriesAdminTab";
+import GuidesAdminTab from "@/components/admin/GuidesAdminTab";
 
 interface Cohort {
   id: string;
@@ -356,7 +357,11 @@ export default function Admin() {
   };
 
   const fetchCourses = async () => {
-    const { data } = await supabase.from("courses").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase
+      .from("courses")
+      .select("*")
+      .eq("is_text_course", false)
+      .order("created_at", { ascending: false });
     if (data) setCourses(data as Course[]);
   };
 
@@ -1354,6 +1359,9 @@ export default function Admin() {
             <TabsTrigger value="courses" className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm">
               <BookOpen className="h-4 w-4" /> Courses
             </TabsTrigger>
+            <TabsTrigger value="guides" className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm">
+              <FileText className="h-4 w-4" /> Guides
+            </TabsTrigger>
             <TabsTrigger value="sessions" className="gap-2 h-9 rounded-lg px-3.5 text-sm data-[state=active]:shadow-sm">
               <GraduationCap className="h-4 w-4" /> Sessions
             </TabsTrigger>
@@ -1626,6 +1634,11 @@ export default function Admin() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Guides Tab */}
+          <TabsContent value="guides">
+            <GuidesAdminTab />
           </TabsContent>
 
           {/* Sessions Tab */}
