@@ -944,6 +944,7 @@ export type Database = {
           recording_url: string | null
           session_date: string | null
           session_order: number | null
+          text_content: string | null
           title: string
           updated_at: string
         }
@@ -958,6 +959,7 @@ export type Database = {
           recording_url?: string | null
           session_date?: string | null
           session_order?: number | null
+          text_content?: string | null
           title: string
           updated_at?: string
         }
@@ -972,6 +974,7 @@ export type Database = {
           recording_url?: string | null
           session_date?: string | null
           session_order?: number | null
+          text_content?: string | null
           title?: string
           updated_at?: string
         }

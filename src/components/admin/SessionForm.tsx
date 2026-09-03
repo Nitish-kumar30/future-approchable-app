@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +10,9 @@ import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Plus, Trash2, BookOpen, ClipboardList, FolderKanban } from 'lucide-react';
+import { Loader2, Plus, Trash2, BookOpen, ClipboardList, FolderKanban, FileText, Upload, ImagePlus, Eye, EyeOff } from 'lucide-react';
+import { Markdown } from '@/components/ui/markdown';
+import { uploadContentImage } from '@/lib/uploadContentImage';
 
 interface PreReadingMaterial {
   id?: string;
@@ -37,6 +39,7 @@ interface Session {
   presentation_url: string;
   session_order: number;
   is_content_unlocked: boolean;
+  text_content: string;
 }
 
 interface Cohort {
@@ -77,6 +80,7 @@ const defaultSession: Session = {
   presentation_url: '',
   session_order: 0,
   is_content_unlocked: false,
+  text_content: '',
 };
 
 export function SessionForm({ 
@@ -97,6 +101,12 @@ export function SessionForm({
   const [miniProjects, setMiniProjects] = useState<MiniProject[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [parentType, setParentType] = useState<'cohort' | 'course'>('cohort');
+  const [showPreview, setShowPreview] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [contentError, setContentError] = useState<string | null>(null);
+  const textContentRef = useRef<HTMLTextAreaElement>(null);
+  const mdFileInputRef = useRef<HTMLInputElement>(null);
+  const imageFileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -104,6 +114,7 @@ export function SessionForm({
       if (session) {
         setFormData({
           ...session,
+          text_content: session.text_content || '',
           session_date: session.session_date ? new Date(session.session_date).toISOString().slice(0, 16) : '',
         });
         setParentType(session.cohort_id ? 'cohort' : 'course');
@@ -191,6 +202,75 @@ export function SessionForm({
     const updated = [...miniProjects];
     updated[index] = { ...updated[index], [field]: value };
     setMiniProjects(updated);
+  };
+
+  const insertAtCursor = (text: string) => {
+    const textarea = textContentRef.current;
+    if (!textarea) {
+      setFormData((prev) => ({
+        ...prev,
+        text_content: prev.text_content ? `${prev.text_content}\n\n${text}` : text,
+      }));
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const current = formData.text_content;
+    const before = current.slice(0, start);
+    const after = current.slice(end);
+    const needsLeadingNewline = before.length > 0 && !before.endsWith('\n');
+    const needsTrailingNewline = after.length > 0 && !after.startsWith('\n');
+    const insertion = `${needsLeadingNewline ? '\n\n' : ''}${text}${needsTrailingNewline ? '\n\n' : ''}`;
+    const updated = before + insertion + after;
+
+    setFormData((prev) => ({ ...prev, text_content: updated }));
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const cursorPos = before.length + insertion.length;
+      textarea.setSelectionRange(cursorPos, cursorPos);
+    });
+  };
+
+  const handleMdFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const content = typeof reader.result === 'string' ? reader.result : '';
+      if (formData.text_content.trim() && !window.confirm('Replace existing text content with the uploaded file?')) {
+        if (mdFileInputRef.current) mdFileInputRef.current.value = '';
+        return;
+      }
+      setFormData((prev) => ({ ...prev, text_content: content }));
+      setContentError(null);
+      if (mdFileInputRef.current) mdFileInputRef.current.value = '';
+    };
+    reader.onerror = () => {
+      setContentError('Failed to read the markdown file.');
+      if (mdFileInputRef.current) mdFileInputRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    setContentError(null);
+    try {
+      const url = await uploadContentImage(file, session?.id);
+      const alt = file.name.replace(/\.[^.]+$/, '') || 'image';
+      insertAtCursor(`![${alt}](${url})`);
+    } catch (err) {
+      setContentError(err instanceof Error ? err.message : 'Failed to upload image.');
+    } finally {
+      setIsUploadingImage(false);
+      if (imageFileInputRef.current) imageFileInputRef.current.value = '';
+    }
   };
 
   const isEditing = !!session?.id;
@@ -323,6 +403,89 @@ export function SessionForm({
               />
             </div>
           </div>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Text Lesson Content (Markdown)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Optional. Supports Markdown. Use with or without a video — shown below the video when both are present.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => mdFileInputRef.current?.click()}
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  Upload .md file
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={isUploadingImage}
+                  onClick={() => imageFileInputRef.current?.click()}
+                >
+                  {isUploadingImage ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <ImagePlus className="h-3.5 w-3.5" />
+                  )}
+                  Insert image
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setShowPreview((v) => !v)}
+                >
+                  {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  {showPreview ? 'Hide preview' : 'Show preview'}
+                </Button>
+              </div>
+              <input
+                ref={mdFileInputRef}
+                type="file"
+                accept=".md,.markdown,.txt,text/markdown,text/plain"
+                className="hidden"
+                onChange={handleMdFileUpload}
+              />
+              <input
+                ref={imageFileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+              <Textarea
+                ref={textContentRef}
+                id="text_content"
+                value={formData.text_content}
+                onChange={(e) => setFormData({ ...formData, text_content: e.target.value })}
+                placeholder="Write markdown here, or upload a .md file..."
+                rows={12}
+                className="font-mono text-sm"
+              />
+              {contentError && (
+                <p className="text-xs text-destructive">{contentError}</p>
+              )}
+              {showPreview && formData.text_content.trim() && (
+                <div className="rounded-lg border p-4 bg-muted/20">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Preview</p>
+                  <Markdown content={formData.text_content} />
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <Separator />
 

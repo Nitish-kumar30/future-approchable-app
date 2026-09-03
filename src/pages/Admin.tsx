@@ -105,6 +105,7 @@ interface Session {
   presentation_url: string;
   session_order: number;
   is_content_unlocked: boolean;
+  text_content: string | null;
 }
 
 interface PreReadingMaterial {
@@ -460,6 +461,7 @@ export default function Admin() {
             description: session.description || null,
             session_date: session.session_date || null,
             session_order: session.session_order || 0,
+            text_content: session.text_content || null,
             recording_url: null, // Exclude URL
             presentation_url: null, // Exclude URL
           };
@@ -610,6 +612,7 @@ export default function Admin() {
       presentation_url: session.presentation_url || null,
       session_order: session.session_order || 0,
       is_content_unlocked: session.is_content_unlocked ?? false,
+      text_content: session.text_content?.trim() || null,
     };
 
     let sessionId = session.id;
@@ -1713,6 +1716,7 @@ export default function Admin() {
                             <TableHead>Parent</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Order</TableHead>
+                            <TableHead>Type</TableHead>
                             <TableHead>Content</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
@@ -1726,6 +1730,19 @@ export default function Admin() {
                                 {session.session_date ? new Date(session.session_date).toLocaleDateString() : "-"}
                               </TableCell>
                               <TableCell>{session.session_order}</TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                  {session.recording_url?.trim() && (
+                                    <Badge variant="secondary" className="text-xs">Video</Badge>
+                                  )}
+                                  {session.text_content?.trim() && (
+                                    <Badge variant="outline" className="text-xs">Text</Badge>
+                                  )}
+                                  {!session.recording_url?.trim() && !session.text_content?.trim() && (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 <Switch
                                   checked={session.is_content_unlocked}
