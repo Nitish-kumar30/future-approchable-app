@@ -49,6 +49,9 @@ interface Props {
   sessions: CurriculumSession[];
   completedChapterIds?: Set<string>;
   completedQuizIds?: Set<string>;
+  /** Controlled open-session ids, e.g. for an "Expand all" toggle. Falls back to uncontrolled (first session open) when omitted. */
+  openSessionIds?: string[];
+  onOpenSessionIdsChange?: (ids: string[]) => void;
 }
 
 export default function CourseContentAccordion({
@@ -57,12 +60,15 @@ export default function CourseContentAccordion({
   sessions,
   completedChapterIds,
   completedQuizIds,
+  openSessionIds,
+  onOpenSessionIdsChange,
 }: Props) {
   const navigate = useNavigate();
   const [preview, setPreview] = useState<{ title: string; hlsUrl: string | null } | null>(null);
   const [mp, setMp] = useState<CurriculumMiniProject | null>(null);
 
   const defaultOpen = useMemo(() => (sessions[0] ? [sessions[0].id] : []), [sessions]);
+  const isControlled = openSessionIds != null && onOpenSessionIdsChange != null;
 
   if (sessions.length === 0) {
     return <p className="text-sm text-muted-foreground">Curriculum coming soon.</p>;
@@ -83,7 +89,13 @@ export default function CourseContentAccordion({
 
   return (
     <>
-      <Accordion type="multiple" defaultValue={defaultOpen} className="w-full space-y-3">
+      <Accordion
+        type="multiple"
+        {...(isControlled
+          ? { value: openSessionIds, onValueChange: onOpenSessionIdsChange }
+          : { defaultValue: defaultOpen })}
+        className="w-full space-y-3"
+      >
         {sessions.map((s) => {
           const preReadings = s.pre_readings ?? [];
           const miniProjects = s.mini_projects ?? [];

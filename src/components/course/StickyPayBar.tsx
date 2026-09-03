@@ -1,26 +1,19 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
-import PaymentButton from '@/components/payment/PaymentButton';
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useSyncStickyPayBarHeight } from '@/hooks/useSyncStickyPayBarHeight';
 
 type StickyPayBarProps = {
-  courseId: string;
   courseName: string;
-  priceInrPaise?: number | null;
-  priceUsdCents?: number | null;
-  hasPaid: boolean;
+  subtitle?: string;
   heroRef: RefObject<HTMLElement>;
-  onPaid?: () => void;
+  ctaSlot: ReactNode;
 };
 
-// Fixed bottom pay bar. Appears after the hero scrolls out of view.
+// Fixed bottom pay/enroll bar. Appears after the hero scrolls out of view.
 export default function StickyPayBar({
-  courseId,
   courseName,
-  priceInrPaise,
-  priceUsdCents,
-  hasPaid,
+  subtitle = 'One-time payment · Lifetime access',
   heroRef,
-  onPaid,
+  ctaSlot,
 }: StickyPayBarProps) {
   const barRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -42,8 +35,6 @@ export default function StickyPayBar({
     return () => observer.disconnect();
   }, [heroRef]);
 
-  if (hasPaid) return null;
-
   return (
     <div
       ref={barRef}
@@ -54,22 +45,10 @@ export default function StickyPayBar({
     >
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-foreground">
-            {courseName}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            One-time payment · Lifetime access
-          </p>
+          <p className="truncate text-sm font-medium text-foreground">{courseName}</p>
+          <p className="text-xs text-muted-foreground">{subtitle}</p>
         </div>
-        <PaymentButton
-          courseId={courseId}
-          courseName={courseName}
-          priceInrPaise={priceInrPaise}
-          priceUsdCents={priceUsdCents}
-          hasPaid={hasPaid}
-          onPaid={onPaid}
-          size="default"
-        />
+        {ctaSlot}
       </div>
     </div>
   );
