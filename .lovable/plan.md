@@ -1,26 +1,27 @@
-# Deploy updated/added edge functions
+# Deploy last merge (PR #20 — Guides / text-based courses) to Test
 
-## What changed
+## What the merge contains
 
-Since merge commit `118d227` (PR #18), the following edge functions were added or modified:
+Merge `1c53280` (PR #20, from `frontend-dashboard-changes`) adds:
 
-- `supabase/functions/delete-submission/index.ts` — NEW. Allows admins to delete contact/corporate inquiry blobs from Vercel Blob storage.
-- `supabase/functions/get-corporate-inquiries/index.ts` — UPDATED. Now returns both contact and corporate inquiries, with improved parsing and admin auth.
-- `supabase/config.toml` — NEW entries for both functions with `verify_jwt = false`.
+- **Migration**: `supabase/migrations/20260903120000_guide_courses.sql`
+  - `courses.is_text_course` column
+  - New tables `guide_chapters` and `guide_chapter_progress` with GRANTs, RLS policies, indexes, and updated_at triggers
+  - Depends on existing helpers `public.is_admin()` and `public.update_updated_at_column()` — both confirmed present on Test
+- **Frontend only**: `GuidesAdminTab`, `GuideCourseForm`, `GuideChapterManager`, `GuidesCoursesGrid`, `GuideCourseDetail` page, route and grid wiring
 
-No database migrations or RLS changes are involved.
+**No edge functions were added or changed in this merge** — nothing to deploy for functions. (The `get-corporate-inquiries` / `delete-submission` functions from the earlier PR #18 merge are already deployed on Test.)
+
+Current Test DB state: `guide_chapters` and `guide_chapter_progress` do NOT exist yet — the migration has not been applied.
 
 ## Plan
 
-1. Deploy `delete-submission` to the Test backend.
-2. Deploy `get-corporate-inquiries` to the Test backend.
-3. Smoke-test both functions:
-   - `get-corporate-inquiries`: expect 401 without auth; with admin session, return inquiries JSON.
-   - `delete-submission`: expect 401 without auth; with admin session, accept a valid UUID and form type.
-4. Verify `BLOB_READ_WRITE_TOKEN` and `BLOB_STORE_ID` secrets are present (both functions need them).
-5. Report results and ask whether to deploy to Live.
+1. Run migration `20260903120000_guide_courses.sql` on the Test database.
+2. Verify: both tables exist, RLS enabled, and an authenticated read against `guide_chapters` works.
+3. No edge function deploys needed (no function changes in this merge).
+4. Frontend goes live via Publish only — after you verify the Guides admin tab and learner view on the Test preview.
 
-## Notes
+## Technical details
 
-- Frontend changes go live only via Publish; this plan covers backend deploy to Test.
-- Live deployment requires a separate explicit step after Test verification.
+- Migration is additive only; idempotent on the `courses` column (`IF NOT EXISTS`). Table creates are not idempotent, so it will be run exactly once — safe since the tables do not exist yet.
+- Live (production) needs the same migration applied at publish/go-live time as a separate explicit step.
