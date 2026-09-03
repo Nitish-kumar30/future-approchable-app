@@ -21,6 +21,7 @@ import Admin from "./pages/Admin";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import OnDemandCourseDetail from "./pages/OnDemandCourseDetail";
+import GuideCourseDetail from "./pages/GuideCourseDetail";
 import PromptLibrary from "./pages/PromptLibrary";
 import Resources from "./pages/Resources";
 import Registration from "./pages/Registration";
@@ -58,6 +59,8 @@ const App = () => (
             <Route path="/resources" element={<Resources />} />
             <Route path="/prompts" element={<PromptLibrary />} />
             <Route path="/on-demand/:slug" element={<OnDemandCourseDetail />} />
+            <Route path="/guides" element={<Navigate to="/courses?tab=guides" replace />} />
+            <Route path="/guides/:slug" element={<GuideCourseDetail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/registration" element={<Registration />} />
             <Route path="/reset-password" element={<ResetPassword />} />

@@ -4,10 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Clock, GraduationCap, ArrowRight, Image as ImageIcon, PlayCircle, Search } from 'lucide-react';
+import { BookOpen, Clock, GraduationCap, ArrowRight, Image as ImageIcon, Search } from 'lucide-react';
 import { formatDuration } from '@/lib/formatDuration';
 
-interface FreeCourse {
+interface GuideCourse {
   id: string;
   slug: string;
   name: string;
@@ -20,14 +20,14 @@ interface FreeCourse {
 
 type SortOption = 'newest' | 'name-asc';
 
-export default function FreeCoursesGrid({
+export default function GuidesCoursesGrid({
   searchQuery = '',
   sort = 'newest',
 }: {
   searchQuery?: string;
   sort?: SortOption;
 }) {
-  const [courses, setCourses] = useState<FreeCourse[]>([]);
+  const [courses, setCourses] = useState<GuideCourse[]>([]);
   const [loading, setLoading] = useState(true);
 
   const visibleCourses = useMemo(() => {
@@ -54,8 +54,7 @@ export default function FreeCoursesGrid({
         .from('courses')
         .select('id, slug, name, description, mentor_name, duration, image_url, created_at')
         .eq('is_published', true)
-        .eq('is_on_demand', true)
-        .eq('is_text_course', false)
+        .eq('is_text_course', true)
         .order('created_at', { ascending: false });
       if (!cancelled) {
         setCourses(data || []);
@@ -85,9 +84,9 @@ export default function FreeCoursesGrid({
     return (
       <Card className="card-elevated border-dashed">
         <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-          <PlayCircle className="h-10 w-10 text-muted-foreground mb-3" />
-          <h3 className="text-base font-semibold mb-1">No Free Courses Available</h3>
-          <p className="text-sm text-muted-foreground">Check back soon for new self-paced courses.</p>
+          <BookOpen className="h-10 w-10 text-muted-foreground mb-3" />
+          <h3 className="text-base font-semibold mb-1">No Guides Available</h3>
+          <p className="text-sm text-muted-foreground">Check back soon for new reading guides.</p>
         </CardContent>
       </Card>
     );
@@ -98,7 +97,7 @@ export default function FreeCoursesGrid({
       <Card className="card-elevated border-dashed">
         <CardContent className="flex flex-col items-center justify-center py-10 text-center">
           <Search className="h-10 w-10 text-muted-foreground mb-3" />
-          <h3 className="text-base font-semibold mb-1">No matching courses</h3>
+          <h3 className="text-base font-semibold mb-1">No matching guides</h3>
           <p className="text-sm text-muted-foreground">Try a different search term.</p>
         </CardContent>
       </Card>
@@ -108,7 +107,7 @@ export default function FreeCoursesGrid({
   return (
     <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
       {visibleCourses.map((course) => (
-        <Link key={course.id} to={`/on-demand/${course.slug}`}>
+        <Link key={course.id} to={`/guides/${course.slug}`}>
           <Card className="card-elevated hover:shadow-md transition-all duration-200 cursor-pointer group overflow-hidden flex flex-col h-full">
             <div className="relative h-36 shrink-0 bg-muted overflow-hidden">
               {course.image_url ? (
@@ -147,7 +146,7 @@ export default function FreeCoursesGrid({
               </div>
               <div className="flex justify-end">
                 <Button size="sm" className="gap-1 h-8 text-xs">
-                  Start learning <ArrowRight className="h-3.5 w-3.5" />
+                  Start reading <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </CardContent>
