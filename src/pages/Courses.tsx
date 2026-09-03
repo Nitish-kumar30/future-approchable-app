@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import AppShell from '@/components/layout/AppShell';
 import FreeCoursesGrid from '@/components/courses/FreeCoursesGrid';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import CourseCard from '@/components/course/CourseCard';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,18 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  BookOpen,
-  Check,
-  Clock,
-  Calendar,
-  GraduationCap,
-  ArrowRight,
-  Image as ImageIcon,
-  Search,
-  ListFilter,
-} from 'lucide-react';
-import { formatDuration } from '@/lib/formatDuration';
+import { BookOpen, Check, Search, ListFilter } from 'lucide-react';
 import { computeOnDemandProgressPercents, fetchOnDemandResumeSessionIds } from '@/lib/onDemandProgress';
 
 interface Course {
@@ -85,10 +74,10 @@ function sortCourses<T extends { name: string; duration: string | null; start_da
 
 function CourseGridSkeleton() {
   return (
-    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {[1, 2, 3].map((i) => (
         <Card key={i} className="card-elevated overflow-hidden flex flex-col">
-          <Skeleton className="h-36 w-full shrink-0 rounded-none" />
+          <Skeleton className="h-40 w-full shrink-0 rounded-none" />
           <CardHeader className="p-4">
             <Skeleton className="h-5 w-3/4" />
             <Skeleton className="h-3 w-full mt-2" />
@@ -96,101 +85,6 @@ function CourseGridSkeleton() {
         </Card>
       ))}
     </div>
-  );
-}
-
-function CourseCard({
-  course,
-  enrolled,
-  percent,
-  href,
-  ctaLabel,
-}: {
-  course: Course;
-  enrolled: boolean;
-  percent?: number;
-  /** Overrides the default details-page link, e.g. to jump straight into a lesson. */
-  href?: string;
-  /** Overrides the default "View details" ghost button with a primary CTA. */
-  ctaLabel?: string;
-}) {
-  return (
-    <Link to={href ?? `/courses/${course.slug}`}>
-      <Card className="relative card-elevated hover:shadow-md transition-all duration-200 cursor-pointer group overflow-hidden flex flex-col h-full">
-        <div className="relative h-36 shrink-0 bg-muted overflow-hidden">
-          {course.image_url ? (
-            <img
-              src={course.image_url}
-              alt={course.name}
-              className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <ImageIcon className="h-10 w-10 text-muted-foreground/50" />
-            </div>
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
-          {enrolled ? (
-            <Badge className="absolute top-2 right-2 text-[10px]" variant="secondary">
-              Enrolled
-            </Badge>
-          ) : course.enrollment_disabled ? (
-            <Badge className="absolute top-2 right-2 text-[10px]" variant="secondary">
-              Closed
-            </Badge>
-          ) : null}
-        </div>
-        <CardHeader className="p-4 pb-2">
-          <CardTitle className="text-base group-hover:text-primary transition-colors line-clamp-2">
-            {course.name}
-          </CardTitle>
-          <CardDescription className="line-clamp-2 text-xs">{course.description}</CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 pt-0 pb-4 space-y-2 mt-auto">
-          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            {course.mentor_name && (
-              <span className="flex items-center gap-1">
-                <GraduationCap className="h-3.5 w-3.5" />
-                {course.mentor_name}
-              </span>
-            )}
-            {course.start_date && (
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" />
-                {new Date(course.start_date).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </span>
-            )}
-            {course.duration && (
-              <span className="flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" />
-                {formatDuration(course.duration)}
-              </span>
-            )}
-          </div>
-          <div className="flex justify-end">
-            {ctaLabel ? (
-              <Button size="sm" className="h-8 text-xs">
-                {ctaLabel}
-              </Button>
-            ) : (
-              <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs">
-                View details <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            )}
-          </div>
-        </CardContent>
-
-        {/* Progress line at the true bottom edge of the card — only for enrolled courses with tracked progress */}
-        {enrolled && percent != null && (
-          <div className="h-1 bg-muted">
-            <div className="h-full bg-primary transition-all" style={{ width: `${percent}%` }} />
-          </div>
-        )}
-      </Card>
-    </Link>
   );
 }
 
@@ -489,7 +383,7 @@ export default function Courses() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {visiblePaidCourses.map((course) => (
                   <CourseCard
                     key={course.id}
@@ -531,7 +425,7 @@ export default function Courses() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {visibleMyCourses.map((course) => (
                   <CourseCard
                     key={course.id}

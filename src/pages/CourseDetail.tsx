@@ -4,32 +4,29 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { buildLoginUrl } from '@/lib/authRedirect';
 import { useToast } from '@/hooks/use-toast';
+import { usePricingCurrency } from '@/hooks/usePricingCurrency';
 import AppShell from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Markdown } from '@/components/ui/markdown';
-import { SessionQuizList, SessionQuiz, QuizSubmission } from '@/components/session/SessionQuizList';
 import PaymentButton from '@/components/payment/PaymentButton';
 import { isPaidCourse } from '@/lib/coursePayment';
-import CourseContentAccordion, { CurriculumSession } from '@/components/course/CourseContentAccordion';
+import { CurriculumSession } from '@/components/course/CourseContentAccordion';
 import StickyPayBar from '@/components/course/StickyPayBar';
 import CertificatePanel from '@/components/certificate/CertificatePanel';
-import { 
-  Clock, 
-  GraduationCap, 
-  ArrowLeft,
-  Video,
-  FileText,
+import CourseHero from '@/components/course/detail/CourseHero';
+import CourseInfoRail from '@/components/course/detail/CourseInfoRail';
+import CourseCurriculumSection from '@/components/course/detail/CourseCurriculumSection';
+import InstructorCard from '@/components/course/detail/InstructorCard';
+import CourseReviews from '@/components/course/detail/CourseReviews';
+import RelatedCourses from '@/components/course/detail/RelatedCourses';
+import { buildIncludesLabels } from '@/components/course/detail/courseIncludes';
+import {
   CheckCircle2,
   Loader2,
-  ClipboardList,
-  BookOpen,
-  ExternalLink,
-  Lock
 } from 'lucide-react';
 
 interface Course {
@@ -56,32 +53,17 @@ interface Session {
   is_content_unlocked?: boolean;
 }
 
-interface CourseQuiz {
-  id: string;
-  title: string;
-}
-
-interface PreReadingMaterial {
-  id: string;
-  session_id: string;
-  title: string;
-  link: string;
-  display_order: number;
-}
-
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
-  
+  const { coursePriceLabel } = usePricingCurrency();
+
   const [course, setCourse] = useState<Course | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [sessionQuizzes, setSessionQuizzes] = useState<Record<string, SessionQuiz[]>>({});
-  const [courseQuizzes, setCourseQuizzes] = useState<CourseQuiz[]>([]);
-  const [quizSubmissions, setQuizSubmissions] = useState<QuizSubmission[]>([]);
-  const [preReadingMaterials, setPreReadingMaterials] = useState<PreReadingMaterial[]>([]);
+  const [ratingSummary, setRatingSummary] = useState<{ avg: number; count: number } | null>(null);
   const [completedChapterIds, setCompletedChapterIds] = useState<Set<string>>(new Set());
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [hasPaid, setHasPaid] = useState(false);
@@ -89,6 +71,7 @@ export default function CourseDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [curriculumSessions, setCurriculumSessions] = useState<CurriculumSession[]>([]);
+  const [quizSubmissionQuizIds, setQuizSubmissionQuizIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (slug) {
@@ -147,6 +130,22 @@ export default function CourseDetail() {
       setCompletedChapterIds(new Set((data ?? []).map((p) => p.chapter_id)));
     })();
   }, [isEnrolled, user, curriculumSessions]);
+
+  useEffect(() => {
+    if (!course) return;
+    (async () => {
+      const { data } = await supabase
+        .from('course_ratings')
+        .select('rating')
+        .eq('course_id', course.id);
+      if (data && data.length > 0) {
+        const avg = data.reduce((sum, r) => sum + r.rating, 0) / data.length;
+        setRatingSummary({ avg, count: data.length });
+      } else {
+        setRatingSummary(null);
+      }
+    })();
+  }, [course]);
 
   const fetchCourse = async () => {
     const { data, error } = await supabase
@@ -222,19 +221,18 @@ export default function CourseDetail() {
 
     if (sessionsData) {
       setSessions(sessionsData);
-      
+
       const sessionIds = sessionsData.map(s => s.id);
       const allQuizIds: string[] = [];
-      
+
       // Fetch course-level quizzes (direct assignment)
       const { data: courseQuizzesData } = await supabase
         .from('quizzes')
         .select('id, title')
         .eq('course_id', courseId)
         .is('session_id', null);
-      
+
       if (courseQuizzesData) {
-        setCourseQuizzes(courseQuizzesData);
         allQuizIds.push(...courseQuizzesData.map(q => q.id));
       }
 
@@ -253,67 +251,24 @@ export default function CourseDetail() {
           `)
           .in('session_id', sessionIds)
           .order('display_order', { ascending: true });
-        
+
         if (sessionQuizzesData) {
-          const quizzesMap: Record<string, SessionQuiz[]> = {};
-          
           sessionQuizzesData.forEach((sq: any) => {
-            if (sq.quiz) {
-              const quiz = sq.quiz;
-              allQuizIds.push(quiz.id);
-              
-              if (!quizzesMap[sq.session_id]) {
-                quizzesMap[sq.session_id] = [];
-              }
-              
-              const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
-              quizzesMap[sq.session_id].push({
-                id: quiz.id,
-                title: quiz.title,
-                questionCount: questions.length,
-                displayOrder: sq.display_order
-              });
-            }
+            if (sq.quiz) allQuizIds.push(sq.quiz.id);
           });
-          
-          setSessionQuizzes(quizzesMap);
         }
-
-        // Fetch pre-reading materials
-        const { data: materialsData } = await supabase
-          .from('pre_reading_materials')
-          .select('*')
-          .in('session_id', sessionIds)
-          .order('display_order', { ascending: true });
-        
-        if (materialsData) {
-          setPreReadingMaterials(materialsData);
-        }
-
       }
 
       // Fetch quiz submissions for the user
       if (allQuizIds.length > 0) {
         const { data: submissionsData } = await supabase
           .from('quiz_submissions')
-          .select('quiz_id, score, submitted_at')
+          .select('quiz_id')
           .eq('user_id', user?.id)
-          .in('quiz_id', allQuizIds)
-          .order('submitted_at', { ascending: false });
-        
+          .in('quiz_id', allQuizIds);
+
         if (submissionsData) {
-          // Keep only latest submission per quiz
-          const latestSubmissions = new Map<string, QuizSubmission>();
-          submissionsData.forEach((s: any) => {
-            if (!latestSubmissions.has(s.quiz_id)) {
-              latestSubmissions.set(s.quiz_id, {
-                quizId: s.quiz_id,
-                score: s.score || 0,
-                submittedAt: s.submitted_at
-              });
-            }
-          });
-          setQuizSubmissions(Array.from(latestSubmissions.values()));
+          setQuizSubmissionQuizIds(new Set(submissionsData.map((s: any) => s.quiz_id)));
         }
       }
     }
@@ -359,46 +314,38 @@ export default function CourseDetail() {
     }
   };
 
-  const getQuizzesForSession = (sessionId: string): SessionQuiz[] => 
-    sessionQuizzes[sessionId] || [];
-
-  const getMaterialsForSession = (sessionId: string) => 
-    preReadingMaterials.filter(m => m.session_id === sessionId);
-
   const totalChapters = useMemo(
     () => curriculumSessions.reduce((n, s) => n + s.chapters.length, 0),
     [curriculumSessions],
   );
-  const completedChapters = useMemo(
-    () =>
-      curriculumSessions.reduce(
-        (n, s) => n + s.chapters.filter((c) => completedChapterIds.has(c.id)).length,
-        0,
-      ),
-    [curriculumSessions, completedChapterIds],
-  );
-  const completedQuizIds = useMemo(
-    () => new Set(quizSubmissions.map((s) => s.quizId)),
-    [quizSubmissions],
-  );
   const totalQuizzes = useMemo(
-    () =>
-      Object.values(sessionQuizzes).reduce((n, arr) => n + arr.length, 0) +
-      courseQuizzes.length,
-    [sessionQuizzes, courseQuizzes],
+    () => curriculumSessions.reduce((n, s) => n + s.quizzes.length, 0),
+    [curriculumSessions],
   );
+  const totalPreReadings = useMemo(
+    () => curriculumSessions.reduce((n, s) => n + (s.pre_readings?.length ?? 0), 0),
+    [curriculumSessions],
+  );
+  const completedQuizIds = useMemo(() => {
+    const allQuizIds = new Set(curriculumSessions.flatMap((s) => s.quizzes.map((q) => q.id)));
+    return new Set([...quizSubmissionQuizIds].filter((id) => allQuizIds.has(id)));
+  }, [curriculumSessions, quizSubmissionQuizIds]);
   const totalItems = totalChapters + totalQuizzes;
-  const completedItems = completedChapters + completedQuizIds.size;
+  const completedItems = completedChapterIds.size + completedQuizIds.size;
   const overallProgress =
     totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
   if (isLoading) {
     return (
       <AppShell>
-        <div className="space-y-6">
-          <Skeleton className="h-8 w-32" />
-          <Skeleton className="h-10 w-2/3" />
-          <Skeleton className="h-24 w-full" />
+        <div className="grid lg:grid-cols-[1fr_360px] gap-8">
+          <div className="space-y-6">
+            <Skeleton className="h-8 w-32" />
+            <Skeleton className="aspect-[16/9] sm:aspect-[5/2] md:aspect-[8/3] w-full rounded-xl" />
+            <Skeleton className="h-10 w-2/3" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+          <Skeleton className="hidden lg:block h-96 w-full rounded-xl" />
         </div>
       </AppShell>
     );
@@ -415,186 +362,180 @@ export default function CourseDetail() {
     );
   }
 
-  const showStickyPay = course && isPaidCourse(course) && !isEnrolled && !course.enrollment_disabled;
+  const paid = isPaidCourse(course);
+  const showStickyBar = !isEnrolled && !course.enrollment_disabled;
+
+  const ctaSlot = isEnrolled ? (
+    <div className="flex items-center gap-3 flex-wrap">
+      <Badge variant="secondary" className="text-sm px-3 py-1.5">
+        <CheckCircle2 className="h-4 w-4 mr-1.5" /> Enrolled
+      </Badge>
+      <Button size="lg" onClick={() => navigate(`/courses/${slug}/learn`)}>
+        Continue learning
+      </Button>
+    </div>
+  ) : course.enrollment_disabled ? (
+    <Badge variant="secondary" className="text-sm px-4 py-2">
+      Enrollment Closed
+    </Badge>
+  ) : paid ? (
+    <PaymentButton
+      courseId={course.id}
+      courseName={course.name}
+      priceInrPaise={course.price_inr_paise}
+      priceUsdCents={course.price_usd_cents}
+      hasPaid={hasPaid}
+      onPaid={handlePaymentSuccess}
+      adminEnroll={
+        isAdmin
+          ? { onEnroll: handleEnroll, isEnrolling }
+          : undefined
+      }
+    />
+  ) : (
+    <Button size="lg" onClick={handleEnroll} disabled={isEnrolling}>
+      {isEnrolling ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Enrolling...
+        </>
+      ) : (
+        'Enroll Now'
+      )}
+    </Button>
+  );
 
   return (
     <AppShell>
-      <div className={`space-y-8 animate-fade-in`}>
-        {/* Back Button */}
-        <Button variant="ghost" size="sm" onClick={() => navigate('/courses')} className="gap-2">
-          <ArrowLeft className="h-4 w-4" /> Back to Courses
-        </Button>
+      <div className="animate-fade-in grid lg:grid-cols-[1fr_360px] gap-x-8 gap-y-6 items-start">
+        {/* ── Left column ── */}
+        <div className="space-y-8 min-w-0">
+          <CourseHero
+            heroRef={heroRef}
+            imageUrl={course.image_url}
+            name={course.name}
+            mentorName={course.mentor_name}
+            duration={course.duration}
+            sessionCount={curriculumSessions.length}
+            chapterCount={totalChapters}
+            isPaid={paid}
+            priceLabel={coursePriceLabel(course)}
+            rating={ratingSummary}
+          />
 
-        {/* Course Image */}
-        {course.image_url && (
-          <div ref={heroRef} className="relative w-full aspect-[5/2] md:aspect-[8/3] rounded-xl overflow-hidden bg-muted">
-            <img
-              src={course.image_url}
-              alt={course.name}
-              className="w-full h-full object-cover object-center"
-            />
-          </div>
-        )}
-
-        {/* Header */}
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-2">
-              <h1 className="text-3xl font-display font-bold text-foreground">
-                {course.name}
-              </h1>
-              {course.mentor_name && (
-                <p className="text-lg text-muted-foreground flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5" />
-                  By {course.mentor_name}
+          {/* Mobile-only price/CTA card — desktop shows the sticky rail instead */}
+          <Card className="card-elevated lg:hidden">
+            <CardContent className="p-4 flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                {!paid ? (
+                  <p className="text-lg font-display font-bold text-success">Free</p>
+                ) : (
+                  <p className="text-lg font-display font-bold text-foreground">
+                    {coursePriceLabel(course)}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {paid ? 'One-time payment · Lifetime access' : 'Lifetime access'}
                 </p>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              {isEnrolled ? (
-                <>
-                  <Badge variant="secondary" className="text-base px-4 py-2">
-                    <CheckCircle2 className="h-4 w-4 mr-2" /> Enrolled
-                  </Badge>
-                  <Button size="lg" onClick={() => navigate(`/courses/${slug}/learn`)}>
-                    Continue learning
-                  </Button>
-                </>
-              ) : course.enrollment_disabled ? (
-                <Badge variant="secondary" className="text-base px-4 py-2">
-                  Enrollment Closed
-                </Badge>
-              ) : course && isPaidCourse(course) ? (
-                <PaymentButton
-                  courseId={course.id}
-                  courseName={course.name}
-                  priceInrPaise={course.price_inr_paise}
-                  priceUsdCents={course.price_usd_cents}
-                  hasPaid={hasPaid}
-                  onPaid={handlePaymentSuccess}
-                  adminEnroll={
-                    isAdmin
-                      ? { onEnroll: handleEnroll, isEnrolling }
-                      : undefined
-                  }
-                />
-              ) : (
-                <Button size="lg" onClick={handleEnroll} disabled={isEnrolling}>
-                  {isEnrolling ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Enrolling...
-                    </>
-                  ) : (
-                    'Enroll Now'
-                  )}
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Meta Info */}
-          {course.duration && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              {course.duration}
-            </div>
-          )}
-        </div>
-
-        <Separator />
-
-        {/* Overall Progress - Only for enrolled users */}
-        {isEnrolled && totalItems > 0 && (
-          <Card className="card-elevated border-primary/20 bg-primary/5">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Your Progress</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {completedItems} of {totalItems} lessons & quizzes completed
-                  </span>
-                  <span className="font-medium">{overallProgress}%</span>
-                </div>
-                <Progress value={overallProgress} className="h-3" />
               </div>
+              <div>{ctaSlot}</div>
             </CardContent>
           </Card>
-        )}
 
-        {isEnrolled && course && isPaidCourse(course) && (
-          <CertificatePanel courseId={course.id} variant="course" />
-        )}
-
-        {/* Description */}
-        <Card className="card-elevated">
-          <CardHeader>
-            <CardTitle>About this Course</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Markdown content={course.description || 'No description available.'} />
-            {course.mentor_info && (
-              <div className="mt-6">
-                <h4 className="text-foreground font-semibold mb-2">About the Instructor</h4>
-                <Markdown content={course.mentor_info} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Course-Level Quizzes */}
-        {isEnrolled && courseQuizzes.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold">Course Assessments</h2>
-            <div className="flex flex-wrap gap-2">
-              {courseQuizzes.map(quiz => (
-                <Button 
-                  key={quiz.id} 
-                  variant="outline"
-                  onClick={() => navigate(`/quiz/${quiz.id}`)}
-                  className="gap-2"
-                >
-                  <ClipboardList className="h-4 w-4" />
-                  {quiz.title}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Course Content */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">Course Content</h2>
-          {curriculumSessions.length === 0 ? (
-            <Card className="card-elevated border-dashed">
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No content available yet.
+          {isEnrolled && totalItems > 0 && (
+            <Card className="card-elevated border-primary/20 bg-primary/5">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Your Progress</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {completedItems} of {totalItems} lessons & quizzes completed
+                    </span>
+                    <span className="font-medium">{overallProgress}%</span>
+                  </div>
+                  <Progress value={overallProgress} className="h-3" />
+                </div>
               </CardContent>
             </Card>
-          ) : (
-            <CourseContentAccordion
-              slug={slug!}
-              isEnrolled={isEnrolled}
-              sessions={curriculumSessions}
-              completedChapterIds={completedChapterIds}
-              completedQuizIds={completedQuizIds}
-            />
           )}
 
+          {isEnrolled && paid && <CertificatePanel courseId={course.id} variant="course" />}
+
+          <div className="space-y-3">
+            <h2 className="text-xl sm:text-2xl font-semibold">About this Course</h2>
+            <Markdown content={course.description || 'No description available.'} />
+          </div>
+
+          {/* "What's included" lives in the desktop rail; surface the same list on mobile. */}
+          <Card className="card-elevated lg:hidden">
+            <CardContent className="p-4 space-y-2.5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                This course includes
+              </p>
+              <ul className="space-y-2">
+                {buildIncludesLabels({
+                  chapterCount: totalChapters,
+                  quizCount: totalQuizzes,
+                  preReadingCount: totalPreReadings,
+                  isPaid: paid,
+                }).map((label, idx) => (
+                  <li key={idx} className="flex items-center gap-2.5 text-sm text-foreground">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                    {label}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+
+          <CourseCurriculumSection
+            slug={slug!}
+            isEnrolled={isEnrolled}
+            sessions={curriculumSessions}
+            completedChapterIds={completedChapterIds}
+            completedQuizIds={completedQuizIds}
+            chapterCount={totalChapters}
+          />
+
+          {course.mentor_name && (
+            <InstructorCard mentorName={course.mentor_name} mentorInfo={course.mentor_info} />
+          )}
+
+          <CourseReviews courseId={course.id} />
+
+          <RelatedCourses currentCourseId={course.id} />
+        </div>
+
+        {/* ── Right column: sticky info rail (desktop only) ── */}
+        <div className="hidden lg:block sticky top-6">
+          <CourseInfoRail
+            priceLabel={coursePriceLabel(course)}
+            isPaid={paid}
+            isFree={!paid}
+            chapterCount={totalChapters}
+            quizCount={totalQuizzes}
+            preReadingCount={totalPreReadings}
+            isEnrolled={isEnrolled}
+            overallProgress={overallProgress}
+            completedItems={completedItems}
+            totalItems={totalItems}
+            ctaSlot={ctaSlot}
+            courseName={course.name}
+          />
         </div>
       </div>
-      {showStickyPay && (
-        <StickyPayBar
-          courseId={course.id}
-          courseName={course.name}
-          priceInrPaise={course.price_inr_paise}
-          priceUsdCents={course.price_usd_cents}
-          hasPaid={hasPaid}
-          heroRef={heroRef}
-          onPaid={handlePaymentSuccess}
-        />
+
+      {showStickyBar && (
+        <div className="lg:hidden">
+          <StickyPayBar
+            courseName={course.name}
+            subtitle={paid ? 'One-time payment · Lifetime access' : 'Free · Lifetime access'}
+            heroRef={heroRef}
+            ctaSlot={ctaSlot}
+          />
+        </div>
       )}
     </AppShell>
   );

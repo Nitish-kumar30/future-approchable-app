@@ -578,6 +578,30 @@ export default function OnDemandCourseDetail() {
     </div>
   );
 
+  // Slim course-context strip shown above the player on desktop, where the right
+  // panel otherwise has no indication of which course/mentor/progress this is —
+  // the compact mobile header already covers that on small screens.
+  const contentHeaderStrip = (
+    <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-foreground truncate">{course.name}</p>
+        {course.mentor_name && (
+          <p className="text-xs text-muted-foreground truncate">by {course.mentor_name}</p>
+        )}
+      </div>
+      {trackableSessions.length > 0 && (
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="w-28 hidden sm:block">
+            <Progress value={completionPercent} className="h-1.5" />
+          </div>
+          <span className="text-xs font-medium text-foreground tabular-nums">
+            {completionPercent}% complete
+          </span>
+        </div>
+      )}
+    </div>
+  );
+
   // Session title/description + video player.
   const videoBlock = (
     <div>
@@ -822,6 +846,7 @@ export default function OnDemandCourseDetail() {
             <div className={`p-3 md:p-6 ${!user ? 'filter blur-sm pointer-events-none select-none' : ''}`}>
               {activeSession ? (
                 <div className={`space-y-6 ${activeIsTextOnly ? 'max-w-3xl' : 'max-w-4xl'}`}>
+                  {contentHeaderStrip}
                   {videoBlock}
                   {textContentBlock}
                   {quizBlock}
