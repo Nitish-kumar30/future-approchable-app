@@ -18,6 +18,11 @@ export function onDemandCoursePath(slug: string): string {
   return `/on-demand/${slug}`;
 }
 
+/** Matches App route `/guides/:slug` */
+export function guideCoursePath(slug: string): string {
+  return `/guides/${slug}`;
+}
+
 export function parseNextSearchParam(searchParams: URLSearchParams): string {
   return getSafeNextPath(searchParams.get("next") ?? searchParams.get("redirect"));
 }
