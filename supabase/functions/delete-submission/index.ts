@@ -11,8 +11,7 @@ const BLOB_API_VERSION = "8";
 const CONTACT_FORM_TYPE = "contact-inquiry";
 const CORPORATE_FORM_TYPE = "corporate-training-inquiry";
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type DeletableFormType = typeof CONTACT_FORM_TYPE | typeof CORPORATE_FORM_TYPE;
 
@@ -39,9 +38,7 @@ function isDeletableFormType(formType: string): formType is DeletableFormType {
 
 function submissionDeleteCandidates(id: string, formType: DeletableFormType): string[] {
   const primary =
-    formType === CONTACT_FORM_TYPE
-      ? `submissions/contact/${id}.json`
-      : `submissions/corporate/${id}.json`;
+    formType === CONTACT_FORM_TYPE ? `submissions/contact/${id}.json` : `submissions/corporate/${id}.json`;
   const legacy = `submissions/${id}.json`;
   return primary === legacy ? [primary] : [primary, legacy];
 }
@@ -115,11 +112,7 @@ async function deleteBlob(token: string, blob: BlobListItem): Promise<void> {
   throw new Error(`Failed to delete blob${lastDetail ? `: ${lastDetail.slice(0, 200)}` : ""}`);
 }
 
-async function deleteSubmissionBlob(
-  token: string,
-  id: string,
-  formType: DeletableFormType,
-): Promise<string> {
+async function deleteSubmissionBlob(token: string, id: string, formType: DeletableFormType): Promise<string> {
   const blob = await findSubmissionBlob(token, id, formType);
   if (!blob) {
     throw new Error("Submission not found");
@@ -150,13 +143,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseAuth = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
+    const supabaseAuth = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
-    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseAuth.auth.getUser();
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -164,10 +158,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const { data: roleData } = await supabaseAdmin
       .from("user_roles")
