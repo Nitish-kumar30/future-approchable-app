@@ -62,6 +62,17 @@ export default function CourseCard({
   const isFree = variant === 'free' || !isPaidCourse(course);
   const price = isFree ? 'Free' : coursePriceLabel(course);
 
+  // One pill max: a card never shows two badges. Status wins over price —
+  // enrollment/closed is the more useful signal when it applies, otherwise
+  // fall back to the price/Free pill.
+  const badge: { label: string; tone: 'status' | 'free' | 'price' } | null = enrolled
+    ? { label: 'Enrolled', tone: 'status' }
+    : course.enrollment_disabled
+      ? { label: 'Closed', tone: 'status' }
+      : price
+        ? { label: price, tone: isFree ? 'free' : 'price' }
+        : null;
+
   return (
     <Link to={href ?? `/courses/${course.slug}`} className="block h-full group/card">
       <Card className="relative card-elevated hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden flex flex-col h-full">
@@ -79,27 +90,17 @@ export default function CourseCard({
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
 
-          {price && (
+          {badge && (
             <Badge
               className={cn(
                 'absolute top-2 left-2 text-[11px] font-semibold shadow-sm',
-                isFree ? 'bg-success text-success-foreground border-transparent' : '',
+                badge.tone === 'free' ? 'bg-success text-success-foreground border-transparent' : '',
               )}
-              variant={isFree ? undefined : 'secondary'}
+              variant={badge.tone === 'free' ? undefined : 'secondary'}
             >
-              {price}
+              {badge.label}
             </Badge>
           )}
-
-          {enrolled ? (
-            <Badge className="absolute top-2 right-2 text-[11px]" variant="secondary">
-              Enrolled
-            </Badge>
-          ) : course.enrollment_disabled ? (
-            <Badge className="absolute top-2 right-2 text-[11px]" variant="secondary">
-              Closed
-            </Badge>
-          ) : null}
         </div>
         <CardHeader className="p-4 pb-2">
           <CardTitle className="text-base group-hover/card:text-primary transition-colors line-clamp-2">
