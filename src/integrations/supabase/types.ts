@@ -444,7 +444,6 @@ export type Database = {
           image_url: string | null
           is_on_demand: boolean
           is_published: boolean | null
-          is_text_course: boolean
           mentor_info: string | null
           mentor_name: string | null
           name: string
@@ -463,7 +462,6 @@ export type Database = {
           image_url?: string | null
           is_on_demand?: boolean
           is_published?: boolean | null
-          is_text_course?: boolean
           mentor_info?: string | null
           mentor_name?: string | null
           name: string
@@ -482,7 +480,6 @@ export type Database = {
           image_url?: string | null
           is_on_demand?: boolean
           is_published?: boolean | null
-          is_text_course?: boolean
           mentor_info?: string | null
           mentor_name?: string | null
           name?: string
@@ -588,82 +585,6 @@ export type Database = {
           },
           {
             foreignKeyName: "feedback_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "courses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      guide_chapter_progress: {
-        Row: {
-          completed_at: string | null
-          created_at: string
-          guide_chapter_id: string
-          id: string
-          is_completed: boolean
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string
-          guide_chapter_id: string
-          id?: string
-          is_completed?: boolean
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string
-          guide_chapter_id?: string
-          id?: string
-          is_completed?: boolean
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "guide_chapter_progress_guide_chapter_id_fkey"
-            columns: ["guide_chapter_id"]
-            isOneToOne: false
-            referencedRelation: "guide_chapters"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      guide_chapters: {
-        Row: {
-          chapter_order: number
-          content_markdown: string
-          course_id: string
-          created_at: string
-          id: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          chapter_order?: number
-          content_markdown?: string
-          course_id: string
-          created_at?: string
-          id?: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          chapter_order?: number
-          content_markdown?: string
-          course_id?: string
-          created_at?: string
-          id?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "guide_chapters_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
