@@ -97,6 +97,26 @@ export async function deleteInquiry(id: string, formType: Inquiry["formType"]): 
   }
 }
 
+export async function deleteBlogSubscriber(email: string): Promise<void> {
+  const token = await getAuthToken();
+  if (!token) throw new Error("Not authenticated");
+
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-blog-subscriber`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error ?? "Failed to delete subscriber");
+  }
+}
+
 export function formatInquiryDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;

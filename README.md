@@ -80,10 +80,12 @@ Deploy the edge function and set this Supabase secret (Dashboard → Edge Functi
 
 ```sh
 supabase functions deploy get-corporate-inquiries
+supabase functions deploy delete-submission
+supabase functions deploy delete-blog-subscriber
 ```
 
 | Secret | Value |
 |--------|--------|
 | `BLOB_READ_WRITE_TOKEN` | Same token as approachable-landing Vercel Blob (`BLOB_READ_WRITE_TOKEN` in landing `.env`) |
 
-Only authenticated admin users can load inquiries via the `get-corporate-inquiries` function.
+Only authenticated admin users can load inquiries via the `get-corporate-inquiries` function. Admins can delete contact/corporate submissions via `delete-submission` and blog subscribers via `delete-blog-subscriber`.

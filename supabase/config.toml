@@ -72,3 +72,6 @@ verify_jwt = false
 
 [functions.delete-submission]
 verify_jwt = false
+
+[functions.delete-blog-subscriber]
+verify_jwt = false
