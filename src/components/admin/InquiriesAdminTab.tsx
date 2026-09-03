@@ -35,6 +35,7 @@ import {
   type Inquiry,
   allInquiriesToCsv,
   blogSubscribersToCsv,
+  deleteBlogSubscriber,
   deleteInquiry,
   enquiryTypeLabel,
   fetchInquiriesData,
@@ -65,23 +66,27 @@ function downloadCsvFile(csv: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-function DeleteInquiryButton({
-  inquiry,
+function DeleteConfirmButton({
+  itemKey,
   label,
-  deletingId,
+  deletingKey,
   onDelete,
+  dialogTitle = "Delete submission?",
+  dialogDescription,
 }: {
-  inquiry: Inquiry;
+  itemKey: string;
   label: string;
-  deletingId: string | null;
-  onDelete: (inquiry: Inquiry) => Promise<void>;
+  deletingKey: string | null;
+  onDelete: () => Promise<void>;
+  dialogTitle?: string;
+  dialogDescription?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const isDeleting = deletingId === inquiry.id;
+  const isDeleting = deletingKey === itemKey;
 
   const handleConfirm = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    await onDelete(inquiry);
+    await onDelete();
     setOpen(false);
   };
 
@@ -92,7 +97,7 @@ function DeleteInquiryButton({
           variant="ghost"
           size="sm"
           title="Delete"
-          disabled={Boolean(deletingId)}
+          disabled={Boolean(deletingKey)}
           onClick={(event) => event.stopPropagation()}
         >
           {isDeleting ? (
@@ -104,9 +109,10 @@ function DeleteInquiryButton({
       </AlertDialogTrigger>
       <AlertDialogContent onClick={(event) => event.stopPropagation()}>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete submission?</AlertDialogTitle>
+          <AlertDialogTitle>{dialogTitle}</AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently delete the submission for {label}. This action cannot be undone.
+            {dialogDescription ??
+              `This will permanently delete the submission for ${label}. This action cannot be undone.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -117,6 +123,27 @@ function DeleteInquiryButton({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+function DeleteInquiryButton({
+  inquiry,
+  label,
+  deletingId,
+  onDelete,
+}: {
+  inquiry: Inquiry;
+  label: string;
+  deletingId: string | null;
+  onDelete: (inquiry: Inquiry) => Promise<void>;
+}) {
+  return (
+    <DeleteConfirmButton
+      itemKey={inquiry.id}
+      label={label}
+      deletingKey={deletingId}
+      onDelete={() => onDelete(inquiry)}
+    />
   );
 }
 
@@ -335,9 +362,13 @@ function InquiryList({
 function BlogSubscriberRow({
   subscriber,
   index,
+  deletingEmail,
+  onDelete,
 }: {
   subscriber: BlogSubscriber;
   index: number;
+  deletingEmail: string | null;
+  onDelete: (email: string) => Promise<void>;
 }) {
   return (
     <Card className="border">
@@ -359,9 +390,19 @@ function BlogSubscriberRow({
             </div>
           </div>
         </div>
-        <time className="text-xs text-muted-foreground whitespace-nowrap shrink-0" dateTime={subscriber.subscribedAt}>
-          {formatInquiryDate(subscriber.subscribedAt)}
-        </time>
+        <div className="flex items-center gap-2 shrink-0">
+          <DeleteConfirmButton
+            itemKey={subscriber.email}
+            label={subscriber.email}
+            deletingKey={deletingEmail}
+            onDelete={() => onDelete(subscriber.email)}
+            dialogTitle="Delete subscriber?"
+            dialogDescription={`This will permanently remove ${subscriber.email} from the blog subscriber list. This action cannot be undone.`}
+          />
+          <time className="text-xs text-muted-foreground whitespace-nowrap" dateTime={subscriber.subscribedAt}>
+            {formatInquiryDate(subscriber.subscribedAt)}
+          </time>
+        </div>
       </div>
     </Card>
   );
@@ -375,6 +416,7 @@ export default function InquiriesAdminTab() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingEmail, setDeletingEmail] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<InquiryTab>("contact");
 
   const totalInquiries = contactInquiries.length + corporateInquiries.length;
@@ -426,6 +468,26 @@ export default function InquiriesAdminTab() {
       });
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleDeleteSubscriber = async (email: string) => {
+    setDeletingEmail(email);
+    try {
+      await deleteBlogSubscriber(email);
+      setBlogSubscribers((current) => current.filter((item) => item.email !== email));
+      toast({
+        title: "Subscriber deleted",
+        description: "The subscriber was removed from storage.",
+      });
+    } catch (err) {
+      toast({
+        title: "Failed to delete subscriber",
+        description: err instanceof Error ? err.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingEmail(null);
     }
   };
 
@@ -528,7 +590,13 @@ export default function InquiriesAdminTab() {
             <TabsContent value="blog" className="mt-4">
               <InquiryList emptyMessage="No blog subscribers yet. Subscriptions from the blog/footer subscribe forms will appear here.">
                 {blogSubscribers.map((subscriber, index) => (
-                  <BlogSubscriberRow key={subscriber.email} subscriber={subscriber} index={index} />
+                  <BlogSubscriberRow
+                    key={subscriber.email}
+                    subscriber={subscriber}
+                    index={index}
+                    deletingEmail={deletingEmail}
+                    onDelete={handleDeleteSubscriber}
+                  />
                 ))}
               </InquiryList>
             </TabsContent>
