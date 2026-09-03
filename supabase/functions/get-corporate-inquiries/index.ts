@@ -12,12 +12,7 @@ const BLOB_API_VERSION = "8";
 const CONTACT_FORM_TYPE = "contact-inquiry";
 const CORPORATE_FORM_TYPE = "corporate-training-inquiry";
 
-const VALID_ENQUIRY_TYPES = new Set([
-  "team-training",
-  "cohort",
-  "courses",
-  "general",
-]);
+const VALID_ENQUIRY_TYPES = new Set(["team-training", "cohort", "courses", "general"]);
 
 function blobHeaders(token: string): HeadersInit {
   const headers: Record<string, string> = {
@@ -98,10 +93,7 @@ function inferFormType(pathname: string, raw: Record<string, unknown>): string {
   return CORPORATE_FORM_TYPE;
 }
 
-function parseContactInquiry(
-  raw: Record<string, unknown>,
-  fallbackSubmittedAt: string,
-): ContactInquiryRecord | null {
+function parseContactInquiry(raw: Record<string, unknown>, fallbackSubmittedAt: string): ContactInquiryRecord | null {
   const enquiryType = asString(raw.enquiryType);
   if (!VALID_ENQUIRY_TYPES.has(enquiryType)) return null;
 
@@ -139,9 +131,7 @@ function parseCorporateInquiry(
 
   if (!id || !submittedAt || !company || !contactName || !email) return null;
 
-  const tiers = Array.isArray(raw.tiers)
-    ? raw.tiers.filter((tier): tier is string => typeof tier === "string")
-    : [];
+  const tiers = Array.isArray(raw.tiers) ? raw.tiers.filter((tier): tier is string => typeof tier === "string") : [];
 
   return {
     id,
@@ -225,10 +215,7 @@ async function listSubmissions(token: string): Promise<BlobListItem[]> {
   return items.filter((blob) => blob.pathname.endsWith(".json"));
 }
 
-async function readSubmission(
-  blob: BlobListItem,
-  token: string,
-): Promise<InquiryRecord | null> {
+async function readSubmission(blob: BlobListItem, token: string): Promise<InquiryRecord | null> {
   try {
     const res = await fetch(blob.downloadUrl, {
       headers: blobHeaders(token),
@@ -260,13 +247,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseAuth = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
+    const supabaseAuth = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
-    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseAuth.auth.getUser();
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -274,10 +262,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const { data: roleData } = await supabaseAdmin
       .from("user_roles")
@@ -307,9 +292,7 @@ Deno.serve(async (req) => {
 
     const blobs = await listSubmissions(token);
     const parsed = await Promise.all(blobs.map((blob) => readSubmission(blob, token)));
-    const inquiries = sortBySubmittedAt(
-      parsed.filter((item): item is InquiryRecord => item !== null),
-    );
+    const inquiries = sortBySubmittedAt(parsed.filter((item): item is InquiryRecord => item !== null));
     const contact = inquiries.filter(isContactInquiry);
     const corporate = inquiries.filter(isCorporateInquiry);
 
