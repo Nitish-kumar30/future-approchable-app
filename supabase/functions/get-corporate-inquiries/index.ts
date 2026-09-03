@@ -255,9 +255,7 @@ async function fetchBlogSubscribers(token: string): Promise<BlogSubscriber[]> {
     const raw = await res.json();
     if (!Array.isArray(raw)) return [];
 
-    return sortBySubscribedAt(
-      raw.map(parseBlogSubscriber).filter((item): item is BlogSubscriber => item !== null),
-    );
+    return sortBySubscribedAt(raw.map(parseBlogSubscriber).filter((item): item is BlogSubscriber => item !== null));
   } catch (err) {
     console.warn(`Failed to fetch blog subscribers: ${err instanceof Error ? err.message : "unknown error"}`);
     return [];
