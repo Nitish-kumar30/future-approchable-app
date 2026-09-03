@@ -103,9 +103,7 @@ async function fetchSubscribers(token: string): Promise<{ blob: BlobListItem | n
     return { blob, subscribers: [] };
   }
 
-  const subscribers = raw
-    .map(parseBlogSubscriber)
-    .filter((item): item is BlogSubscriber => item !== null);
+  const subscribers = raw.map(parseBlogSubscriber).filter((item): item is BlogSubscriber => item !== null);
 
   return { blob, subscribers };
 }
