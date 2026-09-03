@@ -17,16 +17,13 @@ Deno.serve(async (req) => {
     const cohortId = url.searchParams.get("cohort_id");
 
     if (!courseId && !cohortId) {
-      return new Response(
-        JSON.stringify({ error: "course_id or cohort_id is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "course_id or cohort_id is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Verify the course/cohort is published
     if (courseId) {
@@ -37,10 +34,10 @@ Deno.serve(async (req) => {
         .single();
 
       if (error || !course || !course.is_published) {
-        return new Response(
-          JSON.stringify({ error: "Course not found or not published" }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Course not found or not published" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
@@ -52,10 +49,10 @@ Deno.serve(async (req) => {
         .single();
 
       if (error || !cohort || !cohort.is_published) {
-        return new Response(
-          JSON.stringify({ error: "Cohort not found or not published" }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Cohort not found or not published" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
@@ -74,10 +71,10 @@ Deno.serve(async (req) => {
     const { data: sessions, error: sessionsError } = await query;
 
     if (sessionsError) {
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch sessions" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Failed to fetch sessions" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const safeSessions = (sessions || []).map(({ text_content, ...session }) => ({
@@ -85,14 +82,14 @@ Deno.serve(async (req) => {
       has_text_content: !!text_content?.trim(),
     }));
 
-    return new Response(
-      JSON.stringify({ sessions: safeSessions }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ sessions: safeSessions }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
