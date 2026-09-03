@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import AppShell from '@/components/layout/AppShell';
 import FreeCoursesGrid from '@/components/courses/FreeCoursesGrid';
-import GuidesCoursesGrid from '@/components/courses/GuidesCoursesGrid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -60,7 +59,7 @@ function onDemandResumeHref(slug: string, resumeSessionId: string | null | undef
   return resumeSessionId ? `${base}?session=${resumeSessionId}` : base;
 }
 
-type TabValue = 'courses' | 'free' | 'guides' | 'my';
+type TabValue = 'courses' | 'free' | 'my';
 type SortOption = 'newest' | 'name-asc';
 type PriceFilter = 'all' | 'paid' | 'free';
 
@@ -199,8 +198,7 @@ export default function Courses() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const activeTab: TabValue =
-    tabParam === 'my' || tabParam === 'free' || tabParam === 'guides' ? tabParam : 'courses';
+  const activeTab: TabValue = tabParam === 'my' || tabParam === 'free' ? tabParam : 'courses';
 
   const [paidCourses, setPaidCourses] = useState<Course[]>([]);
   const [myCourses, setMyCourses] = useState<MyCourse[]>([]);
@@ -208,9 +206,7 @@ export default function Courses() {
   const [loadingPaid, setLoadingPaid] = useState(true);
   const [loadingMy, setLoadingMy] = useState(true);
   const [freeCount, setFreeCount] = useState(0);
-  const [guidesCount, setGuidesCount] = useState(0);
   const [loadingFree, setLoadingFree] = useState(true);
-  const [loadingGuides, setLoadingGuides] = useState(true);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortOption>('newest');
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('all');
@@ -226,7 +222,6 @@ export default function Courses() {
         )
         .eq('is_published', true)
         .eq('is_on_demand', false)
-        .eq('is_text_course', false)
         .order('start_date', { ascending: false });
       if (!cancelled) {
         setPaidCourses(data || []);
@@ -245,29 +240,10 @@ export default function Courses() {
         .from('courses')
         .select('id', { count: 'exact', head: true })
         .eq('is_published', true)
-        .eq('is_on_demand', true)
-        .eq('is_text_course', false);
+        .eq('is_on_demand', true);
       if (!cancelled) {
         setFreeCount(count || 0);
         setLoadingFree(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { count } = await supabase
-        .from('courses')
-        .select('id', { count: 'exact', head: true })
-        .eq('is_published', true)
-        .eq('is_text_course', true);
-      if (!cancelled) {
-        setGuidesCount(count || 0);
-        setLoadingGuides(false);
       }
     })();
     return () => {
@@ -385,7 +361,7 @@ export default function Courses() {
         <div className="space-y-1">
           <h2 className="text-xl font-display font-bold text-foreground">Courses</h2>
           <p className="text-sm text-muted-foreground">
-            Instructor-led, free on-demand, guides, and your enrolled courses.
+            Instructor-led, free on-demand, and your enrolled courses.
           </p>
         </div>
 
@@ -411,17 +387,6 @@ export default function Courses() {
                 {!loadingFree && freeCount > 0 && (
                   <span className="text-[11px] text-muted-foreground tabular-nums">
                     {freeCount}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger
-                value="guides"
-                className="h-auto gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-0.5 pt-1.5 pb-2.5 text-sm font-medium text-muted-foreground shadow-none transition-colors duration-200 hover:border-muted-foreground/30 hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-              >
-                Guides
-                {!loadingGuides && guidesCount > 0 && (
-                  <span className="text-[11px] text-muted-foreground tabular-nums">
-                    {guidesCount}
                   </span>
                 )}
               </TabsTrigger>
@@ -469,7 +434,7 @@ export default function Courses() {
                       </DropdownMenuRadioItem>
                     ))}
                   </DropdownMenuRadioGroup>
-                  {activeTab !== 'free' && activeTab !== 'guides' && (
+                  {activeTab !== 'free' && (
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -539,10 +504,6 @@ export default function Courses() {
 
           <TabsContent value="free" className="mt-4">
             <FreeCoursesGrid searchQuery={search} sort={sort} />
-          </TabsContent>
-
-          <TabsContent value="guides" className="mt-4">
-            <GuidesCoursesGrid searchQuery={search} sort={sort} />
           </TabsContent>
 
           <TabsContent value="my" className="mt-4">
