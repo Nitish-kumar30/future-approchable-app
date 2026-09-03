@@ -47,6 +47,11 @@ export type CorporateInquiry = {
 
 export type Inquiry = ContactInquiry | CorporateInquiry;
 
+export type BlogSubscriber = {
+  email: string;
+  subscribedAt: string;
+};
+
 export function isContactInquiry(record: Inquiry): record is ContactInquiry {
   return record.formType === CONTACT_FORM_TYPE;
 }
@@ -170,4 +175,19 @@ export function filterContactInquiries(inquiries: Inquiry[]): ContactInquiry[] {
 
 export function filterCorporateInquiries(inquiries: Inquiry[]): CorporateInquiry[] {
   return inquiries.filter(isCorporateInquiry);
+}
+
+export function parseBlogSubscriber(value: unknown): BlogSubscriber | null {
+  if (!isRecord(value)) return null;
+  const email = asString(value.email);
+  const subscribedAt = asString(value.subscribedAt);
+  if (!email || !subscribedAt) return null;
+  return { email, subscribedAt };
+}
+
+export function parseBlogSubscribers(values: unknown[]): BlogSubscriber[] {
+  return values
+    .map(parseBlogSubscriber)
+    .filter((item): item is BlogSubscriber => item !== null)
+    .sort((a, b) => Date.parse(b.subscribedAt) - Date.parse(a.subscribedAt));
 }

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import {
+  type BlogSubscriber,
   type CorporateInquiry,
   type ContactInquiry,
   type Inquiry,
@@ -8,18 +9,24 @@ import {
   filterContactInquiries,
   isContactInquiry,
   isCorporateInquiry,
+  parseBlogSubscribers,
   parseInquiries,
 } from "@/lib/inquiry-types";
 
-export type { CorporateInquiry, ContactInquiry, Inquiry };
+export type { BlogSubscriber, CorporateInquiry, ContactInquiry, Inquiry };
 export { enquiryTypeLabel, filterCorporateInquiries, filterContactInquiries, isCorporateInquiry };
+
+export type InquiriesData = {
+  inquiries: Inquiry[];
+  subscribers: BlogSubscriber[];
+};
 
 async function getAuthToken(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
   return data.session?.access_token ?? null;
 }
 
-async function fetchInquiriesFromApi(): Promise<Inquiry[]> {
+async function fetchInquiriesDataFromApi(): Promise<InquiriesData> {
   const token = await getAuthToken();
   if (!token) throw new Error("Not authenticated");
 
@@ -37,24 +44,36 @@ async function fetchInquiriesFromApi(): Promise<Inquiry[]> {
     throw new Error(data.error ?? "Failed to load inquiries");
   }
 
-  if (Array.isArray(data.inquiries)) {
-    return parseInquiries(data.inquiries);
-  }
+  const inquiries = Array.isArray(data.inquiries)
+    ? parseInquiries(data.inquiries)
+    : parseInquiries([...(data.contact ?? []), ...(data.corporate ?? [])]);
 
-  return parseInquiries([...(data.contact ?? []), ...(data.corporate ?? [])]);
+  const subscribers = Array.isArray(data.subscribers) ? parseBlogSubscribers(data.subscribers) : [];
+
+  return { inquiries, subscribers };
 }
 
 export async function fetchInquiries(): Promise<Inquiry[]> {
-  return fetchInquiriesFromApi();
+  const { inquiries } = await fetchInquiriesDataFromApi();
+  return inquiries;
+}
+
+export async function fetchInquiriesData(): Promise<InquiriesData> {
+  return fetchInquiriesDataFromApi();
+}
+
+export async function fetchBlogSubscribers(): Promise<BlogSubscriber[]> {
+  const { subscribers } = await fetchInquiriesDataFromApi();
+  return subscribers;
 }
 
 export async function fetchCorporateInquiries(): Promise<CorporateInquiry[]> {
-  const inquiries = await fetchInquiriesFromApi();
+  const { inquiries } = await fetchInquiriesDataFromApi();
   return filterCorporateInquiries(inquiries);
 }
 
 export async function fetchContactInquiries(): Promise<ContactInquiry[]> {
-  const inquiries = await fetchInquiriesFromApi();
+  const { inquiries } = await fetchInquiriesDataFromApi();
   return filterContactInquiries(inquiries);
 }
 
@@ -148,6 +167,16 @@ export function contactInquiriesToCsv(inquiries: ContactInquiry[]): string {
     ]
       .map((cell) => escapeCsvCell(cell ?? ""))
       .join(","),
+  );
+
+  return [headers.join(","), ...rows].join("\n");
+}
+
+export function blogSubscribersToCsv(subscribers: BlogSubscriber[]): string {
+  const headers = ["Email", "Subscribed"];
+
+  const rows = subscribers.map((subscriber) =>
+    [subscriber.email, subscriber.subscribedAt].map((cell) => escapeCsvCell(cell ?? "")).join(","),
   );
 
   return [headers.join(","), ...rows].join("\n");
