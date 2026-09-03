@@ -7,6 +7,7 @@ import {
   Loader2,
   Mail,
   MessageSquare,
+  Newspaper,
   RefreshCw,
   Trash2,
   User,
@@ -28,19 +29,21 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
+  type BlogSubscriber,
   type ContactInquiry,
   type CorporateInquiry,
   type Inquiry,
   allInquiriesToCsv,
+  blogSubscribersToCsv,
   deleteInquiry,
   enquiryTypeLabel,
-  fetchInquiries,
+  fetchInquiriesData,
   filterContactInquiries,
   filterCorporateInquiries,
   formatInquiryDate,
 } from "@/lib/corporate-inquiries";
 
-type InquiryTab = "contact" | "corporate";
+type InquiryTab = "contact" | "corporate" | "blog";
 
 function DetailField({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
@@ -329,10 +332,46 @@ function InquiryList({
   );
 }
 
+function BlogSubscriberRow({
+  subscriber,
+  index,
+}: {
+  subscriber: BlogSubscriber;
+  index: number;
+}) {
+  return (
+    <Card className="border">
+      <div className="flex items-center justify-between gap-4 p-4">
+        <div className="flex items-start gap-4 min-w-0 flex-1">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+            {index + 1}
+          </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Newspaper className="h-4 w-4 text-muted-foreground shrink-0" />
+              <a
+                href={`mailto:${subscriber.email}`}
+                className="font-medium inline-flex items-center gap-1 hover:text-primary"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                {subscriber.email}
+              </a>
+            </div>
+          </div>
+        </div>
+        <time className="text-xs text-muted-foreground whitespace-nowrap shrink-0" dateTime={subscriber.subscribedAt}>
+          {formatInquiryDate(subscriber.subscribedAt)}
+        </time>
+      </div>
+    </Card>
+  );
+}
+
 export default function InquiriesAdminTab() {
   const { toast } = useToast();
   const [contactInquiries, setContactInquiries] = useState<ContactInquiry[]>([]);
   const [corporateInquiries, setCorporateInquiries] = useState<CorporateInquiry[]>([]);
+  const [blogSubscribers, setBlogSubscribers] = useState<BlogSubscriber[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -347,9 +386,10 @@ export default function InquiriesAdminTab() {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await fetchInquiries();
-      setContactInquiries(filterContactInquiries(data));
-      setCorporateInquiries(filterCorporateInquiries(data));
+      const data = await fetchInquiriesData();
+      setContactInquiries(filterContactInquiries(data.inquiries));
+      setCorporateInquiries(filterCorporateInquiries(data.inquiries));
+      setBlogSubscribers(data.subscribers);
     } catch (err) {
       toast({
         title: "Failed to load inquiries",
@@ -390,8 +430,15 @@ export default function InquiriesAdminTab() {
   };
 
   const downloadCsv = () => {
+    if (activeTab === "blog") {
+      downloadCsvFile(blogSubscribersToCsv(blogSubscribers), "blog-subscribers.csv");
+      return;
+    }
     downloadCsvFile(allInquiriesToCsv(allInquiries), "inquiries.csv");
   };
+
+  const csvDisabled =
+    activeTab === "blog" ? blogSubscribers.length === 0 : totalInquiries === 0;
 
   return (
     <Card className="card-elevated">
@@ -399,7 +446,7 @@ export default function InquiriesAdminTab() {
         <div>
           <CardTitle>Inquiries</CardTitle>
           <CardDescription>
-            Submissions from approachable.dev contact and team training forms, newest first
+            Submissions from approachable.dev contact, team training, and blog newsletter subscribe forms
           </CardDescription>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -407,7 +454,7 @@ export default function InquiriesAdminTab() {
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Refresh
           </Button>
-          <Button variant="outline" size="sm" onClick={downloadCsv} disabled={totalInquiries === 0}>
+          <Button variant="outline" size="sm" onClick={downloadCsv} disabled={csvDisabled}>
             <Download className="mr-2 h-4 w-4" /> Download CSV
           </Button>
         </div>
@@ -436,6 +483,12 @@ export default function InquiriesAdminTab() {
                 Team Training
                 <Badge variant="secondary" className="ml-2">
                   {corporateInquiries.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="blog">
+                Blog Subscribers
+                <Badge variant="secondary" className="ml-2">
+                  {blogSubscribers.length}
                 </Badge>
               </TabsTrigger>
             </TabsList>
@@ -468,6 +521,14 @@ export default function InquiriesAdminTab() {
                     onToggle={() => setExpandedId(expandedId === inquiry.id ? null : inquiry.id)}
                     onDelete={handleDelete}
                   />
+                ))}
+              </InquiryList>
+            </TabsContent>
+
+            <TabsContent value="blog" className="mt-4">
+              <InquiryList emptyMessage="No blog subscribers yet. Subscriptions from the blog/footer subscribe forms will appear here.">
+                {blogSubscribers.map((subscriber, index) => (
+                  <BlogSubscriberRow key={subscriber.email} subscriber={subscriber} index={index} />
                 ))}
               </InquiryList>
             </TabsContent>

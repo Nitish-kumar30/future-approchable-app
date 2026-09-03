@@ -11,6 +11,7 @@ const BLOB_API_VERSION = "8";
 
 const CONTACT_FORM_TYPE = "contact-inquiry";
 const CORPORATE_FORM_TYPE = "corporate-training-inquiry";
+const SUBSCRIBERS_BLOB_PATH = "subscribers/emails.json";
 
 const VALID_ENQUIRY_TYPES = new Set(["team-training", "cohort", "courses", "general"]);
 
@@ -59,6 +60,11 @@ type CorporateInquiryRecord = {
 };
 
 type InquiryRecord = ContactInquiryRecord | CorporateInquiryRecord;
+
+type BlogSubscriber = {
+  email: string;
+  subscribedAt: string;
+};
 
 type BlobListItem = {
   pathname: string;
@@ -190,13 +196,13 @@ function isCorporateInquiry(record: InquiryRecord): record is CorporateInquiryRe
   return record.formType === CORPORATE_FORM_TYPE;
 }
 
-async function listSubmissions(token: string): Promise<BlobListItem[]> {
+async function listBlobsWithPrefix(token: string, prefix: string): Promise<BlobListItem[]> {
   const items: BlobListItem[] = [];
   let cursor: string | undefined;
 
   do {
     const url = new URL(BLOB_API_BASE);
-    url.searchParams.set("prefix", "submissions/");
+    url.searchParams.set("prefix", prefix);
     url.searchParams.set("limit", "1000");
     if (cursor) url.searchParams.set("cursor", cursor);
 
@@ -212,7 +218,50 @@ async function listSubmissions(token: string): Promise<BlobListItem[]> {
     cursor = data.hasMore ? data.cursor : undefined;
   } while (cursor);
 
+  return items;
+}
+
+async function listSubmissions(token: string): Promise<BlobListItem[]> {
+  const items = await listBlobsWithPrefix(token, "submissions/");
   return items.filter((blob) => blob.pathname.endsWith(".json"));
+}
+
+function parseBlogSubscriber(raw: unknown): BlogSubscriber | null {
+  if (!isRecord(raw)) return null;
+  const email = asString(raw.email);
+  const subscribedAt = asString(raw.subscribedAt);
+  if (!email || !subscribedAt) return null;
+  return { email, subscribedAt };
+}
+
+function sortBySubscribedAt(items: BlogSubscriber[]): BlogSubscriber[] {
+  return [...items].sort((a, b) => Date.parse(b.subscribedAt) - Date.parse(a.subscribedAt));
+}
+
+async function fetchBlogSubscribers(token: string): Promise<BlogSubscriber[]> {
+  try {
+    const blobs = await listBlobsWithPrefix(token, "subscribers/");
+    const match = blobs.find((blob) => blob.pathname === SUBSCRIBERS_BLOB_PATH);
+    if (!match) return [];
+
+    const res = await fetch(match.downloadUrl, {
+      headers: blobHeaders(token),
+    });
+    if (!res.ok) {
+      console.warn(`Blog subscribers blob fetch failed with ${res.status}`);
+      return [];
+    }
+
+    const raw = await res.json();
+    if (!Array.isArray(raw)) return [];
+
+    return sortBySubscribedAt(
+      raw.map(parseBlogSubscriber).filter((item): item is BlogSubscriber => item !== null),
+    );
+  } catch (err) {
+    console.warn(`Failed to fetch blog subscribers: ${err instanceof Error ? err.message : "unknown error"}`);
+    return [];
+  }
 }
 
 async function readSubmission(blob: BlobListItem, token: string): Promise<InquiryRecord | null> {
@@ -295,8 +344,9 @@ Deno.serve(async (req) => {
     const inquiries = sortBySubmittedAt(parsed.filter((item): item is InquiryRecord => item !== null));
     const contact = inquiries.filter(isContactInquiry);
     const corporate = inquiries.filter(isCorporateInquiry);
+    const subscribers = await fetchBlogSubscribers(token);
 
-    return new Response(JSON.stringify({ inquiries, contact, corporate }), {
+    return new Response(JSON.stringify({ inquiries, contact, corporate, subscribers }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
