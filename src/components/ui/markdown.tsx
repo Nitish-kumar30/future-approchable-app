@@ -22,7 +22,6 @@ export function Markdown({ content, className }: MarkdownProps) {
         'prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-sm',
         'prose-pre:bg-muted prose-pre:border prose-pre:border-border',
         'prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground',
-        'prose-img:rounded-lg prose-img:mx-auto prose-img:max-w-full',
         '[&_p]:whitespace-pre-line',
         className
       )}

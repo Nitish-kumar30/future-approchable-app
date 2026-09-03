@@ -55,7 +55,6 @@ export default function FreeCoursesGrid({
         .select('id, slug, name, description, mentor_name, duration, image_url, created_at')
         .eq('is_published', true)
         .eq('is_on_demand', true)
-        .eq('is_text_course', false)
         .order('created_at', { ascending: false });
       if (!cancelled) {
         setCourses(data || []);
