@@ -1,27 +1,35 @@
-# Deploy last merge (PR #20 — Guides / text-based courses) to Test
+# Deploy pending commits to Test: session text content + blog subscribers
 
-## What the merge contains
+The Guides feature (PR #20) was reverted in PR #22 — that migration is gone and must NOT be applied. Pending work comes from two commits now on main:
 
-Merge `1c53280` (PR #20, from `frontend-dashboard-changes`) adds:
+- `dbe7197` "add .md text to free courses" — new migration + `get-public-sessions` change
+- `7e2e5aa` / PR #23 "add blog subscriber to enquiry tab" — `get-corporate-inquiries` change
+- `55e8490` — small follow-up edit to `get-corporate-inquiries`
 
-- **Migration**: `supabase/migrations/20260903120000_guide_courses.sql`
-  - `courses.is_text_course` column
-  - New tables `guide_chapters` and `guide_chapter_progress` with GRANTs, RLS policies, indexes, and updated_at triggers
-  - Depends on existing helpers `public.is_admin()` and `public.update_updated_at_column()` — both confirmed present on Test
-- **Frontend only**: `GuidesAdminTab`, `GuideCourseForm`, `GuideChapterManager`, `GuidesCoursesGrid`, `GuideCourseDetail` page, route and grid wiring
+## What needs deploying
 
-**No edge functions were added or changed in this merge** — nothing to deploy for functions. (The `get-corporate-inquiries` / `delete-submission` functions from the earlier PR #18 merge are already deployed on Test.)
+1. **Migration** `supabase/migrations/20260903120000_add_session_text_content.sql`
+   - `ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS text_content TEXT;`
+   - Confirmed NOT applied on Test (column does not exist).
+   - Additive and idempotent — safe to run once.
 
-Current Test DB state: `guide_chapters` and `guide_chapter_progress` do NOT exist yet — the migration has not been applied.
+2. **Edge function: `get-public-sessions`** (redeploy)
+   - Now selects `text_content` and returns `has_text_content` (content itself is redacted for the public endpoint).
+   - Will error or omit the field until the migration above is applied — migration must run first.
+
+3. **Edge function: `get-corporate-inquiries`** (redeploy)
+   - Adds blog subscriber fetching from the Vercel Blob store (`subscribers/emails.json`) plus the latest follow-up edit.
+   - Needs existing `BLOB_READ_WRITE_TOKEN` / `BLOB_STORE_ID` secrets — already present.
 
 ## Plan
 
-1. Run migration `20260903120000_guide_courses.sql` on the Test database.
-2. Verify: both tables exist, RLS enabled, and an authenticated read against `guide_chapters` works.
-3. No edge function deploys needed (no function changes in this merge).
-4. Frontend goes live via Publish only — after you verify the Guides admin tab and learner view on the Test preview.
+1. Run the `add_session_text_content` migration on Test.
+2. Verify: `sessions.text_content` column exists.
+3. Deploy `get-public-sessions` and `get-corporate-inquiries` to Test.
+4. Smoke-test: `get-public-sessions` returns `has_text_content`; `get-corporate-inquiries` returns 401 without auth and a `subscribers` array for an admin.
+5. Frontend goes live via Publish only, after you verify the enquiry tab and free-course text content on the Test preview.
 
-## Technical details
+## Notes
 
-- Migration is additive only; idempotent on the `courses` column (`IF NOT EXISTS`). Table creates are not idempotent, so it will be run exactly once — safe since the tables do not exist yet.
-- Live (production) needs the same migration applied at publish/go-live time as a separate explicit step.
+- No other migrations or function changes are pending.
+- Live (production) gets the same migration and function deploys at publish time.
