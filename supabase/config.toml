@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.get-corporate-inquiries]
 verify_jwt = false
+
+[functions.delete-submission]
+verify_jwt = false
