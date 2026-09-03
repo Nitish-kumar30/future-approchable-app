@@ -59,7 +59,7 @@ import { SessionForm } from "@/components/admin/SessionForm";
 import { ChapterManager } from "@/components/admin/ChapterManager";
 import { QuizForm } from "@/components/admin/QuizForm";
 import CertificatesAdminTab from "@/components/admin/CertificatesAdminTab";
-import CorporateInquiriesAdminTab from "@/components/admin/CorporateInquiriesAdminTab";
+import InquiriesAdminTab from "@/components/admin/InquiriesAdminTab";
 
 interface Cohort {
   id: string;
@@ -2727,7 +2727,7 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="inquiries">
-            <CorporateInquiriesAdminTab />
+            <InquiriesAdminTab />
           </TabsContent>
 
           {/* Payments Tab */}

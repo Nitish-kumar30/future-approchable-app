@@ -9,6 +9,16 @@ const BLOB_API_BASE = "https://blob.vercel-storage.com";
 // Matches @vercel/blob@0.27.1 — the API rejects requests without this header.
 const BLOB_API_VERSION = "8";
 
+const CONTACT_FORM_TYPE = "contact-inquiry";
+const CORPORATE_FORM_TYPE = "corporate-training-inquiry";
+
+const VALID_ENQUIRY_TYPES = new Set([
+  "team-training",
+  "cohort",
+  "courses",
+  "general",
+]);
+
 function blobHeaders(token: string): HeadersInit {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
@@ -19,9 +29,27 @@ function blobHeaders(token: string): HeadersInit {
   return headers;
 }
 
+type InquiryMeta = {
+  source: string;
+  userAgent?: string;
+};
+
+type ContactInquiryRecord = {
+  id: string;
+  formType: typeof CONTACT_FORM_TYPE;
+  submittedAt: string;
+  name: string;
+  email: string;
+  phone: string;
+  organization: string;
+  enquiryType: string;
+  message: string;
+  meta: InquiryMeta;
+};
+
 type CorporateInquiryRecord = {
   id: string;
-  formType: string;
+  formType: typeof CORPORATE_FORM_TYPE;
   submittedAt: string;
   company: string;
   contactName: string;
@@ -32,11 +60,10 @@ type CorporateInquiryRecord = {
   industry: string;
   timing: string;
   requirements: string;
-  meta: {
-    source: string;
-    userAgent?: string;
-  };
+  meta: InquiryMeta;
 };
+
+type InquiryRecord = ContactInquiryRecord | CorporateInquiryRecord;
 
 type BlobListItem = {
   pathname: string;
@@ -44,11 +71,139 @@ type BlobListItem = {
   uploadedAt: string;
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function asString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function normalizeMeta(value: unknown): InquiryMeta {
+  if (!isRecord(value)) return { source: "unknown" };
+  return {
+    source: asString(value.source) || "unknown",
+    userAgent: typeof value.userAgent === "string" ? value.userAgent : undefined,
+  };
+}
+
+function inferFormType(pathname: string, raw: Record<string, unknown>): string {
+  const explicit = asString(raw.formType);
+  if (explicit) return explicit;
+
+  if (pathname.startsWith("submissions/contact/")) return CONTACT_FORM_TYPE;
+  if (pathname.startsWith("submissions/corporate/")) return CORPORATE_FORM_TYPE;
+
+  // Legacy flat files and records without formType default to corporate.
+  return CORPORATE_FORM_TYPE;
+}
+
+function parseContactInquiry(
+  raw: Record<string, unknown>,
+  fallbackSubmittedAt: string,
+): ContactInquiryRecord | null {
+  const enquiryType = asString(raw.enquiryType);
+  if (!VALID_ENQUIRY_TYPES.has(enquiryType)) return null;
+
+  const id = asString(raw.id);
+  const submittedAt = asString(raw.submittedAt) || fallbackSubmittedAt;
+  const name = asString(raw.name);
+  const email = asString(raw.email);
+  const message = asString(raw.message);
+
+  if (!id || !submittedAt || !name || !email || !message) return null;
+
+  return {
+    id,
+    formType: CONTACT_FORM_TYPE,
+    submittedAt,
+    name,
+    email,
+    phone: asString(raw.phone),
+    organization: asString(raw.organization),
+    enquiryType,
+    message,
+    meta: normalizeMeta(raw.meta),
+  };
+}
+
+function parseCorporateInquiry(
+  raw: Record<string, unknown>,
+  fallbackSubmittedAt: string,
+): CorporateInquiryRecord | null {
+  const id = asString(raw.id);
+  const submittedAt = asString(raw.submittedAt) || fallbackSubmittedAt;
+  const company = asString(raw.company);
+  const contactName = asString(raw.contactName);
+  const email = asString(raw.email);
+
+  if (!id || !submittedAt || !company || !contactName || !email) return null;
+
+  const tiers = Array.isArray(raw.tiers)
+    ? raw.tiers.filter((tier): tier is string => typeof tier === "string")
+    : [];
+
+  return {
+    id,
+    formType: CORPORATE_FORM_TYPE,
+    submittedAt,
+    company,
+    contactName,
+    email,
+    phone: asString(raw.phone),
+    teamSize: asString(raw.teamSize),
+    tiers,
+    industry: asString(raw.industry),
+    timing: asString(raw.timing),
+    requirements: asString(raw.requirements),
+    meta: normalizeMeta(raw.meta),
+  };
+}
+
+function parseSubmission(blob: BlobListItem, raw: unknown): InquiryRecord | null {
+  if (!isRecord(raw)) {
+    console.warn(`Skipping ${blob.pathname}: payload is not an object`);
+    return null;
+  }
+
+  const formType = inferFormType(blob.pathname, raw);
+
+  if (formType === CONTACT_FORM_TYPE) {
+    const contact = parseContactInquiry(raw, blob.uploadedAt);
+    if (!contact) {
+      console.warn(`Skipping ${blob.pathname}: invalid contact inquiry shape`);
+    }
+    return contact;
+  }
+
+  if (formType === CORPORATE_FORM_TYPE) {
+    const corporate = parseCorporateInquiry(raw, blob.uploadedAt);
+    if (!corporate) {
+      console.warn(`Skipping ${blob.pathname}: invalid corporate inquiry shape`);
+    }
+    return corporate;
+  }
+
+  console.warn(`Skipping ${blob.pathname}: unknown formType "${formType}"`);
+  return null;
+}
+
+function sortBySubmittedAt<T extends { submittedAt: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => Date.parse(b.submittedAt) - Date.parse(a.submittedAt));
+}
+
+function isContactInquiry(record: InquiryRecord): record is ContactInquiryRecord {
+  return record.formType === CONTACT_FORM_TYPE;
+}
+
+function isCorporateInquiry(record: InquiryRecord): record is CorporateInquiryRecord {
+  return record.formType === CORPORATE_FORM_TYPE;
+}
+
 async function listSubmissions(token: string): Promise<BlobListItem[]> {
   const items: BlobListItem[] = [];
   let cursor: string | undefined;
 
-  // Paginate through all blobs under submissions/
   do {
     const url = new URL(BLOB_API_BASE);
     url.searchParams.set("prefix", "submissions/");
@@ -67,35 +222,27 @@ async function listSubmissions(token: string): Promise<BlobListItem[]> {
     cursor = data.hasMore ? data.cursor : undefined;
   } while (cursor);
 
-  return items;
+  return items.filter((blob) => blob.pathname.endsWith(".json"));
 }
 
 async function readSubmission(
   blob: BlobListItem,
   token: string,
-): Promise<CorporateInquiryRecord | null> {
+): Promise<InquiryRecord | null> {
   try {
     const res = await fetch(blob.downloadUrl, {
       headers: blobHeaders(token),
     });
-    if (!res.ok) return null;
-    return (await res.json()) as CorporateInquiryRecord;
-  } catch {
-    return {
-      id: blob.pathname,
-      formType: "corporate-training-inquiry",
-      submittedAt: blob.uploadedAt,
-      company: "",
-      contactName: "",
-      email: "",
-      phone: "",
-      teamSize: "",
-      tiers: [],
-      industry: "",
-      timing: "",
-      requirements: "",
-      meta: { source: "unknown" },
-    };
+    if (!res.ok) {
+      console.warn(`Skipping ${blob.pathname}: blob fetch failed with ${res.status}`);
+      return null;
+    }
+
+    const raw = await res.json();
+    return parseSubmission(blob, raw);
+  } catch (err) {
+    console.warn(`Skipping ${blob.pathname}: ${err instanceof Error ? err.message : "read failed"}`);
+    return null;
   }
 }
 
@@ -155,18 +302,18 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    // Tolerate quotes/whitespace accidentally pasted with the token.
+
     const token = rawToken.trim().replace(/^["']+|["']+$/g, "");
 
     const blobs = await listSubmissions(token);
+    const parsed = await Promise.all(blobs.map((blob) => readSubmission(blob, token)));
+    const inquiries = sortBySubmittedAt(
+      parsed.filter((item): item is InquiryRecord => item !== null),
+    );
+    const contact = inquiries.filter(isContactInquiry);
+    const corporate = inquiries.filter(isCorporateInquiry);
 
-    const inquiries = await Promise.all(blobs.map((blob) => readSubmission(blob, token)));
-
-    const validInquiries = inquiries
-      .filter((item): item is CorporateInquiryRecord => item !== null)
-      .sort((a, b) => Date.parse(b.submittedAt) - Date.parse(a.submittedAt));
-
-    return new Response(JSON.stringify({ inquiries: validInquiries }), {
+    return new Response(JSON.stringify({ inquiries, contact, corporate }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
