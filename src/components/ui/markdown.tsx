@@ -22,11 +22,21 @@ export function Markdown({ content, className }: MarkdownProps) {
         'prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-sm',
         'prose-pre:bg-muted prose-pre:border prose-pre:border-border',
         'prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground',
+        'prose-img:rounded-lg prose-img:max-w-full prose-img:my-4',
         '[&_p]:whitespace-pre-line',
         className
       )}
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          img: ({ src, alt }) => (
+            <img src={src} alt={alt ?? ''} loading="lazy" className="rounded-lg max-w-full my-4" />
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
     </div>
   );
 }

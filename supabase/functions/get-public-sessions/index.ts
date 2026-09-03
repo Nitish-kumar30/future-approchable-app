@@ -59,10 +59,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fetch sessions - only safe fields
+    // Fetch sessions - only safe fields (text_content used only to derive has_text_content)
     let query = supabaseAdmin
       .from("sessions")
-      .select("id, title, description, session_date, session_order")
+      .select("id, title, description, session_date, session_order, text_content")
       .order("session_order", { ascending: true });
 
     if (courseId) {
@@ -80,8 +80,13 @@ Deno.serve(async (req) => {
       );
     }
 
+    const safeSessions = (sessions || []).map(({ text_content, ...session }) => ({
+      ...session,
+      has_text_content: !!text_content?.trim(),
+    }));
+
     return new Response(
-      JSON.stringify({ sessions: sessions || [] }),
+      JSON.stringify({ sessions: safeSessions }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

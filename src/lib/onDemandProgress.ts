@@ -11,6 +11,7 @@ export interface OnDemandSessionRef {
   id: string;
   recording_url: string | null;
   session_order: number | null;
+  text_content?: string | null;
 }
 
 export interface OnDemandLearningItem {
@@ -27,7 +28,11 @@ function isTrackableSession(
   session: OnDemandSessionRef,
   quizSessionIds: Set<string>,
 ): boolean {
-  return (session.recording_url && isVideoUrl(session.recording_url)) || quizSessionIds.has(session.id);
+  return (
+    (session.recording_url && isVideoUrl(session.recording_url)) ||
+    !!session.text_content?.trim() ||
+    quizSessionIds.has(session.id)
+  );
 }
 
 function orderedTrackableSessions(
@@ -71,7 +76,7 @@ async function fetchOnDemandSessionContext(
 
   const { data: sessions } = await supabase
     .from('sessions')
-    .select('id, title, session_order, recording_url, course_id')
+    .select('id, title, session_order, recording_url, text_content, course_id')
     .in('course_id', courseIds)
     .order('session_order', { ascending: true });
 

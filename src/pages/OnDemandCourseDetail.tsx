@@ -29,6 +29,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import FeedbackDialog from '@/components/FeedbackDialog';
+import { Markdown } from '@/components/ui/markdown';
 import { canEnrollInCourse } from '@/lib/coursePayment';
 import { isVideoUrl } from '@/lib/recordingVideo';
 import { getResumeSessionId } from '@/lib/onDemandProgress';
@@ -51,6 +52,40 @@ interface Session {
   recording_url: string | null;
   presentation_url: string | null;
   session_order: number | null;
+  text_content?: string | null;
+  has_text_content?: boolean;
+}
+
+function sessionHasText(session: Session): boolean {
+  return !!session.text_content?.trim() || !!session.has_text_content;
+}
+
+function getContentType(session: Session, hasQuizzes: boolean, hasReadings: boolean): string {
+  if (session.recording_url && isVideoUrl(session.recording_url)) return 'video';
+  if (sessionHasText(session)) return 'text';
+  if (hasQuizzes) return 'quiz';
+  if (session.presentation_url) return 'link';
+  if (hasReadings) return 'reading';
+  return 'content';
+}
+
+const contentIcons: Record<string, typeof PlayCircle> = {
+  video: PlayCircle,
+  text: FileText,
+  quiz: ClipboardList,
+  link: ExternalLink,
+  reading: BookOpen,
+  content: FileText,
+};
+
+function isTrackableOnDemandSession(
+  session: Session,
+  quizSessionIds: Set<string>,
+): boolean {
+  const hasVideo = !!(session.recording_url && isVideoUrl(session.recording_url));
+  const hasText = sessionHasText(session);
+  const hasQuizzes = quizSessionIds.has(session.id);
+  return hasVideo || hasText || hasQuizzes;
 }
 
 interface SessionQuiz {
@@ -63,22 +98,6 @@ interface PreReadingMaterial {
   title: string;
   link: string;
 }
-
-function getContentType(session: Session, hasQuizzes: boolean, hasReadings: boolean): string {
-  if (session.recording_url && isVideoUrl(session.recording_url)) return 'video';
-  if (hasQuizzes) return 'quiz';
-  if (session.presentation_url) return 'link';
-  if (hasReadings) return 'reading';
-  return 'content';
-}
-
-const contentIcons: Record<string, typeof PlayCircle> = {
-  video: PlayCircle,
-  quiz: ClipboardList,
-  link: ExternalLink,
-  reading: BookOpen,
-  content: FileText,
-};
 
 export default function OnDemandCourseDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -232,7 +251,7 @@ export default function OnDemandCourseDetail() {
       }
     }
 
-    const sessionsRes = await supabase.from('sessions').select('id, title, description, recording_url, presentation_url, session_order').eq('course_id', course.id).order('session_order', { ascending: true });
+    const sessionsRes = await supabase.from('sessions').select('id, title, description, recording_url, presentation_url, session_order, text_content').eq('course_id', course.id).order('session_order', { ascending: true });
 
     if (sessionsRes.data) {
       enrolledContentLoadedRef2.current = true;
@@ -276,11 +295,12 @@ export default function OnDemandCourseDetail() {
     setCompletedSessionIds(newCompleted);
 
     // Check if this brings us to 100%
-    const trackable = sessions.filter(s => {
-      const hasVideo = s.recording_url && isVideoUrl(s.recording_url);
-      const hasQuizzes = (sessionQuizzes[s.id]?.length || 0) > 0;
-      return hasVideo || hasQuizzes;
-    });
+    const quizSessionIds = new Set(
+      Object.entries(sessionQuizzes)
+        .filter(([, quizzes]) => quizzes.length > 0)
+        .map(([sessionId]) => sessionId),
+    );
+    const trackable = sessions.filter((s) => isTrackableOnDemandSession(s, quizSessionIds));
     const allDone = trackable.length > 0 && trackable.every(s => newCompleted.has(s.id));
     if (allDone) {
       confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
@@ -340,13 +360,19 @@ export default function OnDemandCourseDetail() {
   const activeSession = sessions.find(s => s.id === activeSessionId);
   const shouldAutoPlay =
     activeSessionId !== null && autoPlaySessionIdRef.current === activeSessionId;
+  const activeHasVideo = !!(activeSession?.recording_url && isVideoUrl(activeSession.recording_url));
+  const activeHasText = activeSession ? sessionHasText(activeSession) : false;
+  const activeIsTextOnly = activeHasText && !activeHasVideo;
+  const activeIsCompleted = activeSession ? completedSessionIds.has(activeSession.id) : false;
 
-  // Progress calculation: sessions with video OR quizzes count as trackable
-  const trackableSessions = sessions.filter(s => {
-    const hasVideo = s.recording_url && isVideoUrl(s.recording_url);
-    const hasQuizzes = (sessionQuizzes[s.id]?.length || 0) > 0;
-    return hasVideo || hasQuizzes;
-  });
+  const quizSessionIds = new Set(
+    Object.entries(sessionQuizzes)
+      .filter(([, quizzes]) => quizzes.length > 0)
+      .map(([sessionId]) => sessionId),
+  );
+
+  // Progress calculation: sessions with video, text, or quizzes count as trackable
+  const trackableSessions = sessions.filter((s) => isTrackableOnDemandSession(s, quizSessionIds));
   const completedTrackableCount = trackableSessions.filter(s => completedSessionIds.has(s.id)).length;
   const completionPercent = trackableSessions.length > 0 ? Math.round((completedTrackableCount / trackableSessions.length) * 100) : 0;
 
@@ -522,6 +548,30 @@ export default function OnDemandCourseDetail() {
     </div>
   );
 
+  const textContentBlock = activeSession?.text_content?.trim() && (
+    <div className="mt-6 space-y-4">
+      <Markdown content={activeSession.text_content} />
+      {activeIsTextOnly && user && !activeIsCompleted && (
+        <Button
+          onClick={() => {
+            handleAutoEnroll();
+            handleSessionCompleted(activeSession.id);
+          }}
+          className="gap-2"
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          Mark lesson complete
+        </Button>
+      )}
+      {activeIsTextOnly && user && activeIsCompleted && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <CheckCircle2 className="h-4 w-4" style={{ color: 'hsl(142 71% 45%)' }} />
+          Lesson completed
+        </div>
+      )}
+    </div>
+  );
+
   const quizBlock = activeSession && sessionQuizzes[activeSession.id]?.length > 0 && (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Quizzes</h3>
@@ -632,6 +682,7 @@ export default function OnDemandCourseDetail() {
                 <>
                   {progressBlockMobile}
                   {videoBlock}
+                  {textContentBlock}
                   {lessonListSectionMobile}
                   {quizBlock}
                   {resourcesBlock}
@@ -662,6 +713,7 @@ export default function OnDemandCourseDetail() {
               {activeSession ? (
                 <div className="max-w-4xl space-y-6">
                   {videoBlock}
+                  {textContentBlock}
                   {quizBlock}
                   {resourcesBlock}
                   {readingsBlock}
