@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 import {
   PlayCircle,
@@ -24,9 +25,11 @@ import {
   UserPlus,
   LogIn,
   ChevronLeft,
+  ChevronRight,
   ExternalLink,
   CheckCircle2,
   MessageSquare,
+  List,
 } from 'lucide-react';
 import FeedbackDialog from '@/components/FeedbackDialog';
 import { Markdown } from '@/components/ui/markdown';
@@ -116,6 +119,7 @@ export default function OnDemandCourseDetail() {
 
   const enrolledContentLoadedRef2 = useRef(false);
   const initialSessionResolvedRef = useRef(false);
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (slug) {
@@ -315,6 +319,7 @@ export default function OnDemandCourseDetail() {
 
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [upsellOpen, setUpsellOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const autoEnrolledRef = useRef(false);
   /** Session id that should autoplay when its player mounts (set by next-video flow). */
   const autoPlaySessionIdRef = useRef<string | null>(null);
@@ -345,11 +350,21 @@ export default function OnDemandCourseDetail() {
   }, [user, course, fetchEnrolledSessionData]);
 
   const handleNextSession = useCallback(() => {
-    const currentIdx = sessions.findIndex(s => s.id === activeSessionId);
-    if (currentIdx >= 0 && currentIdx < sessions.length - 1) {
-      const nextId = sessions[currentIdx + 1].id;
+    const idx = sessions.findIndex(s => s.id === activeSessionId);
+    if (idx >= 0 && idx < sessions.length - 1) {
+      const nextId = sessions[idx + 1].id;
       autoPlaySessionIdRef.current = nextId;
       setActiveSessionId(nextId);
+      mobileScrollRef.current?.scrollTo(0, 0);
+    }
+  }, [sessions, activeSessionId]);
+
+  const handlePreviousSession = useCallback(() => {
+    const idx = sessions.findIndex(s => s.id === activeSessionId);
+    if (idx > 0) {
+      autoPlaySessionIdRef.current = null;
+      setActiveSessionId(sessions[idx - 1].id);
+      mobileScrollRef.current?.scrollTo(0, 0);
     }
   }, [sessions, activeSessionId]);
 
@@ -437,6 +452,50 @@ export default function OnDemandCourseDetail() {
     </div>
   );
 
+  const mobileCompactHeader = (
+    <div className="shrink-0 flex items-center gap-2 px-3 py-2.5 border-b border-border bg-card">
+      <Link
+        to="/courses?tab=free"
+        className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        aria-label="Back to free courses"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Link>
+      <div className="flex-1 min-w-0 text-center px-1">
+        <h1 className="font-display font-semibold text-sm text-foreground truncate">
+          {course.name}
+        </h1>
+        {course.mentor_name && (
+          <p className="text-[11px] text-muted-foreground truncate">
+            by {course.mentor_name}
+          </p>
+        )}
+      </div>
+      {user && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={() => setFeedbackOpen(true)}
+          aria-label="Feedback"
+        >
+          <MessageSquare className="h-4 w-4" />
+        </Button>
+      )}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setSidebarOpen(true)}
+        className="shrink-0 gap-1 h-8 px-2.5"
+      >
+        <List className="h-3.5 w-3.5" />
+        <span className="text-xs">Lessons</span>
+      </Button>
+    </div>
+  );
+
   // Lesson list rows (rendering wrapper differs between mobile and desktop).
   const lessonListItems = sessions.map((session, idx) => {
     const hasQuizzes = (sessionQuizzes[session.id]?.length || 0) > 0;
@@ -452,11 +511,15 @@ export default function OnDemandCourseDetail() {
         onClick={() => {
           autoPlaySessionIdRef.current = null;
           setActiveSessionId(session.id);
+          if (isMobile) {
+            setSidebarOpen(false);
+            mobileScrollRef.current?.scrollTo(0, 0);
+          }
         }}
-        className={`w-full text-left rounded-lg px-3 py-3 flex items-start gap-3 transition-colors ${
+        className={`w-full text-left rounded-lg px-3 py-3 flex items-start gap-3 transition-colors border-l-2 ${
           isActive
-            ? 'bg-primary/10 text-foreground'
-            : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+            ? 'bg-primary/10 border-primary text-foreground'
+            : 'border-transparent hover:bg-muted text-muted-foreground hover:text-foreground'
         }`}
       >
         <div className={`mt-0.5 shrink-0 ${isActive ? 'text-primary' : ''}`}>
@@ -471,7 +534,7 @@ export default function OnDemandCourseDetail() {
           )}
         </div>
         {user && isCompleted && (
-          <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" style={{ color: 'hsl(142 71% 45%)' }} />
+          <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-success" />
         )}
       </button>
     );
@@ -488,16 +551,7 @@ export default function OnDemandCourseDetail() {
     </ScrollArea>
   );
 
-  const lessonListSectionMobile = (
-    <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-        Lessons ({sessions.length})
-      </h3>
-      <div className="space-y-1">{lessonListItems}</div>
-    </div>
-  );
-
-  // Progress bar (desktop lives in the sidebar footer, mobile is an inline section).
+  // Progress bar (desktop lives in the sidebar footer, mobile is inline above content).
   const progressBlockDesktop = user && trackableSessions.length > 0 && (
     <div className="p-4 border-t border-border bg-card shrink-0">
       <div className="flex justify-between items-center mb-2">
@@ -512,7 +566,7 @@ export default function OnDemandCourseDetail() {
   );
 
   const progressBlockMobile = user && trackableSessions.length > 0 && (
-    <div className="space-y-2">
+    <div className="rounded-lg border border-border bg-card p-3 space-y-2">
       <div className="flex justify-between items-center">
         <span className="text-xs text-muted-foreground font-medium">Your progress</span>
         <span className="text-xs font-semibold text-foreground">{completionPercent}%</span>
@@ -527,7 +581,12 @@ export default function OnDemandCourseDetail() {
   // Session title/description + video player.
   const videoBlock = (
     <div>
-      <h2 className="text-xl font-display font-bold">{activeSession?.title}</h2>
+      {isMobile && currentIdx >= 0 && (
+        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+          Lesson {currentIdx + 1}
+        </p>
+      )}
+      <h2 className={`font-display font-bold ${isMobile ? 'text-lg' : 'text-xl'}`}>{activeSession?.title}</h2>
       {activeSession?.description &&
         activeSession.description.trim() !== activeSession.title.trim() && (
           <p className="text-muted-foreground mt-1">{activeSession.description}</p>
@@ -549,8 +608,8 @@ export default function OnDemandCourseDetail() {
   );
 
   const textContentBlock = activeSession?.text_content?.trim() && (
-    <div className="mt-6 space-y-4">
-      <Markdown content={activeSession.text_content} />
+    <div className="mt-6 rounded-xl border border-border bg-card/50 p-5 md:p-8 space-y-4">
+      <Markdown content={activeSession.text_content} className="lesson-content prose" />
       {activeIsTextOnly && user && !activeIsCompleted && (
         <Button
           onClick={() => {
@@ -627,6 +686,37 @@ export default function OnDemandCourseDetail() {
     </div>
   );
 
+  const mobileLessonNavBlock = activeSession && sessions.length > 1 && (
+    <div className="shrink-0 border-t border-border bg-card/95 backdrop-blur-sm px-3 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={currentIdx <= 0}
+          onClick={handlePreviousSession}
+          className="h-8 min-w-[7.25rem] rounded-full px-3 text-xs justify-self-start"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Previous
+        </Button>
+        <span className="text-[11px] text-muted-foreground text-center tabular-nums px-1">
+          Lesson {currentIdx + 1} of {sessions.length}
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          disabled={currentIdx < 0 || currentIdx >= sessions.length - 1}
+          onClick={handleNextSession}
+          className="h-8 min-w-[7.25rem] rounded-full px-3 text-xs justify-self-end"
+        >
+          Next
+          <ChevronRight className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+
   const authOverlay = !user ? (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
       <div className="text-center max-w-md p-8">
@@ -663,55 +753,75 @@ export default function OnDemandCourseDetail() {
 
   return (
     <div
-      className="min-h-screen bg-background flex flex-col"
+      className="h-screen bg-background flex flex-col overflow-hidden"
       onContextMenu={(e) => e.preventDefault()}
     >
-      <PublicHeader />
+      <div className="shrink-0">
+        <PublicHeader />
+      </div>
 
       {isMobile ? (
-        /* Mobile: single column — header/feedback, video, progress, list, quiz, resources, readings */
-        <div className="flex-1 flex flex-col overflow-y-auto">
-          <aside className="border-b border-border bg-card shrink-0 flex flex-col">
-            {headerBlock}
-          </aside>
+        /* Mobile: compact header + drawer for lessons + fixed footer nav */
+        <>
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetContent
+              side="left"
+              className="w-[85%] max-w-sm p-0 flex flex-col rounded-r-2xl overflow-hidden bg-card"
+            >
+              <SheetHeader className="px-4 pt-4 pb-3 pr-10 space-y-0 border-b border-border">
+                <SheetTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-left">
+                  Lessons ({sessions.length})
+                </SheetTitle>
+              </SheetHeader>
+              <ScrollArea className="flex-1">
+                <div className="px-4 py-3 space-y-1">
+                  {lessonListItems}
+                </div>
+              </ScrollArea>
+            </SheetContent>
+          </Sheet>
 
-          <div className="flex-1 relative">
-            {authOverlay}
-            <div className={`p-3 space-y-6 ${!user ? 'filter blur-sm pointer-events-none select-none' : ''}`}>
-              {activeSession ? (
-                <>
-                  {progressBlockMobile}
-                  {videoBlock}
-                  {textContentBlock}
-                  {lessonListSectionMobile}
-                  {quizBlock}
-                  {resourcesBlock}
-                  {readingsBlock}
-                </>
-              ) : (
-                noSessionsBlock
-              )}
+          <div ref={mobileScrollRef} className="flex-1 flex flex-col overflow-y-auto min-h-0">
+            {mobileCompactHeader}
+
+            <div className="flex-1 relative">
+              {authOverlay}
+              <div className={`px-4 py-4 pb-4 space-y-6 ${!user ? 'filter blur-sm pointer-events-none select-none' : ''}`}>
+                {activeSession ? (
+                  <>
+                    {progressBlockMobile}
+                    {videoBlock}
+                    {textContentBlock}
+                    {quizBlock}
+                    {resourcesBlock}
+                    {readingsBlock}
+                  </>
+                ) : (
+                  noSessionsBlock
+                )}
+              </div>
             </div>
           </div>
-        </div>
+          {mobileLessonNavBlock}
+        </>
       ) : (
         /* Desktop: two-column split pane */
-        <div className="flex-1 flex flex-row h-[calc(100vh-4rem)] overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-row overflow-hidden">
           {/* Left sidebar - session list */}
-          <aside className="md:w-80 lg:w-96 md:border-r border-border bg-card shrink-0 flex flex-col">
+          <aside className="md:w-80 lg:w-96 md:border-r border-border bg-card shrink-0 h-full min-h-0 overflow-hidden flex flex-col">
             {headerBlock}
             {lessonListSectionDesktop}
             {progressBlockDesktop}
           </aside>
 
           {/* Right panel - content area */}
-          <div className="flex-1 relative">
+          <div className="flex-1 min-h-0 h-full overflow-y-auto relative">
             {authOverlay}
 
             {/* Content (blurred when not logged in) */}
             <div className={`p-3 md:p-6 ${!user ? 'filter blur-sm pointer-events-none select-none' : ''}`}>
               {activeSession ? (
-                <div className="max-w-4xl space-y-6">
+                <div className={`space-y-6 ${activeIsTextOnly ? 'max-w-3xl' : 'max-w-4xl'}`}>
                   {videoBlock}
                   {textContentBlock}
                   {quizBlock}
