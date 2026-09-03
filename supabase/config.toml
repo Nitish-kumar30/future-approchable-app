@@ -1,6 +1,5 @@
 project_id = "csxrrefkjqflxcynbixj"
   
-
 [functions.get-enrollments]
 verify_jwt = false
 
